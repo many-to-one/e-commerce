@@ -1,0 +1,112 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django stuff:
+server/*.log
+server/*.pot
+server/*.pyc
+server/*.pyo
+server/*.pyd
+server/*.sqlite3
+server/db.sqlite3
+server/*.db
+
+# If you are using PostgreSQL:
+server/*.pgdata
+
+# If you are using MySQL:
+*.myd
+*.myi
+*.err
+
+# If you are using SQLite:
+server/*.sqlite3
+
+# Django migrations
+server/**/migrations/
+
+# Media files
+server/media/
+
+# Static files
+server/staticfiles/
+server/static/
+
+# Local environment variables
+server/.env
+
+# VSCode settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Virtual environment
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# WSL2 specific
+.wslconfig
+.wsl/
+mnt/
+
+# Other
+*.swp
+*.swo
+*~
+
+# Node.js / React-specific
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.next/
+frontend/.yarn/
+frontend/.pnp.*
+frontend/.yarnrc.yml
+
+# Cache & Logs
+frontend/.yarn/cache/
+frontend/.yarn/unplugged/
+frontend/.yarn/install-state.gz
+frontend/.yarn/patches/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*

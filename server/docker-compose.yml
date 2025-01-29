@@ -1,0 +1,82 @@
+# services:
+#   db:
+#     image: postgres:17
+#     container_name: shop_db
+#     environment:
+#       - POSTGRES_USER=${DB_USER}
+#       - POSTGRES_DB=${DB_NAME}
+#       - POSTGRES_PASSWORD=${DB_PASSWORD}
+#       - PGPORT=${DB_PORT}
+#     ports:
+#       - "${DB_PORT}:${DB_PORT}"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     # networks:
+#     #   - db-net
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+#       interval: 5s
+#       retries: 5
+#       start_period: 1s
+#       timeout: 10s
+
+  # web:
+  #  build: .
+  #  container_name: shop_web
+  #  ports:
+  #    - "${DJANGO_PORT}:${DJANGO_PORT}"
+  #  depends_on:
+  #    - db
+  #  command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}
+  #  environment:
+  #    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+  #    DEBUG: ${DEBUG}
+  #   #  DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
+  #    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+  #   #  DATABASE_ENGINE: ${DATABASE_ENGINE}
+  #    DATABASE_NAME: ${DB_NAME}
+  #    DATABASE_USERNAME: ${DB_USER}
+  #    DATABASE_PASSWORD: ${DB_PASSWORD}
+  #    DATABASE_HOST: ${DB_PORT}
+  #    DATABASE_PORT: ${DB_PORT}
+  #  env_file:
+  #    - .env
+
+services:
+  db:
+    image: postgres
+    container_name: eshopdb
+    # volumes:
+    #   - ./data/db:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    environment:
+      POSTGRES_NAME: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGPORT: ${DB_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      retries: 5
+      start_period: 1s
+      timeout: 10s
+  web:
+    build: .
+    container_name: eshopweb
+    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}
+    volumes:
+      - .:/app
+    ports:
+      - "${DJANGO_PORT}:${DJANGO_PORT}"
+    environment:
+      POSTGRES_NAME: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - db
+    env_file:
+    - .env
+
+volumes:
+  postgres_data: {}
