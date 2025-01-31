@@ -40,13 +40,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 
             email_user, mobile = user.email.split("@")
             user.username = email_user
-            # Validate the password
-            try:
-                validate_password(validated_data['password'], user)
-            except DjangoValidationError as e:
-                user.delete()
-                raise ValidationError({"password": e.messages})
-            user.set_password(validate_password('password'))
+            # # Validate the password
+            # try:
+            #     validate_password(validated_data['password'], user)
+            # except DjangoValidationError as e:
+            #     user.delete()
+            #     raise ValidationError({"password": e.messages})
+            user.set_password(validated_data['password'])
             user.save()
 
             return user
@@ -88,3 +88,4 @@ class ProfileSerializer(serializers.ModelSerializer):
         response =  super().to_representation(instance)
         response['user'] = UserSerializer(instance.user).data
         return response
+    

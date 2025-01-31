@@ -28,7 +28,9 @@ SECRET_KEY = 'django-insecure-qm$3!6ic29&j@eil_b6-!f#fwv+0&sv5pyo!hta=7@es$t#$8k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ['https://127.0.0.1']
+# SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups
 
 
 # Application definition
@@ -53,10 +55,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -161,6 +165,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 JAZZMIN_SETTINGS = {

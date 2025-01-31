@@ -9,25 +9,12 @@ from django.contrib.admin.models import LogEntry
 
 
 class User(AbstractUser):
-    # groups = models.ManyToManyField(
-    #     Group,
-    #     related_name='custom_user_set',  # Change this to avoid conflict
-    #     blank=True,
-    #     help_text='The groups this user belongs to.',
-    #     verbose_name='groups',
-    # )
-    # user_permissions = models.ManyToManyField(
-    #     Permission,
-    #     related_name='custom_user_permissions_set',  # Change this to avoid conflict
-    #     blank=True,
-    #     help_text='Specific permissions for this user.',
-    #     verbose_name='user permissions',
-    # )
-    
     username = models.CharField(unique=True, max_length=100)
     email = models.EmailField(unique=True)
     full_name = models.CharField(unique=True, max_length=100)
     phone = models.CharField(unique=True, null=True, blank=True)
+    otp = models.CharField(max_length=1000, null=True, blank=True)
+    reset_token  = models.CharField(max_length=1000, null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -43,12 +30,6 @@ class User(AbstractUser):
         if self.username == "" or self.username == None:
              self.username = email_username
         super(User, self).save(*args, **kwargs)
-
-
-    # def delete(self, *args, **kwargs):
-    #     # Delete log entries related to this user
-    #     LogEntry.objects.filter(user_id=self.pk).delete()
-    #     super(User, self).delete(*args, **kwargs)
 
 
 GENDER = (
