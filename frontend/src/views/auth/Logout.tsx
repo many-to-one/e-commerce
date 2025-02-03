@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react'
-import { logout } from '../../utils/auth'
+import React, { useEffect } from 'react';
+import { logout } from '../../utils/auth';
+import '../../styles/auth.css';
+import { Link } from 'react-router-dom';
 
 const Logout =() => {
 
@@ -8,7 +10,13 @@ const Logout =() => {
     }, [])
 
   return (
-    <div>Logout</div>
+    <div className='flexColumnCenter'>
+      <img src="/logout.jpg" alt="logout" width={500} />
+      <h3>Logout</h3>
+      <p>
+        <Link to={'/login'}>Back to Login page</Link>
+      </p>
+    </div>
   )
 }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../utils/auth';
 import { useAuthStore } from '../../store/auth';
+import '../../styles/auth.css';
 
 function Register() {
     const [fullName, setFullName] = useState<string>("");
@@ -45,32 +46,47 @@ function Register() {
 
   return (
     <div>
-        <form onSubmit={handleRegister}>
+        <form onSubmit={handleRegister} className='flexColumnCenter'>
+            <img src="/register.jpg" alt="register" width={560}/>
             <input 
+                className='fullNameInput'
+                placeholder='Full Name...'
                 type="text" 
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
             />
-            <input 
-                type="text" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
-            <input 
-                type="text" 
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-            />
-            <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
-            <input 
-                type="password" 
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-            />
+            <div>
+                <input 
+                    className='authInput'
+                    placeholder='Email...'
+                    type="text" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                <input 
+                    className='authInput'
+                    placeholder='Phone...'
+                    type="text" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                />
+            </div>
+            <div>
+                <input 
+                    className='authInput'
+                    placeholder='Password...'
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <input 
+                    className='authInput'
+                    placeholder='Repeat password...'
+                    type="password" 
+                    value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                />
+            </div>
 
             <button type='submit'>Sing up</button>
             <br />

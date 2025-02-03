@@ -78,6 +78,19 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class EmailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['email']
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    uidb64 = serializers.IntegerField()
+    otp = serializers.CharField(max_length=1000)
+    password = serializers.CharField(write_only=True, min_length=8)
+
+
 class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:

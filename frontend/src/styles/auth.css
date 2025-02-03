@@ -1,0 +1,24 @@
+.flexColumnCenter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.authInput {
+    height: 40px;
+    width: 250px;
+    border: solid gray 1px;
+    border-radius: 10px;
+    margin: 5px;
+    padding: 5px;
+}
+
+.fullNameInput {
+    height: 40px;
+    width: 520px;
+    border: solid gray 1px;
+    border-radius: 10px;
+    margin: 5px;
+    padding: 5px;
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../../utils/auth';
+import '../../styles/auth.css'
 
 const Login: React.FC = () => {
 
@@ -40,13 +41,18 @@ const Login: React.FC = () => {
 
   return (
     <div>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} className='flexColumnCenter'>
+            <img src="/login.jpg" alt="login" width={300}/>
             <input 
+                className='authInput'
+                placeholder='Email...'
                 type="text" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
             />
             <input 
+                className='authInput'
+                placeholder='Password...'
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

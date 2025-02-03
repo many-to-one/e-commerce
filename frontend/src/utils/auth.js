@@ -125,3 +125,35 @@ export const setAuthUser = (access_token, refresh_token) => {
     }
     useAuthStore.getState().setLoading(false);
 };
+
+
+export const createNewPass = async (otp, uidb64, reset_token, password) => {
+    try {
+        console.log(otp, uidb64, reset_token, password)
+        const { data } = await axios.post('api/users/new-password', {
+            otp,
+            uidb64,
+            reset_token,
+            password,
+        });
+
+        console.log('register data', data)
+
+        // await login(email, password);
+
+        return { data, error: null }
+
+    } catch (error) {
+        return {
+            data: null,
+            error: error.response.data?.password?.[0] || 
+                   error.response.data?.detail || 
+                   'Something went wrong',
+        };
+        // return {
+        //     data: null,
+        //     error: 
+        //            'Something went wrong',
+        // };
+    }
+};
