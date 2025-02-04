@@ -120,8 +120,11 @@ class Product(models.Model):
         return Product.objects.filter(category__in=self.category).count()
 
     def get_precentage(self):
-        new_price = ((self.old_price - self.price) / self.old_price) * 100
-        return round(new_price, 0)
+        if self.old_price != 0.00:
+            new_price = ((self.old_price - self.price) / self.old_price) * 100
+            return round(new_price, 0)
+        else:
+            return 0
     
     def product_rating(self):
         product_rating = Review.objects.filter(product=self).aggregate(avg_rating=models.Avg('rating'))

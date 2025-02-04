@@ -85,15 +85,33 @@ class CartOrderAdmin(ImportExportModelAdmin):
     list_display = ['oid', 'payment_status', 'order_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'saved' ,'date']
 
 
-class CartOrderItemsAdmin(ImportExportModelAdmin):
-    list_filter = ['delivery_couriers', 'applied_coupon']
-    list_editable = ['date']
-    list_display = ['order_id', 'vendor', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'delivery_couriers', 'applied_coupon', 'date']
+# class CartOrderItemsAdmin(ImportExportModelAdmin):
+#     # list_filter = ['delivery_couriers', 'applied_coupon']
+#     list_editable = ['date']
+#     list_display = ['order_id', 'vendor', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'date']
+
+
+class CartAdmin(ImportExportModelAdmin):
+    list_display = ['product', 'cart_id', 'qty', 'price', 'sub_total' , 'shipping_amount', 'service_fee', 'tax_fee', 'total', 'country', 'size', 'color', 'date']
+
+
+class CouponAdmin(ImportExportModelAdmin):
+    # inlines = [CouponUsersInlineAdmin]
+    list_editable = ['code', 'active', ]
+    list_display = ['vendor' ,'code', 'discount', 'active', 'date']
 
 
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category)
 admin.site.register(Gallery)
-admin.site.register(Cart)
-admin.site.register(CartOrder)
-admin.site.register(CartOrderItem)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(CartOrder, CartOrderAdmin)
+admin.site.register(Cart, CartAdmin)
+# admin.site.register(CartOrderItem, CartOrderItemsAdmin)
+admin.site.register(Brand, BrandAdmin)
+admin.site.register(ProductFaq, ProductFaqAdmin)
+admin.site.register(Coupon, CouponAdmin)
+admin.site.register(Address, AddressAdmin)
+admin.site.register(Wishlist)
+admin.site.register(Notification, NotificationAdmin)
+admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)
