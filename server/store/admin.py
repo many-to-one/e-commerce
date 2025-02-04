@@ -17,6 +17,13 @@ class SizeInline(admin.TabularInline):
 class ColorInline(admin.TabularInline):
     model = Color
 
+class CartOrderItemsInlineAdmin(admin.TabularInline):
+    model = CartOrderItem
+
+# class CouponUsersInlineAdmin(admin.TabularInline):
+#     model = CouponUsers
+
+
 class ProductAdminForm(forms.ModelForm):
     class Meta:
         model = Product
@@ -35,6 +42,54 @@ class ProductAdmin(ImportExportModelAdmin):
     list_per_page = 100
     prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
+
+
+class TagAdmin(ImportExportModelAdmin):
+    list_display = ['title', 'category', 'active']
+    prepopulated_fields = {"slug": ("title", )}
+
+
+class ProductReviewAdmin(ImportExportModelAdmin):
+    list_editable = ['active']
+    list_editable = ['active']
+    list_display = ['user', 'product', 'review', 'reply' ,'rating', 'active']
+
+
+class AddressAdmin(ImportExportModelAdmin):
+    list_editable = ['status']
+    list_display = ['user', 'full_name', 'status']
+
+class DeliveryCouriersAdmin(ImportExportModelAdmin):
+    list_editable = ['tracking_website']
+    list_display = ['name', 'tracking_website']
+
+class NotificationAdmin(ImportExportModelAdmin):
+    list_editable = ['seen']
+    list_display = ['order', 'seen', 'user', 'vendor', 'date']
+
+
+class BrandAdmin(ImportExportModelAdmin):
+    list_editable = [ 'active']
+    list_display = ['title', 'brand_image', 'active']
+
+class ProductFaqAdmin(ImportExportModelAdmin):
+    list_editable = [ 'active', 'answer']
+    list_display = ['user', 'question', 'answer' ,'active']
+
+
+class CartOrderAdmin(ImportExportModelAdmin):
+    inlines = [CartOrderItemsInlineAdmin]
+    search_fields = ['oid', 'full_name', 'email', 'mobile']
+    list_editable = ['order_status', 'payment_status']
+    list_filter = ['payment_status', 'order_status']
+    list_display = ['oid', 'payment_status', 'order_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'saved' ,'date']
+
+
+class CartOrderItemsAdmin(ImportExportModelAdmin):
+    list_filter = ['delivery_couriers', 'applied_coupon']
+    list_editable = ['date']
+    list_display = ['order_id', 'vendor', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'delivery_couriers', 'applied_coupon', 'date']
+
 
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category)
