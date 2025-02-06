@@ -63,14 +63,10 @@ class PasswordChangeView(APIView):
         serializer = PasswordChangeSerializer(data=request.data)
 
         if serializer.is_valid():
-            print('************ PasswordChangeView validated_data ****************', serializer.validated_data['uidb64'])
-            print('************ PasswordChangeView request.data ****************', request.data['uidb64'])
             user = User.objects.get(
                 id=serializer.validated_data['uidb64'],
                 otp=serializer.validated_data['otp'],
             )
-
-            print('************ PasswordChangeView user ****************', user)
 
             if user:
                 user.set_password(request.data['password'])

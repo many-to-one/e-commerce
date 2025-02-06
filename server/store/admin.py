@@ -102,6 +102,7 @@ class CouponAdmin(ImportExportModelAdmin):
 
 
 admin.site.register(Product, ProductAdmin)
+admin.site.register(Review, ProductReviewAdmin)
 admin.site.register(Category)
 admin.site.register(Gallery)
 admin.site.register(Tag, TagAdmin)
