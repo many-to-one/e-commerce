@@ -1,0 +1,3 @@
+type RatingType = {
+    rating: string
+}

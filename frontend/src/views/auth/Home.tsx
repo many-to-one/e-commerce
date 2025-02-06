@@ -1,6 +1,7 @@
 import React, { FC } from 'react'
 import { useAuthStore } from "../../store/auth";
 import { Link } from 'react-router-dom';
+import Products from '../../views/shop/Products';
 
 const Home: React.FC = () => {
 
@@ -25,6 +26,7 @@ const Home: React.FC = () => {
       {isLoggedIn()
         ? <div>
             <h1>Hello, {user.username}</h1>
+            <Products />
             <Link to={'/logout'}>logout</Link>
           </div>
         : <div>

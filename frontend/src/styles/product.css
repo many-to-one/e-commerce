@@ -1,0 +1,11 @@
+.productCard {
+    /* width: 250;
+    height: 300; */
+    border-radius: 15px;
+    padding: 10px;
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 12px;
+}
+
+.oldPrice {
+    text-decoration: line-through;
+}
