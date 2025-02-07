@@ -15,7 +15,7 @@ import shortuuid
 class Category(models.Model):
 
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="category", default="category.jpg", null=True, blank=True)
+    image = models.ImageField(upload_to="category", default="default.jpg", null=True, blank=True)
     active = models.BooleanField(default=True)
     # Slug for SEO-friendly URLs
     slug = models.SlugField(null=True, blank=True)
@@ -66,7 +66,7 @@ class Product(models.Model):
     )
 
     title = models.CharField(max_length=100)
-    image = models.FileField(upload_to="products", blank=True, null=True, default="product.jpg")
+    image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")
     tags = models.CharField(max_length=1000, null=True, blank=True)
@@ -167,7 +167,8 @@ class Product(models.Model):
             self.stock_qty = 0
             self.in_stock = False
         
-        self.rating = self.product_rating()
+        if self.rating > 0:
+            self.rating = self.product_rating()
             
         super(Product, self).save(*args, **kwargs) 
 
@@ -190,7 +191,7 @@ class Tag(models.Model):
 class Brand(models.Model):
 
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="products", default="brand.jpg", null=True, blank=True)
+    image = models.ImageField(upload_to="products", default="default.jpg", null=True, blank=True)
     active = models.BooleanField(default=True)
     
     class Meta:
