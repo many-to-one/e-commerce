@@ -8,4 +8,5 @@ type ProductType = {
     special_offer: boolean,
     views: string,
     product_rating: string,
+    slug: string,
 }

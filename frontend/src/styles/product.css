@@ -1,9 +1,31 @@
+.productCont {
+    margin-top: 40px;
+}
+
 .productCard {
-    /* width: 250;
-    height: 300; */
+    width: 250px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     border-radius: 15px;
     padding: 10px;
     box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 12px;
+    transition: ease-in-out .3s;
+}
+
+.productCard:hover {
+    margin-top: -10px;
+}
+
+.productImage {
+    width: 200px;
+    transition: ease-out .3s;
+}
+
+.productImage:hover {
+    transform: scale(0.9);
 }
 
 .oldPrice {

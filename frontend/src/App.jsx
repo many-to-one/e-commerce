@@ -8,6 +8,8 @@ import Logout from './views/auth/Logout';
 import ForgotPassword from './views/auth/ForgotPassword';
 import CreatePassword from './views/auth/CreatePassword';
 import Products from './views/shop/Products';
+import Product from './components/product/Product';
+import ProductDetails from './views/shop/ProductDetails';
 
 
 function App() {
@@ -27,6 +29,7 @@ function App() {
 
             {/* STORE */}
             <Route path='/' element={<Products />} />
+            <Route path='/product-details/:slug' element={<ProductDetails />} />
 
         </Routes>
       </BrowserRouter>
