@@ -1,6 +1,7 @@
 type ProductType = {
     image: string,
     title: string,
+    brand: string,
     price: string,
     old_price: string,
     description: string,
@@ -9,4 +10,7 @@ type ProductType = {
     views: string,
     product_rating: string,
     slug: string,
+    sku: string,
+    stock_qty: string,
+    shipping_amount: string,
 }

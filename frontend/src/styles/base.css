@@ -7,7 +7,17 @@
 
 .flexRowStart {
     display: flex;
-    justify-content: center;
     align-items: flex-start;
+    /* gap: 15px; */
+}
+
+.flexRowCenter {
+    display: flex;
+    /* justify-content: center; */
+    align-items: center;
     gap: 15px;
+}
+
+.gap-50 {
+    gap: 50px;
 }

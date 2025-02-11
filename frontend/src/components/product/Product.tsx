@@ -12,13 +12,13 @@ interface ProductProps {
 
 const Product: React.FC<ProductProps> = ({product}) => {
 
-  // console.log('Product props', product)
+  console.log('Product props', product)
   const navigate = useNavigate();
 
   return (
     <div
       className='productCard' 
-      onClick={() => navigate(`/product-details/${product.slug}`, {state: {slug: product.slug}})}
+      onClick={() => navigate(`/product-details/${product.slug}`)} //{state: {slug: product.slug}}
      >
         <img src={product.image} alt="" className='productImage'/>
         <p>{product.title}</p>
