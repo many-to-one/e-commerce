@@ -32,8 +32,17 @@ class ProductDetailsView(APIView):
     def get(self, request, slug):
         product = get_object_or_404(Product, slug=slug)
         gallery = product.gallery()
+        product_image = product.image
+        product_image_gallery = [{
+            'image': product_image,
+            'active': True,
+            'date': product.date,  # or use the correct date field for the product
+            'gid': 'product_image',  # A placeholder or a specific identifier
+        }]
+        combined_gallery = product_image_gallery + list(gallery)
+        
         serializer = ProductSerializer(product)
-        gallery_serializer = GallerySerializer(gallery, many=True)
+        gallery_serializer = GallerySerializer(combined_gallery, many=True)
         return Response({
             "product": serializer.data,
             "gallery": gallery_serializer.data,

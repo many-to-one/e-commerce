@@ -152,6 +152,7 @@ class Product(models.Model):
         return Size.objects.filter(product=self)
 
     def save(self, *args, **kwargs):
+
         if self.slug == "" or self.slug is None:
             uuid_key = shortuuid.uuid()
             uniqueid = uuid_key[:4]

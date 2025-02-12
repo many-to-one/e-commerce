@@ -27,7 +27,7 @@ class BrandSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-        # Define a serializer for the Gallery model
+# Define a serializer for the Gallery model
 class GallerySerializer(serializers.ModelSerializer):
     # Serialize the related Product model
 
