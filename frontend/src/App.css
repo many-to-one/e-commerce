@@ -2,21 +2,8 @@
   max-width: 1280px;
   margin: 10px;
   padding: 10px;
+  --btn-color: greenyellow;
 }
-
-/* .flexColumnCenter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-}
-
-.flexRowStart {
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
-} */
 
 .flexColumnCenter {
   display: flex;
@@ -40,4 +27,8 @@
 
 .gap-50 {
   gap: 50px;
+}
+
+.mainBtn {
+  background-color: var(--btn-color);
 }

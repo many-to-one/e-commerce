@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Route, Routes, BrowserRouter } from 'react-router-dom';
 import './App.css';
+import './styles/product.css'
 import Login from './views/auth/Login';
 import Home from './views/auth/Home';
 import Register from './views/auth/Register';
