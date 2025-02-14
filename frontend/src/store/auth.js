@@ -26,18 +26,21 @@ export { useAuthStore };
 
 // // Import the 'create' function from the 'zustand' library.
 // import { create } from 'zustand';
+// import { persist } from 'zustand/middleware';
 
 // // Import the 'mountStoreDevtool' function from the 'simple-zustand-devtools' library
 // import { mountStoreDevtool } from 'simple-zustand-devtools';
 
-// const useAuthStore = create<SessionState>(
+// const useAuthStore = create(
 //     persist(
 //       (set) => ({
 //         user: null,
 //         accessToken: null,
 //         refreshToken: null,
+//         isLoggedIn: false,
 //         setUser: (user) => set({ user }),
 //         setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+//         setLoggetIn: () => set({isLoggedIn: true}),
 //         logout: () => set({ user: null, accessToken: null, refreshToken: null }),
 //       }),
 //       {

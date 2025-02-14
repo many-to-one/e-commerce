@@ -1,5 +1,7 @@
 import React from 'react';
 import '../../styles/category.css';
+import '../../types/CategoryType';
+import { useNavigate } from 'react-router-dom';
 
 interface CategoryProps {
     category: CategoryType;
@@ -8,9 +10,16 @@ interface CategoryProps {
 
 const Category: React.FC<CategoryProps> = ({category}) => {
 
-    // console.log('Product props', category)
+    const navigate = useNavigate();
+
+    const goToProducts = () => {
+      console.log('goToProducts', category)
+      console.log('goToProducts', category)
+      navigate(`category-products/${category.slug}`)
+    }
+
   return (
-    <div className='flexColumnCenter'>
+    <div className='flexColumnCenter' onClick={goToProducts}>
         <img src={category.image} alt="" className='categoryCard categoryImage'/>
         <p>{category.title}</p>
     </div>

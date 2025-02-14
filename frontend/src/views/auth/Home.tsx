@@ -6,17 +6,7 @@ import Products from '../../views/shop/Products';
 const Home: React.FC = () => {
 
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const user = useAuthStore((state) => state.user);
-
-  // const [isLoggedIn, user] = useAuthStore((state) => [
-  //   state.isLoggedIn,
-  //   state.user,
-  // ]);
-
-  // const { isLoggedIn, user } = useAuthStore(state => ({
-  //   isLoggedIn: state.isLoggedIn,
-  //   user: state.user
-  // }));
+  const user = useAuthStore((state) => state.allUserData);
 
   console.log('isLoggedIn', isLoggedIn)
   console.log('user', user)
@@ -25,7 +15,7 @@ const Home: React.FC = () => {
     <div>
       {isLoggedIn()
         ? <div>
-            <h1>Hello, {user.username}</h1>
+            <h1>Hello, {user?.username}</h1>
             <Products />
             <Link to={'/logout'}>logout</Link>
           </div>
@@ -34,7 +24,7 @@ const Home: React.FC = () => {
             <Link to={'/login'}>login</Link>
           </div>
       }
-    </div>
+    </div>    
   )
 }
 

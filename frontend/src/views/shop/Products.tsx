@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import axios from '../../utils/axios';
+import { useAuthStore } from "../../store/auth";
 import HotSail from '../../components/product/HotSail';
 import Likes from '../../components/product/Likes';
 import Product from '../../components/product/Product';
@@ -9,6 +10,11 @@ import Category from '../../components/category/Category';
 
 
 const Products: React.FC = () => {
+
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const user = useAuthStore((state) => state.user);
+    console.log('isLoggedIn', isLoggedIn)
+    console.log('user', user)
 
     const [products, setProducts] = useState<ProductType[]>([]);
     const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -35,6 +41,7 @@ const Products: React.FC = () => {
 
     return (
         <div>
+            {/* <h3>{user}</h3> */}
             <div className='flexRowStart'>
                 {categories?.map((category, index) => (
                     <Category key={index} category={category} />

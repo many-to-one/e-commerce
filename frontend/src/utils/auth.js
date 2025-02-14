@@ -118,6 +118,7 @@ export const setAuthUser = (access_token, refresh_token) => {
 
     // Decoding access token to get user information
     const user = jwtDecode(access_token) ?? null;
+    console.log('setAuthUser', user)
 
     // If user information is present, update user state; otherwise, set loading state to false
     if (user) {

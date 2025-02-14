@@ -75,7 +75,7 @@ const ProductDetails: React.FC = () => {
             <div className='flexColumnCenter'>
                 <div className='miGallCont'>
                     <img 
-                        src={`${API_BASE_URL}${mainImg}`} 
+                        src={mainImg} 
                         alt="" 
                         className="mainGalleryImage" 
                         ref={imageRef}
@@ -85,14 +85,14 @@ const ProductDetails: React.FC = () => {
                 </div>
                 <div className='flexRowStart'>
                     {gallery?.map((gall, index) => (
-                        <img src={`${API_BASE_URL}${gall.image}`} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
+                        <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
                     ))}
                 </div>
             </div>
             <div>
                 <h2>{product?.title}</h2>
                 <p>Brand: {product?.brand}</p>
-                <p className='flexRowCenter'>Price: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price}$</p> } {product?.price}$</p>
+                <div className='flexRowCenter'>Price: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price}$</p> } {product?.price}$</div>
                 <p>Shipping: {product?.shipping_amount}$</p>
                 <p>Stock: {product?.stock_qty} pcs.</p>
                 {product?.product_rating !== null ? (

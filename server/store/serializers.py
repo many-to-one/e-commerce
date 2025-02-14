@@ -132,6 +132,19 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields = '__all__'
+
+
+
+class CartCheckSerializer(serializers.ModelSerializer):
+    # Serialize the related Product model
+    user_id = serializers.CharField(
+        write_only=True,
+        required=True,
+    ) 
+
+    class Meta:
+        model = Cart
+        fields = '__all__'
     
 
 # Define a serializer for the CartOrderItem model

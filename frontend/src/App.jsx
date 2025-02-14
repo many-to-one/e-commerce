@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Route, Routes, BrowserRouter } from 'react-router-dom';
+import { Route, Routes, BrowserRouter, useLocation } from 'react-router-dom';
 import './App.css';
 import './styles/product.css'
 import Login from './views/auth/Login';
@@ -11,30 +11,41 @@ import CreatePassword from './views/auth/CreatePassword';
 import Products from './views/shop/Products';
 import Product from './components/product/Product';
 import ProductDetails from './views/shop/ProductDetails';
+import ProductsByCat from './views/shop/ProductsByCat';
+import Header from './views/Header';
 
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <BrowserRouter>
-        <Routes>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
 
-            {/* AUTH */}
-            <Route path='/register' element={<Register />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/logout' element={<Logout />} />
-            <Route path='/dashboard' element={<Home />} />
-            <Route path='/forgot-password' element={<ForgotPassword />} />
-            <Route path='/create-new-password' element={<CreatePassword />} />
+function AppContent() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
 
-            {/* STORE */}
-            <Route path='/' element={<Products />} />
-            <Route path='/product-details/:slug' element={<ProductDetails />} />
+  return (
+    <>
+      {!isLoginPage && <Header />}
+      <Routes>
+        {/* AUTH */}
+        <Route path='/register' element={<Register />} />
+        <Route path='/login' element={<Login />} />
+        <Route path='/logout' element={<Logout />} />
+        <Route path='/dashboard' element={<Home />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/create-new-password' element={<CreatePassword />} />
 
-        </Routes>
-      </BrowserRouter>
-  )
+        {/* STORE */}
+        <Route path='/' element={<Home />} />
+        <Route path='/product-details/:slug' element={<ProductDetails />} />
+        <Route path='/category-products/:slug' element={<ProductsByCat />} />
+      </Routes>
+    </>
+  );
 }
 
 export default App
