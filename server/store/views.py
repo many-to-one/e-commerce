@@ -109,7 +109,7 @@ class CartView(APIView):
 
     def get(self, request, id):
 
-        user_id = id #request.data['user_id']
+        user_id = id
         cart = Cart.objects.filter(user__id=user_id)
         for c in cart:
             print('CartView ------', c)
@@ -117,4 +117,14 @@ class CartView(APIView):
 
         return Response({
             "cart": cart_serializer.data,
+        })
+    
+    def delete(self, request, id):
+
+        cart = Cart.objects.get(id=id)
+        cart.delete()
+
+        return Response({
+            "message": "Cart has been deleted!",
+            "status": 200,
         })
