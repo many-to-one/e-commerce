@@ -13,6 +13,7 @@ import Product from './components/product/Product';
 import ProductDetails from './views/shop/ProductDetails';
 import ProductsByCat from './views/shop/ProductsByCat';
 import Header from './views/Header';
+import Order from './views/shop/Order';
 
 
 function App() {
@@ -43,6 +44,7 @@ function AppContent() {
         <Route path='/' element={<Home />} />
         <Route path='/product-details/:slug' element={<ProductDetails />} />
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
+        <Route path='/order' element={<Order />} />
       </Routes>
     </>
   );

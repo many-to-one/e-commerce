@@ -5,22 +5,13 @@ import { useAuthStore } from '../store/auth';
 
 function Header() {
 
-    const axios_ = useAxios();
-    const user = useAuthStore((state) => state.allUserData);
-    console.log('user', user);
-    
-    const fetchData = async () => {
-        const resp = axios_.get(`api/shop/cart/${user.user_id}`);
-        console.log('Cart', resp);
-    }
-    
-    useEffect(() => {
-        fetchData();
-    }, [user])
+  const user = useAuthStore((state) => state.allUserData);
+
+  console.log('Header-user', user);
 
   return (
     <div>
-        Header
+        Header, {user?.username}
         <Cart />
     </div>
   )

@@ -20,8 +20,14 @@
 
 .flexRowCenter {
   display: flex;
-  /* justify-content: center; */
   align-items: center;
+  gap: 15px;
+}
+
+.flexRowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 15px;
 }
 
@@ -31,4 +37,8 @@
 
 .mainBtn {
   background-color: var(--btn-color);
+}
+
+.Cursor {
+  cursor: pointer;
 }

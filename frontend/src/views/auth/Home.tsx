@@ -8,8 +8,8 @@ const Home: React.FC = () => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const user = useAuthStore((state) => state.allUserData);
 
-  console.log('isLoggedIn', isLoggedIn)
-  console.log('user', user)
+  // console.log('isLoggedIn', isLoggedIn)
+  // console.log('user', user)
 
   return (
     <div>

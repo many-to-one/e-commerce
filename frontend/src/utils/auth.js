@@ -122,7 +122,7 @@ export const setAuthUser = (access_token, refresh_token) => {
 
     // If user information is present, update user state; otherwise, set loading state to false
     if (user) {
-        useAuthStore.getState().setUser(user);
+        useAuthStore.getState().setUser(user); 
     }
     useAuthStore.getState().setLoading(false);
 };

@@ -13,8 +13,8 @@ const Products: React.FC = () => {
 
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const user = useAuthStore((state) => state.user);
-    console.log('isLoggedIn', isLoggedIn)
-    console.log('user', user)
+    // console.log('isLoggedIn', isLoggedIn)
+    // console.log('user', user)
 
     const [products, setProducts] = useState<ProductType[]>([]);
     const [categories, setCategories] = useState<CategoryType[]>([]);
