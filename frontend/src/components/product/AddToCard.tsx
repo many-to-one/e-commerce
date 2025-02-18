@@ -27,7 +27,6 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
           quantity: quantity
         }
         try {
-          // const resp = await axios.post(`/api/store/add-to-cart/${id}`)
           const link = `${API_BASE_URL}api/store/add-to-cart`
           console.log('AddToCard link', link)
           const resp = await axios.post(link, body,
@@ -40,6 +39,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
           },
           )
           console.log('sendToCard***', resp)
+          useAuthStore.getState().addCartCount();
         } catch (error) {
           console.log('sendToCard error', error)
           if ( error.status === 403 ) {

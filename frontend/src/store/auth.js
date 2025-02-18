@@ -5,6 +5,7 @@ import { mountStoreDevtool } from 'simple-zustand-devtools';
 const useAuthStore = create((set, get) => ({
     allUserData: null,
     loading: false,
+    cartCount: 0,
 
     user: () => ({
         user_id: get().allUserData?.user_id || null,
@@ -14,7 +15,9 @@ const useAuthStore = create((set, get) => ({
     setUser: (user) => set({ allUserData: user }),
     setLoading: (loading) => set({ loading }),
     isLoggedIn: () => get().allUserData !== null,
-
+    updateCartCount: (count) => set({ cartCount: count }),
+    addCartCount: () => set((state) => ({ cartCount: state.cartCount + 1 })),
+    minusCartCount: () => set((state) => ({ cartCount: state.cartCount - 1 })),
 }))
 
 if (import.meta.env.DEV) {

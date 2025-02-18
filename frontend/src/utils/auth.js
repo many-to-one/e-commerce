@@ -78,7 +78,7 @@ export const isAccessTokenExpired = (accessToken) => {
 export const getRefreshToken = async () => {
     // Retrieving refresh token from cookies and making a POST request to refresh the access token
     const refresh_token = Cookies.get('refresh_token');
-    const response = await axios.post('user/token/refresh/', {
+    const response = await axios.post('users/token/refresh/', {
         refresh: refresh_token,
     });
 

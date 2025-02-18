@@ -8,42 +8,42 @@ function Cart () {
 
     const navigate = useNavigate();
     const axios_ = useAxios();
+    const count = useAuthStore((state) => state.cartCount)
     const user = useAuthStore((state) => state.allUserData);
-    const [cart, setCart] = useState([]);
-    const [count, setCount] = useState<string>('');
-    const [orderPay, setOrderPay] = useState<number>(0.00);
-    
+
+    const [countData, setCountData] = useState('')
+
     const fetchData = async () => {
-        try {
-          const resp = await axios_.get(`api/store/cart/${user.user_id}`);
-          console.log('Cart', resp, resp.data.cart.length);
-          setCart(resp.data.cart);
-          setCount(resp.data.cart.length);
-          await getOrderPay(resp.data.cart);
-        } catch (error) {
-          console.log('Cart-error', error);
-        }
+      try {
+        const resp = await axios_.get(`api/store/cart_count/${user.user_id}`)
+        console.log("CountData:", resp.data["cart_count "]);
+        setCountData(resp.data["cart_count "])
+        useAuthStore.getState().updateCartCount(resp.data["cart_count "]); 
+      } catch (error) {
+        
+      }
     }
 
-    const getOrderPay = async (cart) => {
-      let count = 0;
-      cart.map((c) => count += Number(c.total))
-      console.log('getOrderPay', count)
-      setOrderPay(count);
-    }
-    
     useEffect(() => {
-        fetchData();
+      fetchData();
     }, [user])
 
+    useEffect(() => {
+        console.log("Updated countData:", countData);
+    }, [countData]);
+
     const goToCart = () => {
-      navigate('/order', {state: {cart: cart, orderPay: orderPay}})
+      navigate('/order')
     }
 
   return (
-    <div className="Cursor" onClick={goToCart}>
-        <MaterialIcon icon="shopping_cart" />
-        {count}
+    <div className="cart-container Cursor" onClick={goToCart}>
+      <MaterialIcon icon="shopping_cart" />
+        { count !== null ? (
+          <span className="cart-badge">{count}</span>
+        ):(
+          <span className="cart-badge">{countData}</span>
+        )}
     </div>
   )
 }

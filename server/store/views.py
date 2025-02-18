@@ -79,9 +79,8 @@ class AddToCardView(APIView):
         product_id = request.data['product_id']
         quantity = request.data['quantity']
         product = Product.objects.get(id=product_id)
-        user = User.objects.get(id=user_id)
         cart, created = Cart.objects.get_or_create(
-                user=user,
+                user__id=user_id,
                 product=product,
             )
         cart.qty = quantity
@@ -102,29 +101,90 @@ class AddToCardView(APIView):
             "cart": cart_serializer.data,
         })
     
+    # def put(self, request, *args, **kwargs):
+    #     user_id = request.data['user_id']
+    #     product_id = request.data['product_id']
+    #     quantity = request.data['quantity']
+    #     product = Product.objects.get(id=product_id)
+
+    #     print('AddToCardView - product_id', product.title)
+
+        # if product.stock_qty >= quantity:
+        #     cart = Cart.objects.get(
+        #         user__id=user_id,
+        #         product=product,
+        #     )
+        #     cart.qty = quantity
+        #     cart.price = product.price
+        #     cart.sub_total = cart.qty * cart.price
+        #     cart.total = (
+        #     cart.sub_total + 
+        #         (cart.shipping_amount or Decimal('0.00')) + 
+        #         (cart.service_fee or Decimal('0.00')) + 
+        #         (cart.tax_fee or Decimal('0.00'))
+        #     )
+        #     cart.save()
+
+        #     cart_serializer = CartSerializer(cart)
+
+        #     return Response({
+        #         "product_id": product_id,
+        #         "cart": cart_serializer.data,
+        #     })
+        
+
+    
 
 class CartView(APIView):
 
     permission_classes = (AllowAny, )
 
     def get(self, request, id):
-
-        user_id = id
-        cart = Cart.objects.filter(user__id=user_id)
-        for c in cart:
-            print('CartView ------', c)
+        cart = Cart.objects.filter(user__id=id)
         cart_serializer = CartSerializer(cart, many=True)
 
         return Response({
             "cart": cart_serializer.data,
         })
     
-    def delete(self, request, id):
+    def put(self, request, *args, **kwargs):
+        cart_id = request.data['cart_id']
+        quantity = request.data['quantity']
+        cart = Cart.objects.get(id=cart_id)
+        cart.qty = quantity
+        cart.sub_total = cart.qty * cart.price
+        cart.total = (
+            cart.sub_total + 
+                (cart.shipping_amount or Decimal('0.00')) + 
+                (cart.service_fee or Decimal('0.00')) + 
+                (cart.tax_fee or Decimal('0.00'))
+            )
+        cart.save()
 
+        print('CartView - put', cart.product.title)
+
+        cart_serializer = CartSerializer(cart)
+
+        return Response({
+            # "product_id": product_id,
+            "cart": cart_serializer.data,
+        })
+    
+    def delete(self, request, id):
         cart = Cart.objects.get(id=id)
         cart.delete()
 
         return Response({
             "message": "Cart has been deleted!",
-            "status": 200,
+        })
+    
+
+class CartCountView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def get(self, request, id):
+        cart_count  = Cart.objects.filter(user__id=id).count()
+        return Response({
+            "cart_count ": cart_count ,
         })

@@ -36,7 +36,7 @@ class ProductAdmin(ImportExportModelAdmin):
     search_fields = ['title', 'price', 'slug']
     list_filter = ['featured', 'status', 'in_stock', 'type', 'vendor']
     list_editable = ['image', 'title', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
-    list_display = ['product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
+    list_display = ['id', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
     # actions = [make_published, make_in_review, make_featured]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100

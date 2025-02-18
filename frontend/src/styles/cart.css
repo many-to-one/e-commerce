@@ -1,0 +1,19 @@
+.cart-container {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .cart-badge {
+    position: absolute;
+    top: -15px;
+    /* right: -8px; */
+    background-color: var(--btn-color);
+    color: black;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 50%;
+    min-width: 20px;
+    text-align: center;
+  }
+  
