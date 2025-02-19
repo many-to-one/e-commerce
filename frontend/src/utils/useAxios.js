@@ -8,6 +8,8 @@ const useAxios = () => {
 
     const accessToken = Cookies.get('access_token');
     const refreshToken = Cookies.get('refresh_token');
+    // console.log('useAxios - accessToken', accessToken);
+    // console.log('useAxios - refreshToken', refreshToken);
 
     // Create an Axios instance with base URL and access token in the headers
     const axiosInstance = axios.create({

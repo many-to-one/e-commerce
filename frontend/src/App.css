@@ -3,6 +3,7 @@
   margin: 10px;
   padding: 10px;
   --btn-color: greenyellow;
+  --elem-bg-color: #dce5b5;
 }
 
 .flexColumnCenter {
@@ -31,6 +32,13 @@
   gap: 15px;
 }
 
+.flexRowStart {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 15px;
+}
+
 .gap-50 {
   gap: 50px;
 }
@@ -41,4 +49,16 @@
 
 .Cursor {
   cursor: pointer;
+}
+
+#Select {
+  position: relative;
+  width: 150px;
+  /* height: 16px; */
+  padding: 12px 14px;
+  background-color: var(--elem-bg-color);
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #e2eded;
+  border-color: #eaf1f1 #e4eded #dbe7e7 #e4eded;
 }

@@ -298,7 +298,7 @@ class CartOrder(models.Model):
         
     )
 
-    vendor = models.ManyToManyField(Vendor, blank=True)
+    # vendor = models.ManyToManyField(Vendor, blank=True)
     buyer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="buyer", blank=True)
     # Total price of the order
     sub_total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
@@ -326,10 +326,10 @@ class CartOrder(models.Model):
     mobile = models.CharField(max_length=1000)
     
      # Shipping Address
-    address = models.CharField(max_length=1000, null=True, blank=True)
+    street = models.CharField(max_length=1000, null=True, blank=True)
+    number = models.CharField(max_length=1000, null=True, blank=True)
+    post_code = models.CharField(max_length=1000, null=True, blank=True)
     city = models.CharField(max_length=1000, null=True, blank=True)
-    state = models.CharField(max_length=1000, null=True, blank=True)
-    country = models.CharField(max_length=1000, null=True, blank=True)
 
     # coupons = models.ManyToManyField('store.Coupon', blank=True)
     
@@ -593,9 +593,11 @@ class Coupon(models.Model):
 
 # Define a model for Delivery Couriers
 class DeliveryCouriers(models.Model):
+
     name = models.CharField(max_length=1000, null=True, blank=True)
     tracking_website = models.URLField(null=True, blank=True)
     url_parameter = models.CharField(null=True, blank=True, max_length=100)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
     class Meta:
         ordering = ["name"]

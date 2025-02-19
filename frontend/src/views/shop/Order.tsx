@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import '../../types/ProductType';
 import MaterialIcon from '@material/react-material-icon';
 import useAxios from '../../utils/useAxios';
@@ -20,12 +20,12 @@ interface OrderProps {
 const Order: React.FC<OrderProps> = () => {
 
     const axios_ = useAxios();
+    const navigate = useNavigate();
     const user = useAuthStore((state) => state.allUserData);
     const count = useAuthStore((state) => state.cartCount);
     const accessToken = Cookies.get('access_token');
 
     const [cart, setCart] = useState<OrderProps[]>([]);
-    // const [count, setCount] = useState<string>('');
     const [orderPay, setOrderPay] = useState<number>(0.00);
     const [inputQty, setInputQty] = useState({});
 
@@ -38,6 +38,7 @@ const Order: React.FC<OrderProps> = () => {
           await getOrderPay(resp.data.cart);
         } catch (error) {
           console.log('Cart-error', error);
+          navigate('/login');
         }
     }
     
@@ -60,7 +61,11 @@ const Order: React.FC<OrderProps> = () => {
     const deleteItem = (id) => {
         try {
             const resp = axios_.delete(`api/store/cart/${id}`)
-            setCart((prevOrderData) => prevOrderData.filter(item => item.id !== id));
+            setCart((prevCart) => {
+                const updatedCart = prevCart.filter(item => item.id !== id);
+                getOrderPay(updatedCart);
+                return updatedCart;
+            });
             useAuthStore.getState().minusCartCount();
         } catch (error) {
             console.log('deleteItem-error', error)
@@ -75,17 +80,23 @@ const Order: React.FC<OrderProps> = () => {
 
     const updateQty = async (id) => {
         const newQty = parseInt(inputQty[id], 10) || 1;
+        
+        setCart((prevCart) => {
+            const updatedCart = prevCart.map((item) =>
+                item.id === id
+                    ? { ...item, qty: newQty, total: (newQty * Number(item.price)).toFixed(2) }
+                    : item
+            );
     
-        setCart((prevCart) => 
-            prevCart.map((item) =>
-                item.id === id ? { ...item, qty: newQty, total: (newQty * Number(item.price)).toFixed(2) } : item
-            )
-        );
+            getOrderPay(updatedCart);
+            return updatedCart;
+        });
     
         setInputQty((prev) => ({ ...prev, [id]: newQty })); 
-
-        await sendUpdateQty(id, newQty)
+    
+        await sendUpdateQty(id, newQty);
     };
+    
 
 
     const sendUpdateQty = async (id, quantity) => {
@@ -109,8 +120,7 @@ const Order: React.FC<OrderProps> = () => {
                     },
                 },
             )
-            console.log('sendUpdateQty***', resp)
-            // useAuthStore.getState().addCartCount();
+            console.log('sendUpdateQty***', resp.data.cart)
           } catch (error) {
             console.log('sendUpdateQty error', error)
           }
@@ -120,31 +130,44 @@ const Order: React.FC<OrderProps> = () => {
     <div>
         {cart?.map((order, index) => (
            <div key={index}>
-                <p>Product: {order.product.title}</p>
-                <div className='flexRowBetween'>
-                    <p>Price: {order.price}$</p>
-                    <div className='Cursor' onClick={() => deleteItem(order.id)}>
-                        <MaterialIcon icon="delete" />
+                <div>
+                    <div className='flexRowStart'>
+                        <img src={order.product.image} width={100} alt="" />
+                        <p>{order.product.title}</p>
                     </div>
+                    <div className='flexRowBetween'>
+                        <p>Price: {order.price}$</p>
+                        <div className='Cursor' onClick={() => deleteItem(order.id)}>
+                            <MaterialIcon icon="delete" />
+                        </div>
+                    </div>
+                    <div className='flexRowBetween'>
+                        <p>Quantity: 
+                            <input 
+                                type="number" 
+                                value={inputQty[order.id] ?? order.qty} 
+                                onChange={(e) => handleInputChange(order.id, e.target.value)} 
+                                onBlur={() => updateQty(order.id)}
+                            /> pcs.   
+                        </p>
+                        <p>{order.total}</p>
+                    </div>
+                    <hr />
                 </div>
-                <div className='flexRowBetween'>
-                    <p>Quantity: 
-                        <input 
-                            type="number" 
-                            value={inputQty[order.id] ?? order.qty} 
-                            onChange={(e) => handleInputChange(order.id, e.target.value)} 
-                            onBlur={() => updateQty(order.id)}
-                        /> pcs.   
-                    </p>
-                    <p>{order.total}</p>
-                </div>
-             <hr />
            </div>
         ))}
         <br />
         <div className='flexRowBetween'>
             <p><b>TOTAL:</b></p>
             <p>{orderPay}$</p>
+        </div>
+        <div className='flexRowBetween'>
+            <button onClick={() => navigate('/')}>
+                Go back
+            </button>
+            <button onClick={() => navigate('/checkout', {state:{ cart: cart, orderPay: orderPay }})}>
+                Checkout
+            </button>
         </div>
     </div>
   )

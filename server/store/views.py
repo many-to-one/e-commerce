@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer
-from .models import Category, Product, Cart, User, CartOrder
+from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer
+from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers
 
 from decimal import Decimal
 
@@ -76,11 +76,12 @@ class AddToCardView(APIView):
 
     def post(self, request, *args, **kwargs):
         user_id = request.data['user_id']
+        user = User.objects.get(id=user_id)
         product_id = request.data['product_id']
         quantity = request.data['quantity']
         product = Product.objects.get(id=product_id)
         cart, created = Cart.objects.get_or_create(
-                user__id=user_id,
+                user=user,
                 product=product,
             )
         cart.qty = quantity
@@ -101,38 +102,6 @@ class AddToCardView(APIView):
             "cart": cart_serializer.data,
         })
     
-    # def put(self, request, *args, **kwargs):
-    #     user_id = request.data['user_id']
-    #     product_id = request.data['product_id']
-    #     quantity = request.data['quantity']
-    #     product = Product.objects.get(id=product_id)
-
-    #     print('AddToCardView - product_id', product.title)
-
-        # if product.stock_qty >= quantity:
-        #     cart = Cart.objects.get(
-        #         user__id=user_id,
-        #         product=product,
-        #     )
-        #     cart.qty = quantity
-        #     cart.price = product.price
-        #     cart.sub_total = cart.qty * cart.price
-        #     cart.total = (
-        #     cart.sub_total + 
-        #         (cart.shipping_amount or Decimal('0.00')) + 
-        #         (cart.service_fee or Decimal('0.00')) + 
-        #         (cart.tax_fee or Decimal('0.00'))
-        #     )
-        #     cart.save()
-
-        #     cart_serializer = CartSerializer(cart)
-
-        #     return Response({
-        #         "product_id": product_id,
-        #         "cart": cart_serializer.data,
-        #     })
-        
-
     
 
 class CartView(APIView):
@@ -141,7 +110,7 @@ class CartView(APIView):
 
     def get(self, request, id):
         cart = Cart.objects.filter(user__id=id)
-        cart_serializer = CartSerializer(cart, many=True)
+        cart_serializer = CartSerializer(cart, many=True, context={'request': request})
 
         return Response({
             "cart": cart_serializer.data,
@@ -163,7 +132,7 @@ class CartView(APIView):
 
         print('CartView - put', cart.product.title)
 
-        cart_serializer = CartSerializer(cart)
+        cart_serializer = CartSerializer(cart, context={'request': request})
 
         return Response({
             # "product_id": product_id,
@@ -187,4 +156,58 @@ class CartCountView(APIView):
         cart_count  = Cart.objects.filter(user__id=id).count()
         return Response({
             "cart_count ": cart_count ,
+        })
+    
+
+class CreateOrderView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def post(self, request, *args, **kwargs):
+        user_id = request.data['user_id']
+        full_name = request.data['full_name']
+        email = request.data['email']
+        mobile = request.data['mobile']
+        street = request.data['street']
+        number = request.data['number']
+        post_code = request.data['post_code']
+        city = request.data['city']
+        sub_total = request.data['sub_total']
+        shipping_amount = request.data['shipping_amount']
+        total = request.data['total']
+
+        user = User.objects.get(id=user_id)
+        order = CartOrder(
+            buyer=user,
+            full_name=full_name,
+            email=email,
+            mobile=mobile,
+            street=street,
+            number=number,
+            post_code=post_code,
+            city=city,
+            sub_total=sub_total,
+            shipping_amount=shipping_amount,
+            total=total,
+        )
+        order.save()
+
+        order_selializer = CartOrderSerializer(order)
+
+        return Response({
+            "order": order_selializer.data,
+        })
+
+
+
+class DeliveryCouriersView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def get(self, request):
+        couriers = DeliveryCouriers.objects.all()
+        couriers_serializer = DeliveryCouriersSerializer(couriers, many=True)
+
+        return Response({
+            "couriers": couriers_serializer.data
         })

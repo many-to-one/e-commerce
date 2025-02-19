@@ -7,6 +7,7 @@ import Product from '../../components/product/Product';
 import '../../types/ProductType';
 import '../../types/CategoryType';
 import Category from '../../components/category/Category';
+import Swal from 'sweetalert2';
 
 
 const Products: React.FC = () => {

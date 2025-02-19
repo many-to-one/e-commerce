@@ -3,6 +3,7 @@ import { Route, Routes, BrowserRouter, useLocation } from 'react-router-dom';
 import './App.css';
 import './styles/product.css'
 import './styles/cart.css'
+import './styles/width.css'
 import Login from './views/auth/Login';
 import Home from './views/auth/Home';
 import Register from './views/auth/Register';
@@ -15,6 +16,7 @@ import ProductDetails from './views/shop/ProductDetails';
 import ProductsByCat from './views/shop/ProductsByCat';
 import Header from './views/Header';
 import Order from './views/shop/Order';
+import CheckOut from './views/shop/CheckOut';
 
 
 function App() {
@@ -42,10 +44,11 @@ function AppContent() {
         <Route path='/create-new-password' element={<CreatePassword />} />
 
         {/* STORE */}
-        <Route path='/' element={<Home />} />
+        <Route path='/' element={<Products />} />
         <Route path='/product-details/:slug' element={<ProductDetails />} />
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
         <Route path='/order' element={<Order />} />
+        <Route path='/checkout' element={<CheckOut />} />
       </Routes>
     </>
   );

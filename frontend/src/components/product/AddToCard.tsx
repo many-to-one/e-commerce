@@ -4,7 +4,18 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../utils/constants';
+import { showToast } from '../../utils/toast';
 import { useAuthStore } from '../../store/auth';
+import Swal from 'sweetalert2';
+
+
+const Toast = Swal.mixin({
+    toast: true,
+    position: "top",
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+})
 
 interface AddToCardProps {
     id: number,
@@ -21,6 +32,14 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
 
     const sendToCard = async () => {
         console.log('AddToCard', id, quantity)
+
+        showToast("success", "Added product to cart")
+
+        // Toast.fire({
+        //   icon: "success",
+        //   title: "Added product to cart"
+        // })
+
         const body = {
           user_id: user.user_id || null,
           product_id: id,
@@ -50,13 +69,14 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
 
   return (
     <div>
-      {isLoggedIn()
+      {/* {isLoggedIn()
       ? <button className='mainBtn' onClick={sendToCard}>Add to Card</button>
       :<div>
                   <h1>Home</h1>
                   <Link to={'/login'}>login</Link>
                 </div>
-      }
+      } */}
+      <button className='mainBtn' onClick={sendToCard}>Add to Card</button>
     </div>
   )
 }
