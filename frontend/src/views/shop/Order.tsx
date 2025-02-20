@@ -130,38 +130,40 @@ const Order: React.FC<OrderProps> = () => {
     <div>
         {cart?.map((order, index) => (
            <div key={index}>
-                <div>
-                    <div className='flexRowStart'>
-                        <img src={order.product.image} width={100} alt="" />
-                        <p>{order.product.title}</p>
-                    </div>
-                    <div className='flexRowBetween'>
-                        <p>Price: {order.price}$</p>
-                        <div className='Cursor' onClick={() => deleteItem(order.id)}>
-                            <MaterialIcon icon="delete" />
+                <div className='cartItem'>
+                    <div>
+                        <div className='flexRowStart'>
+                            <img src={order.product.image} width={100} alt="" />
+                            <p>{order.product.title}</p>
                         </div>
+                        <div className='flexRowBetween'>
+                            <p>Price: {order.price}$</p>
+                            <div className='Cursor' onClick={() => deleteItem(order.id)}>
+                                <MaterialIcon icon="delete" />
+                            </div>
+                        </div>
+                        <div className='flexRowBetween'>
+                            <p>Quantity: 
+                                <input 
+                                    type="number" 
+                                    value={inputQty[order.id] ?? order.qty} 
+                                    onChange={(e) => handleInputChange(order.id, e.target.value)} 
+                                    onBlur={() => updateQty(order.id)}
+                                /> pcs.   
+                            </p>
+                            <p>{order.total}</p>
+                        </div>
+                        <hr />
                     </div>
-                    <div className='flexRowBetween'>
-                        <p>Quantity: 
-                            <input 
-                                type="number" 
-                                value={inputQty[order.id] ?? order.qty} 
-                                onChange={(e) => handleInputChange(order.id, e.target.value)} 
-                                onBlur={() => updateQty(order.id)}
-                            /> pcs.   
-                        </p>
-                        <p>{order.total}</p>
-                    </div>
-                    <hr />
                 </div>
            </div>
         ))}
         <br />
-        <div className='flexRowBetween'>
+        <div className='flexRowBetween cartItem'>
             <p><b>TOTAL:</b></p>
-            <p>{orderPay}$</p>
+            <p><b>{orderPay}$</b></p>
         </div>
-        <div className='flexRowBetween'>
+        <div className='flexRowBetween mt-20'>
             <button onClick={() => navigate('/')}>
                 Go back
             </button>

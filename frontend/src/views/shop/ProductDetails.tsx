@@ -70,7 +70,7 @@ const ProductDetails: React.FC = () => {
     };
 
   return (
-    <div className='flexColumnCenter'>
+    <div className='flexColumnCenter productDetailCont'>
         <div className='flexRowStart gap-50'>
             <div className='flexColumnCenter'>
                 <div className='miGallCont'>

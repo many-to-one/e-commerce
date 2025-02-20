@@ -2,45 +2,56 @@
   max-width: 1280px;
   margin: 10px;
   padding: 10px;
-  --btn-color: greenyellow;
-  --elem-bg-color: #dce5b5;
+}
+
+.Header {
+  position: absolute;
+  top: 0;
+  padding: 20px;
 }
 
 .flexColumnCenter {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
 }
 
 .flexRowStart {
   display: flex;
   align-items: flex-start;
-  gap: 15px;
 }
 
 .flexRowCenter {
   display: flex;
   align-items: center;
-  gap: 15px;
-}
-
-.flexRowBetween {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
 }
 
 .flexRowStart {
   display: flex;
   align-items: center;
   justify-content: start;
+}
+
+.flexRowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alertImg {
+  width: 700px;
+}
+
+.gap-15 {
   gap: 15px;
 }
 
 .gap-50 {
   gap: 50px;
+}
+
+.mt-20 {
+  margin-top: 20px;
 }
 
 .mainBtn {
@@ -54,11 +65,13 @@
 #Select {
   position: relative;
   width: 150px;
-  /* height: 16px; */
   padding: 12px 14px;
-  background-color: var(--elem-bg-color);
-  border-radius: 4px;
+  /* background-color: var(--elem-bg-color); */
+  border-radius: 8px;
   cursor: pointer;
   border: 1px solid #e2eded;
   border-color: #eaf1f1 #e4eded #dbe7e7 #e4eded;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
 }

@@ -11,4 +11,6 @@ urlpatterns = [
     path('cart_count/<int:id>', CartCountView.as_view(), name='cacart_countrt'),
     path('create-order', CreateOrderView.as_view(), name='create-order'),
     path('couriers', DeliveryCouriersView.as_view(), name='couriers'),
+    path('stripe-payment', StripeView.as_view(), name='stripe-payment'),
+    path('finish-order', FinishedCartOrderView.as_view(), name='finish-order'),
 ]

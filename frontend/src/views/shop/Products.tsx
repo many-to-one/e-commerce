@@ -43,7 +43,7 @@ const Products: React.FC = () => {
     return (
         <div>
             {/* <h3>{user}</h3> */}
-            <div className='flexRowStart'>
+            <div className='flexRowStart categoryCont gap-15'>
                 {categories?.map((category, index) => (
                     <Category key={index} category={category} />
                 ))}

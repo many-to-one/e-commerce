@@ -1,5 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 
 from rest_framework import generics, status
 from rest_framework import mixins
@@ -11,7 +12,9 @@ from .serializers import CartCheckSerializer, ProductSerializer, CategorySeriali
 from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers
 
 from decimal import Decimal
+import stripe
 
+stripe.api_key = "sk_test_51LcCvDA045wcSZH2LYObmRvhCHdcnzTqZwz0jl9XNSAleSX5vCqeWeKGFiTY9NaMHiQEqRVSkbSKqwPBpwqraGW000VyX8ddrp"
 
 class CategoriesView(generics.ListAPIView):
 
@@ -210,4 +213,62 @@ class DeliveryCouriersView(APIView):
 
         return Response({
             "couriers": couriers_serializer.data
+        })
+    
+
+class StripeView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def post(self, request, *args, **kwargs):
+        print('*****settings.SITE_URL**********', settings.SITE_URL)
+        order_oid = request.data['order_oid']
+        order = get_object_or_404(CartOrder, oid=order_oid)
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+               customer_email=order.email,
+               payment_method_types=['card'],
+               line_items=[
+                   {
+                       'price_data': {
+                           'currency': 'usd',
+                           'product_data': {
+                               'name': order.full_name,
+                           },
+                           'unit_amount': int(order.total * 100),
+                       },
+                       'quantity': 1,
+                   }
+               ],
+               mode='payment',
+
+                success_url=settings.SITE_URL+'/payment-success/'+ order.oid +'?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=settings.SITE_URL+'/?session_id={CHECKOUT_SESSION_ID}',
+            )
+            order.stripe_session_id = checkout_session.id 
+            order.save()
+
+            # return redirect(checkout_session.url)
+            return Response({
+                "checkout_session": checkout_session.url
+            })
+        except stripe.error.StripeError as e:
+            return Response( {'error': f'Something went wrong when creating stripe checkout session: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+class FinishedCartOrderView(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        oid = request.data["oid"]
+        order = CartOrder.objects.get(oid=oid)
+        order.payment_status = "paid"
+        order.order_status = "Fulfilled"
+        order.save()
+
+        return Response({
+            "message": "ok",
         })

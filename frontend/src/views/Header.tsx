@@ -10,7 +10,7 @@ function Header() {
   console.log('Header-user', user);
 
   return (
-    <div>
+    <div className='Header'>
         Header, {user?.username}
         <Cart />
     </div>

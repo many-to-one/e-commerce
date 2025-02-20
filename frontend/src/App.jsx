@@ -17,6 +17,7 @@ import ProductsByCat from './views/shop/ProductsByCat';
 import Header from './views/Header';
 import Order from './views/shop/Order';
 import CheckOut from './views/shop/CheckOut';
+import SuccessPayment from './views/shop/SuccessPayment';
 
 
 function App() {
@@ -49,6 +50,7 @@ function AppContent() {
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
         <Route path='/order' element={<Order />} />
         <Route path='/checkout' element={<CheckOut />} />
+        <Route path='/payment-success/:oid' element={<SuccessPayment />} />
       </Routes>
     </>
   );

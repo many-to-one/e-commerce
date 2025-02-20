@@ -78,5 +78,24 @@ services:
     env_file:
     - .env
 
+  
+  # locust:
+    # image: locustio/locust
+    # ports:
+    #   - "8089:8089"  # Expose Locust Web UI
+    # volumes:
+    #   - ./locust:/mnt/locust  # Mount Locust test files
+    # depends_on:
+    #   - web
+    # command: >
+    #   -f /mnt/locust/locustfile.py --host http://web:${DJANGO_PORT}
+
+    # image: locustio/locust
+    # ports:
+    #  - "8089:8089"
+    # volumes:
+    #   - ./:/mnt/locust
+    # command: -f /mnt/locust/locustfile.py --master -H http://master:8089
+
 volumes:
   postgres_data: {}

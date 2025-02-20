@@ -1,3 +1,7 @@
+.categoryCont {
+    background-color: var(--p-card-bg-color);
+}
+
 .categoryCard {
     width: 150px;
     height: 150px;

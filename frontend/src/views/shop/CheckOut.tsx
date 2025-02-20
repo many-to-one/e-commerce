@@ -41,9 +41,9 @@ const CheckOut: React.FC = () => {
         }
     }
 
-    const makeOrder = () => {
+    const makeOrder = async () => {
 
-        console.log('makeOrder', cart)
+        // console.log('makeOrder', cart)
 
         if ( totalOrderPrice === orderPay ) {
             showToast("warning", "Please chouse the delivery")
@@ -70,11 +70,32 @@ const CheckOut: React.FC = () => {
             }
             
             try {
-                const resp = axios.post('api/store/create-order', data)
+                const resp = await axios.post('api/store/create-order', data)
+                if ( resp.status === 200 ) {
+                    const payment = await axios.post(`api/store/stripe-payment`, {
+                        order_oid: resp.data.order.oid
+                    })
+                    console.log('payment', payment)
+                    if ( payment.status === 200 ) {
+                        await finishOrder(resp.data.order.oid)
+                        window.location.href = payment.data.checkout_session
+                    } else {
+                        showToast("error", 'Problems with payment')
+                    }
+
+                } else {
+                    showToast("error", 'Problems with payment')
+                }
             } catch (error) {
                 showToast("error", error)
             }
         }
+    }
+
+    const finishOrder = async (oid) => {
+        axios.post('api/store/finish-order', {
+            oid: oid
+        })
     }
 
     const handleCourierChange = (e) => {
@@ -84,9 +105,9 @@ const CheckOut: React.FC = () => {
     }
 
   return (
-    <div>
+    <div className='mt-20'>
         {cart?.map((order, index) => (
-           <div key={index}>
+           <div key={index} className='cartItem'>
                 <div>
                     <div className='flexRowStart'>
                         <img src={order.product.image} alt="" width={100}/>
@@ -111,9 +132,8 @@ const CheckOut: React.FC = () => {
             </button>
 
             <div>
-                <h3>Courier:</h3>
                 <select name="" id="Select" onChange={handleCourierChange}>
-                    <option value="">Select:</option>
+                    <option value="">Courier:</option>
                     {couriers?.map((courier, index) => (
                         <option key={index} value={courier.price}>
                             {courier.name}
@@ -124,17 +144,14 @@ const CheckOut: React.FC = () => {
         </div>
 
         <br />
-        <hr />
-        <div className='flexRowBetween'>
+        <div className='flexRowBetween cartItem'>
             <p><b>TOTAL:</b></p>
             <p>{orderPay}$</p>
         </div>
-        <hr />
-        <div className='flexRowBetween'>
+        <div className='flexRowBetween cartItem'>
             <p><b>TOTAL + DELIVERY:</b></p>
             <p><b>{totalOrderPrice}$</b></p>
         </div>
-        <hr />
 
         <div className='flexColumnCenter'>
             <h3>Delivery Information:</h3>

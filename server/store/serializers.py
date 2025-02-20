@@ -268,3 +268,8 @@ class NotificationSummarySerializer(serializers.Serializer):
     un_read_noti = serializers.IntegerField(default=0)
     read_noti = serializers.IntegerField(default=0)
     all_noti = serializers.IntegerField(default=0)
+
+
+class StripePaymentSerializer(serializers.Serializer):
+    amount = serializers.IntegerField()  # Amount in cents
+    currency = serializers.CharField(max_length=3, default="usd")

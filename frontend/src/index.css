@@ -6,6 +6,9 @@
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
+  --body-bg-color: #e5e9d5;
+  --p-card-bg-color: #ffffff;
+  --btn-color: greenyellow;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -30,6 +33,7 @@ body {
   min-width: 320px;
   /* max-width: 1000px; */
   min-height: 100vh;
+  background-color: var(--body-bg-color);
 }
 
 h1 {

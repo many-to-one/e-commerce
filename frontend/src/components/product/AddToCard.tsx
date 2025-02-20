@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 // import axios from'../../utils/axios';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -33,38 +33,39 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
     const sendToCard = async () => {
         console.log('AddToCard', id, quantity)
 
-        showToast("success", "Added product to cart")
+        if ( user === null ) {
+          navigate('/login')
+        } else {
 
-        // Toast.fire({
-        //   icon: "success",
-        //   title: "Added product to cart"
-        // })
-
-        const body = {
-          user_id: user.user_id || null,
-          product_id: id,
-          quantity: quantity
-        }
-        try {
-          const link = `${API_BASE_URL}api/store/add-to-cart`
-          console.log('AddToCard link', link)
-          const resp = await axios.post(link, body,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json', 
-                Authorization: `Bearer ${accessToken}`
-            },
-          },
-          )
-          console.log('sendToCard***', resp)
-          useAuthStore.getState().addCartCount();
-        } catch (error) {
-          console.log('sendToCard error', error)
-          if ( error.status === 403 ) {
-            navigate('/login')
+          const body = {
+            user_id: user.user_id || null,
+            product_id: id,
+            quantity: quantity
+          }
+        
+          try {
+            const link = `${API_BASE_URL}api/store/add-to-cart`
+            console.log('AddToCard link', link)
+            const resp = await axios.post(link, body,
+              {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json', 
+                    Authorization: `Bearer ${accessToken}`
+                },
+              },
+            )
+            // console.log('sendToCard***', resp)
+            useAuthStore.getState().addCartCount();
+            showToast("success", "Added product to cart")
+          } catch (error) {
+            console.log('sendToCard error', error)
+            if ( error.status === 403 ) {
+              navigate('/login')
+            }
           }
         }
+
     }
 
   return (
