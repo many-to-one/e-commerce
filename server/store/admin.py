@@ -40,7 +40,7 @@ class ProductAdmin(ImportExportModelAdmin):
     # actions = [make_published, make_in_review, make_featured]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
-    prepopulated_fields = {"slug": ("title", )}
+    # prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
 
 

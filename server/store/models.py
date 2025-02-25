@@ -97,11 +97,11 @@ class Product(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="vendor")
     
     # Unique short UUIDs for SKU and product
-    sku = models.CharField(max_length=100, null=True, blank=True)
+    sku = models.CharField(max_length=150, null=True, blank=True)
     pid = ShortUUIDField(unique=True, length=10, max_length=20, alphabet="abcdefghijklmnopqrstuvxyz")
     
     # Slug for SEO-friendly URLs
-    slug = models.SlugField(null=True, blank=True)
+    slug = models.SlugField(max_length=255, null=True, blank=True,)
     date = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -150,28 +150,36 @@ class Product(models.Model):
     
     def size(self):
         return Size.objects.filter(product=self)
+    
 
     def save(self, *args, **kwargs):
 
-        if self.slug == "" or self.slug is None:
-            uuid_key = shortuuid.uuid()
-            uniqueid = uuid_key[:4]
-            self.slug = slugify(self.title) + "-" + str(uniqueid.lower())
+        uuid_key = shortuuid.uuid()
+        uniqueid = uuid_key[:4]
+        self.slug = slugify(self.title) + "-" + str(uniqueid.lower())
+        super(Product, self).save(*args, **kwargs)
+
+        # if not self.slug or self.slug:
+        #     uuid_key = shortuuid.uuid()
+        #     uniqueid = uuid_key[:4]
+        #     self.slug = slugify(self.title) + "-" + uniqueid.lower()
         
-        if self.stock_qty is not None:
-            if self.stock_qty == 0:
-                self.in_stock = False
+        # if self.stock_qty is not None:
+        #     if self.stock_qty == 0:
+        #         self.in_stock = False
                 
-            if self.stock_qty > 0:
-                self.in_stock = True
-        else:
-            self.stock_qty = 0
-            self.in_stock = False
+        #     if self.stock_qty > 0:
+        #         self.in_stock = True
+        # else:
+        #     self.stock_qty = 0
+        #     self.in_stock = False
+        # if self.stock_qty > 0:
+        #         self.in_stock = True
         
-        if self.rating > 0:
-            self.rating = self.product_rating()
+        # if self.rating > 0:
+        #     self.rating = self.product_rating()
             
-        super(Product, self).save(*args, **kwargs) 
+        # super(Product, self).save(*args, **kwargs) 
 
 
 class Tag(models.Model):

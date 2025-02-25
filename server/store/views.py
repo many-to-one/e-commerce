@@ -38,8 +38,8 @@ class ProductDetailsView(APIView):
 
     permission_classes = (AllowAny, )
 
-    def get(self, request, slug):
-        product = get_object_or_404(Product, slug=slug)
+    def get(self, request, id):
+        product = get_object_or_404(Product, id=id)
         gallery = product.gallery()
         product_image = product.image
         product_image_gallery = [{
@@ -62,8 +62,8 @@ class ProductsByCat(APIView):
     
     permission_classes = (AllowAny, )
 
-    def get(self, request, slug):
-        category = get_object_or_404(Category, slug=slug)
+    def get(self, request, id):
+        category = get_object_or_404(Category, id=id)
         products = Product.objects.filter(category=category)      
         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
         cat_serializer = CategorySerializer(category, context={'request': request})

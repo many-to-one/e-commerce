@@ -13,9 +13,7 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     const navigate = useNavigate();
 
     const goToProducts = () => {
-      console.log('goToProducts', category)
-      console.log('goToProducts', category)
-      navigate(`category-products/${category.slug}`)
+      navigate(`category-products/${category.slug}`, {state: {catId: category.id}})
     }
 
   return (

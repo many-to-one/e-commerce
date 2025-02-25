@@ -19,23 +19,27 @@
 .flexRowStart {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .flexRowCenter {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .flexRowStart {
   display: flex;
   align-items: center;
   justify-content: start;
+  flex-wrap: wrap;
 }
 
 .flexRowBetween {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .alertImg {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import '../../types/ProductType'
 import '../../types/CategoryType'
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import axios from '../../utils/axios';
 import Product from '../../components/product/Product';
 
@@ -11,6 +11,8 @@ const ProductsByCat: React.FC = () => {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [category, setCategory] = useState<CategoryType | null>(null);
   const { slug } = useParams();
+  const location = useLocation();
+  const catId = location.state.catId;
 
   const fetchData = async (endpoint) => {
 
@@ -26,7 +28,7 @@ const ProductsByCat: React.FC = () => {
   };
 
   useEffect(() => {
-      fetchData(`/api/store/category-products/${slug}`)
+      fetchData(`/api/store/category-products/${catId}`)
   }, [])
 
   return (

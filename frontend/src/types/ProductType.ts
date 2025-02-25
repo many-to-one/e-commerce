@@ -14,4 +14,5 @@ type ProductType = {
     sku: string,
     stock_qty: string,
     shipping_amount: string,
+    category: string,
 }

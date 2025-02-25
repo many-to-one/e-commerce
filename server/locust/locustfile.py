@@ -6,7 +6,7 @@ class APIUser(HttpUser):
     @task
     def test_products(self):
         """Test GET request to list API endpoint"""
-        self.client.get("/api/store/products/")
+        self.client.get("/api/store/products")
 
     # @task
     # def test_create_order(self):

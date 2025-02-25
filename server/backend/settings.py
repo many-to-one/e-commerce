@@ -29,14 +29,19 @@ SITE_URL = os.environ.get('SITE_URL')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "https://checkout.stripe.com"]
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1']
-# CORS_ALLOWED_ORIGINS = [
-#     "http://127.0.0.1:5173",
-#     "http://localhost:5173",
-# ]
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+ALLOWED_HOSTS = ["127.0.0.1", "https://checkout.stripe.com", "host.docker.internal"]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1",
+    "http://host.docker.internal",]
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:8100",
+    "http://host.docker.internal:8100",
+    'http://web:8100',
+    'http://master:8089',
+]
+# CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_CREDENTIALS = True
 # SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups
 
 

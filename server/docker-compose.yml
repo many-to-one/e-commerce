@@ -46,8 +46,8 @@ services:
   db:
     image: postgres
     container_name: eshopdb
-    # volumes:
-    #   - ./data/db:/var/lib/postgresql/data
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:${DB_PORT}"
     environment:
@@ -78,6 +78,22 @@ services:
     env_file:
     - .env
 
+
+  master:
+      image: locustio/locust:master
+      ports:
+       - "8089:8089"
+      volumes:
+        - ./locust:/mnt/locust
+      command: -f /mnt/locust/locustfile.py --master -H http://master:8089
+      # command: -f /mnt/locust/locustfile.py --master -H http://127.0.0.1:8100
+
+  worker:
+      image: locustio/locust:master
+      volumes:
+        - ./locust:/mnt/locust
+      command: -f /mnt/locust/locustfile.py --worker --master-host master
+
   
   # locust:
     # image: locustio/locust
@@ -88,7 +104,7 @@ services:
     # depends_on:
     #   - web
     # command: >
-    #   -f /mnt/locust/locustfile.py --host http://web:${DJANGO_PORT}
+    #   -f /mnt/locust/locustfile.py --host http://locust:${DJANGO_PORT}
 
     # image: locustio/locust
     # ports:

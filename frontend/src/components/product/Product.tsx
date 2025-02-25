@@ -15,29 +15,10 @@ const Product: React.FC<ProductProps> = ({product}) => {
   console.log('Product props', product)
   const navigate = useNavigate();
 
-  // return (
-  //   <div
-  //     className='productCard' 
-  //     onClick={() => navigate(`/product-details/${product.slug}`)} //{state: {slug: product.slug}}
-  //    >
-  //       <img src={product.image} alt="" className='productImage'/>
-  //       <p>{product.title}</p>
-  //       <div>
-  //         {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price}</p>}
-  //         <p>{product.price}</p>
-  //       </div>
-  //       {product.hot_deal  && <HotSail />}  
-  //       {product.product_rating !== null ? (
-  //         <Likes rating={String(product.product_rating)}/>
-  //       ) : (
-  //         <Likes rating={String(0)}/>
-  //       )}
-  //   </div>
-  // )
   return (
     <div
       className='productCard' 
-      onClick={() => navigate(`/product-details/${product.slug}`)} //{state: {slug: product.slug}}
+      onClick={() => navigate(`/product-details/${product.slug}`, {state:{ id: product.id, catId: product.category}})}
      >
         <div className='productImageCont'>
           <img src={product.image} alt="" className='productImage'/>
