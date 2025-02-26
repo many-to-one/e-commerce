@@ -42,6 +42,10 @@
   flex-wrap: wrap;
 }
 
+.w-50 {
+  width: 50%;
+}
+
 .alertImg {
   width: 700px;
 }

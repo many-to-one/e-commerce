@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from "react-router-dom";
+
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import { Navigation } from 'swiper/modules';
+
 import '../../types/ProductType';
 import '../../types/GalleryType'
 import axios from '../../utils/axios';
@@ -118,7 +124,7 @@ const ProductDetails: React.FC = () => {
                         ))}
                     </div>
                 </div>
-                <div>
+                <div className='w-50'>
                     <h2>{product?.title}</h2>
                     <p>Brand: {product?.brand}</p>
                     <div className='flexRowCenter'>Price: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price}$</p> } {product?.price}$</div>
@@ -146,11 +152,25 @@ const ProductDetails: React.FC = () => {
         <br />
 
         <div>
-        <h3>Inne z tej kategorii:</h3>
+            <h3>Inne z tej kategorii:</h3>
             <div className='flexRowStart productCont'>
-            {products?.map((product, index) => (
+            {/* {products?.map((product, index) => (
                 <Product key={index} product={product} />
-            ))}
+            ))} */}
+           <Swiper
+                modules={[Navigation]}
+                spaceBetween={20}
+                slidesPerView={2} // Show 6 products at a time
+                navigation // Enables next/prev buttons
+                loop={true} // Infinite scrolling
+            >
+                {products.map((product, index) => (
+                    <SwiperSlide key={index}>
+                        <Product product={product} />
+                    </SwiperSlide>
+                ))}
+            </Swiper>
+
             </div>
         </div>
         <br />
