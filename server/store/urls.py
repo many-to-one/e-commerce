@@ -13,4 +13,5 @@ urlpatterns = [
     path('couriers', DeliveryCouriersView.as_view(), name='couriers'),
     path('stripe-payment', StripeView.as_view(), name='stripe-payment'),
     path('finish-order', FinishedCartOrderView.as_view(), name='finish-order'),
+    path('upload-csv', ProductCSVView.as_view(), name='upload-csv'),
 ]

@@ -4,7 +4,11 @@ import { useLocation, useParams } from "react-router-dom";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
+import "swiper/css/pagination";
 import { Navigation } from 'swiper/modules';
+
+import DOMPurify from 'dompurify'; // for safelly rendering HTML from string in product description
+
 
 import '../../types/ProductType';
 import '../../types/GalleryType'
@@ -102,6 +106,7 @@ const ProductDetails: React.FC = () => {
         }
     };
 
+
   return (
     <div className='flexColumnCenter'>
 
@@ -118,11 +123,33 @@ const ProductDetails: React.FC = () => {
                             onMouseOut={resetImg} 
                         />
                     </div>
-                    <div className='flexRowStart'>
+
+                    {/* <div className='flexRowCenter'>
                         {gallery?.map((gall, index) => (
                             <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
                         ))}
+                    </div> */}
+
+                    <div className='flexRowCenter'>
+                        <Swiper
+                            grabCursor={true}
+                            spaceBetween={10}
+                            // modules={[Navigation]}
+                            slidesPerView={3}
+                            navigation={true}
+                            pagination={true}
+                            className="gallerySwiper"
+                        >
+                            {gallery.map((gall, index) => {
+                            return (
+                                <SwiperSlide key={index}>
+                                    <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
+                                </SwiperSlide>
+                            );
+                            })}
+                        </Swiper>
                     </div>
+
                 </div>
                 <div className='w-50'>
                     <h2>{product?.title}</h2>
@@ -151,33 +178,38 @@ const ProductDetails: React.FC = () => {
         </div>
         <br />
 
-        <div>
+        {/* <div> */}
             <h3>Inne z tej kategorii:</h3>
             <div className='flexRowStart productCont'>
-            {/* {products?.map((product, index) => (
-                <Product key={index} product={product} />
-            ))} */}
-           <Swiper
-                modules={[Navigation]}
-                spaceBetween={20}
-                slidesPerView={2} // Show 6 products at a time
-                navigation // Enables next/prev buttons
-                loop={true} // Infinite scrolling
-            >
-                {products.map((product, index) => (
-                    <SwiperSlide key={index}>
+
+                <Swiper
+                    grabCursor={true}
+                    spaceBetween={30}
+                    modules={[Navigation]}
+                    slidesPerView={3}
+                    navigation={true}
+                    pagination={true}
+                    className="mySwiper"
+                >
+                    {products.map((product, index) => {
+                    return (
+                        <SwiperSlide key={index}>
                         <Product product={product} />
-                    </SwiperSlide>
-                ))}
-            </Swiper>
+                        </SwiperSlide>
+                    );
+                    })}
+                </Swiper>
 
             </div>
-        </div>
+        {/* </div> */}
         <br />
 
-        <div className='productDetailCont'>
-            <p>{product?.description}</p>
-        </div>
+        {product?.description ? (
+            <div className='productDetailCont' dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product?.description.slice(2, product.description.length-2)) }} />
+        ):(
+            <p></p>
+        )}
+
         <br />
     </div>
   )

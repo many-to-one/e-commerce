@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Route, Routes, BrowserRouter, useLocation } from 'react-router-dom';
 import './App.css';
-import './styles/product.css'
-import './styles/cart.css'
-import './styles/width.css'
+import './styles/product.css';
+import './styles/cart.css';
+import './styles/width.css';
+import './styles/customSwiper.css';
+import './styles/loader.css';
 import Login from './views/auth/Login';
 import Home from './views/auth/Home';
 import Register from './views/auth/Register';
@@ -18,6 +20,7 @@ import Header from './views/Header';
 import Order from './views/shop/Order';
 import CheckOut from './views/shop/CheckOut';
 import SuccessPayment from './views/shop/SuccessPayment';
+import UploadAllegro from './views/admin/UploadAllegro';
 
 
 function App() {
@@ -51,6 +54,10 @@ function AppContent() {
         <Route path='/order' element={<Order />} />
         <Route path='/checkout' element={<CheckOut />} />
         <Route path='/payment-success/:oid' element={<SuccessPayment />} />
+
+        {/* ADMIN */}
+        <Route path='/upload-files' element={<UploadAllegro />} />
+
       </Routes>
     </>
   );

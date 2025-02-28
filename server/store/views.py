@@ -1,3 +1,6 @@
+import json
+import os
+import re
 from django.shortcuts import render, redirect
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -7,14 +10,17 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from vendor.models import Vendor
 
 from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer
 from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import stripe
+import shortuuid
+import pandas as pd
 
-stripe.api_key = "sk_test_51LcCvDA045wcSZH2LYObmRvhCHdcnzTqZwz0jl9XNSAleSX5vCqeWeKGFiTY9NaMHiQEqRVSkbSKqwPBpwqraGW000VyX8ddrp"
+stripe.api_key = os.environ.get("STRIPE_API_KEY")
 
 class CategoriesView(generics.ListAPIView):
 
@@ -272,3 +278,107 @@ class FinishedCartOrderView(APIView):
         return Response({
             "message": "ok",
         })
+    
+
+class ProductCSVView(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        csv_file = request.FILES.get("file")
+        user_id = request.data["user_id"]
+        # print('ProductCSVView', user_id)
+        user = User.objects.get(id=user_id)
+        vendor = get_object_or_404(Vendor, user=user)
+        if not csv_file:
+            return Response({"error": "No file uploaded"}, status=400)
+        
+        def safe_decimal(value):
+            try:
+                return Decimal(value)
+            except InvalidOperation:
+                return Decimal('0.00')
+
+        try:
+            file_extension = os.path.splitext(csv_file.name)[1].lower()
+
+            if file_extension == ".csv":
+                df = pd.read_csv(csv_file, encoding="utf-8", keep_default_na=False)
+            elif file_extension in [".xls", ".xlsx", ".xlsm"]:
+                df = pd.read_excel(csv_file, engine="openpyxl", sheet_name='Szablon', keep_default_na=False)
+                # sheets = pd.ExcelFile(csv_file, engine="openpyxl").sheet_names
+                # print('**************SHEETS*****************', sheets)
+            else:
+                return Response({"error": "Unsupported file format"}, status=400)
+
+            for index, row in df.iterrows():
+                # print('***PANDAS-ROW-SKU***', row[7])
+                if row.iloc[7] == 'Aktywna':
+                    # print('***PANDAS-ROW-SKU***', row.to_dict())
+
+                    print('***PANDAS-ROW-title***', row[21])
+                    print('***PANDAS-ROW-SKU***', row[11])
+                    print('***PANDAS-ROW-stock_qty***', row[12])
+                    print('***PANDAS-ROW-price***', row[14])
+
+                    category = row.iloc[10].split('>')
+                    for cat in category:
+                        clean_cat = re.sub(r"\s*\(\d+\)", "", cat).strip()
+                    # print('***PANDAS-ROW***', clean_cat)
+
+                    # DESCR
+                    descr = []
+                    matching_columns = [col for col in df.columns if str(col).startswith("86275")]
+                    if matching_columns:
+                        for col in matching_columns:
+                            try:
+                                data = json.loads(row[col])  # Convert JSON string to a Python dictionary
+                                for section in data.get("sections", []):
+                                    for item in section.get("items", []):
+                                        if item.get("type") == "TEXT":  # Extract only text content
+                                            # print(f'***PANDAS-ROW-TEXT***', item.get("content", ""))
+                                            descr.append(item.get("content", ""))
+                            except json.JSONDecodeError:
+                                print(f'Error decoding JSON for column {col}')
+                    # print(f'***PANDAS-ROW-TEXT***', descr)
+                    # print('----------------------------------------------',)
+                    # print('##############################################',)
+                    # print('----------------------------------------------',)
+
+
+                    img_links = []
+                    links = row.iloc[22].split('|') #15
+                    for link in links:
+                        img_links.append(f"{link.strip()},")
+                        # print('***PANDAS-ROW***IMAGE', link.strip())
+                    # print('***PANDAS-ROW***IMAGE', img_links)
+                    # print('----------------------------------------------',)
+                    # print('##############################################',)
+                    # print('----------------------------------------------',)
+
+
+                    category_, created = Category.objects.get_or_create(
+                        title=clean_cat,
+                        # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
+                    )       
+                    print('***PANDAS-ROW-category_***', category_) 
+                    print('***USER***', user) 
+                    product, created_product = Product.objects.get_or_create(
+                        title=row.iloc[21],
+                        img_links=img_links,
+                        description=descr,
+                        price=safe_decimal(row.iloc[14]),
+                        stock_qty=row.iloc[12],
+                        sku=row.iloc[11],
+                        shipping_amount=safe_decimal(14.99),
+                        category=category_,
+                        vendor=vendor,
+                    )
+
+            return Response({"message": "CSV processed successfully"}, status=201)
+        except Exception as e:
+            # Log full error and traceback
+            import traceback
+            error_message = traceback.format_exc()
+            print(f"Error: {error_message}")
+            return Response({"error": str(e)}, status=500)

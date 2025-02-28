@@ -1,0 +1,45 @@
+.swiper {
+    width: 100%;
+    padding-top: 50px;
+    padding-bottom: 50px;
+  }
+  
+  /* .swiper-slide {
+    background-position: center;
+    background-size: cover;
+    width: 200px !important;
+    height: 300px;
+  }
+  
+  .swiper-slide img {
+    display: block;
+    width: 100%;
+  } */
+  
+  /* Product Swiper Slide */
+  .mySwiper .swiper-slide {
+    width: 200px !important;
+    height: 300px;
+  }
+  
+  /* Product Swiper Images */
+  .mySwiper .swiper-slide img {
+    display: block;
+    width: 100%;
+  }
+  
+  /* 🎯 Specific Gallery Swiper Styles */
+  .gallerySwiper .swiper-slide {
+    width: auto !important;  /* Ensure it adapts to image size */
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Gallery Images */
+  .gallerySwiper .swiper-slide img {
+    max-width: 150px; /* Adjust image size for gallery */
+    max-height: 150px;
+    object-fit: contain; /* Ensures the image is fully visible */
+  }

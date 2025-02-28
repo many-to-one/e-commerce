@@ -47,6 +47,7 @@ const CheckOut: React.FC = () => {
 
         if ( totalOrderPrice === orderPay ) {
             showToast("warning", "Please chouse the delivery")
+            return;
         }
 
         if (!fullName || !email || !mobile || !street || !postCode || !number || !city) {
@@ -109,7 +110,7 @@ const CheckOut: React.FC = () => {
         {cart?.map((order, index) => (
            <div key={index} className='cartItem'>
                 <div>
-                    <div className='flexRowStart'>
+                    <div className='flexRowCenter'>
                         <img src={order.product.image} alt="" width={100}/>
                         <p>Product: {order.product.title}</p>
                     </div>
@@ -156,15 +157,15 @@ const CheckOut: React.FC = () => {
         <div className='flexColumnCenter'>
             <h3>Delivery Information:</h3>
             <input type="text" placeholder='Full Name' className='fullNameInput w-535' onChange={(e) => setFullName(e.target.value)} />
-            <div className='flexRowStart'>
+            <div className='flexRowCenter'>
                 <input type="email" placeholder='Email' className='authInput' onChange={(e) => setEmail(e.target.value)}/>
                 <input type="text" placeholder='Mobile' className='authInput' onChange={(e) => setMobile(e.target.value)}/>
             </div>
-            <div className='flexRowStart'>
+            <div className='flexRowCenter'>
                 <input type="text" placeholder='Street' className='authInput' onChange={(e) => setStreet(e.target.value)}/>
                 <input type="text" placeholder='Number' className='authInput' onChange={(e) => setNumber(e.target.value)}/>
             </div>
-            <div className='flexRowStart'>
+            <div className='flexRowCenter'>
                 <input type="text" placeholder='Post Code' className='authInput' onChange={(e) => setPostCode(e.target.value)}/>
                 <input type="text" placeholder='City' className='authInput' onChange={(e) => setCity(e.target.value)}/>
             </div>

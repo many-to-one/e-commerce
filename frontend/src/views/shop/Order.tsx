@@ -132,7 +132,7 @@ const Order: React.FC<OrderProps> = () => {
            <div key={index}>
                 <div className='cartItem'>
                     <div>
-                        <div className='flexRowStart'>
+                        <div className='flexRowCenter'>
                             <img src={order.product.image} width={100} alt="" />
                             <p>{order.product.title}</p>
                         </div>

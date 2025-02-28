@@ -1,3 +1,4 @@
+import csv
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -273,3 +274,39 @@ class NotificationSummarySerializer(serializers.Serializer):
 class StripePaymentSerializer(serializers.Serializer):
     amount = serializers.IntegerField()  # Amount in cents
     currency = serializers.CharField(max_length=3, default="usd")
+
+
+class ProductCSVSerializer(serializers.Serializer):
+    csv_file = serializers.FileField()
+
+    def create(self, validated_data):
+        csv_file = validated_data['csv_file']
+        print('ProductCSVSerializer', csv_file)
+        return csv_file
+
+        # # Read the CSV file
+        # decoded_file = csv_file.read().decode('utf-8').splitlines()
+        # reader = csv.DictReader(decoded_file)
+
+        # created_products = []
+        # for row in reader:
+        #     print()
+        #     uuid_key = shortuuid.uuid()
+        #     uniqueid = uuid_key[:4]
+        #     slug = f"{row['title'].lower().replace(' ', '-')}-{uniqueid}"
+
+        #     product, created = Product.objects.get_or_create(
+        #         sku=row['sku'],
+        #         defaults={
+        #             'title': row['title'],
+        #             'description': row.get('description', ''),
+        #             'price': float(row['price']),
+        #             'stock_qty': int(row['stock_qty']),
+        #             'in_stock': int(row['stock_qty']) > 0,
+        #             'slug': slug
+        #         }
+        #     )
+        #     if created:
+        #         created_products.append(product)
+
+        # return {'created_count': len(created_products)}

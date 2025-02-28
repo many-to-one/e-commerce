@@ -4,6 +4,9 @@ import { jwtDecode } from "jwt-decode";
 import Cookies from 'js-cookie';
 
 export const login = async (email, password) => {
+
+    console.log('LOGIN---', email, password)
+
     try {
         const { data, status } = await axios.post('api/users/token', {
             email,

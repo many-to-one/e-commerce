@@ -67,6 +67,7 @@ class Product(models.Model):
 
     title = models.CharField(max_length=100)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
+    img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")
     tags = models.CharField(max_length=1000, null=True, blank=True)

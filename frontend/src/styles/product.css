@@ -29,6 +29,7 @@
 
 .productDetailCont {
     background-color: var(--p-card-bg-color);
+    padding: 20px;
 }
 
 .miGallCont {

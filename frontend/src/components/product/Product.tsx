@@ -4,6 +4,7 @@ import HotSail from './HotSail';
 import Likes from './Likes';
 import '../../styles/product.css';
 import { useNavigate } from 'react-router-dom';
+import '../../types/ProductType';
 
 interface ProductProps {
     product: ProductType;
