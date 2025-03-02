@@ -80,6 +80,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "image",
+            "img_links",
             "description",
             "category",
             "tags",

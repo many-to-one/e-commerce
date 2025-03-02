@@ -316,14 +316,15 @@ class ProductCSVView(APIView):
                 if row.iloc[7] == 'Aktywna':
                     # print('***PANDAS-ROW-SKU***', row.to_dict())
 
-                    print('***PANDAS-ROW-title***', row[21])
-                    print('***PANDAS-ROW-SKU***', row[11])
-                    print('***PANDAS-ROW-stock_qty***', row[12])
-                    print('***PANDAS-ROW-price***', row[14])
+                    # print('***PANDAS-ROW-title***', row[21])
+                    # print('***PANDAS-ROW-SKU***', row[11])
+                    # print('***PANDAS-ROW-stock_qty***', row[12])
+                    # print('***PANDAS-ROW-price***', row[14])
 
                     category = row.iloc[10].split('>')
                     for cat in category:
                         clean_cat = re.sub(r"\s*\(\d+\)", "", cat).strip()
+
                     # print('***PANDAS-ROW***', clean_cat)
 
                     # DESCR
@@ -340,6 +341,7 @@ class ProductCSVView(APIView):
                                             descr.append(item.get("content", ""))
                             except json.JSONDecodeError:
                                 print(f'Error decoding JSON for column {col}')
+
                     # print(f'***PANDAS-ROW-TEXT***', descr)
                     # print('----------------------------------------------',)
                     # print('##############################################',)
@@ -350,6 +352,7 @@ class ProductCSVView(APIView):
                     links = row.iloc[22].split('|') #15
                     for link in links:
                         img_links.append(f"{link.strip()},")
+
                         # print('***PANDAS-ROW***IMAGE', link.strip())
                     # print('***PANDAS-ROW***IMAGE', img_links)
                     # print('----------------------------------------------',)
@@ -361,8 +364,8 @@ class ProductCSVView(APIView):
                         title=clean_cat,
                         # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
                     )       
-                    print('***PANDAS-ROW-category_***', category_) 
-                    print('***USER***', user) 
+                    # print('***PANDAS-ROW-category_***', category_) 
+                    # print('***USER***', user) 
                     product, created_product = Product.objects.get_or_create(
                         title=row.iloc[21],
                         img_links=img_links,

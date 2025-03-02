@@ -46,9 +46,13 @@ const ProductDetails: React.FC = () => {
 
         try {
             const response = await axios.get(endpoint);
-            console.log(`${endpoint}`, response.data)
+            console.log(`${endpoint}`, response.data, response.data.gallery.length)
             setProduct(response.data.product);
-            setMainImg(response.data.product.image)
+            if ( response.data.product.image === "http://127.0.0.1:8100/media/default.jpg") {
+                setMainImg(response.data.product.img_links[0])
+            } else {
+                setMainImg(response.data.product.image)
+            }
             setGallery(response.data.gallery);
         } catch (error) {
             console.log('Products error', error)
@@ -124,29 +128,30 @@ const ProductDetails: React.FC = () => {
                         />
                     </div>
 
-                    {/* <div className='flexRowCenter'>
-                        {gallery?.map((gall, index) => (
-                            <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
-                        ))}
-                    </div> */}
-
-                    <div className='flexRowCenter'>
+                    <div className='flexRowCenter w-400'>
                         <Swiper
                             grabCursor={true}
                             spaceBetween={10}
                             // modules={[Navigation]}
-                            slidesPerView={3}
-                            navigation={true}
+                            slidesPerView={6}
+                            navigation//</div>={true}
                             pagination={true}
                             className="gallerySwiper"
                         >
-                            {gallery.map((gall, index) => {
-                            return (
-                                <SwiperSlide key={index}>
-                                    <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
-                                </SwiperSlide>
-                            );
-                            })}
+                            {gallery?.length === 1 ? (
+                                product?.img_links.map((image, index) => (
+                                    <SwiperSlide key={index}>
+                                        <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} />
+                                    </SwiperSlide>
+                                ))
+                            ) : (
+                                gallery.map((gall, index) => (
+                                    <SwiperSlide key={index}>
+                                        <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
+                                    </SwiperSlide>
+                                ))
+                            )}
+
                         </Swiper>
                     </div>
 
@@ -205,7 +210,10 @@ const ProductDetails: React.FC = () => {
         <br />
 
         {product?.description ? (
-            <div className='productDetailCont' dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product?.description.slice(2, product.description.length-2)) }} />
+            <div 
+                className='productDetailCont' 
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product?.description.slice(2, product.description.length-2)).replace(/[',]/g, '') }} 
+            />
         ):(
             <p></p>
         )}

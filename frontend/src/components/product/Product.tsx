@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HotSail from './HotSail';
 import Likes from './Likes';
@@ -16,13 +16,25 @@ const Product: React.FC<ProductProps> = ({product}) => {
   console.log('Product props', product)
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (product.gallery.length === 1 ) {
+
+    }
+  }, [])
+
   return (
     <div
       className='productCard' 
       onClick={() => navigate(`/product-details/${product.slug}`, {state:{ id: product.id, catId: product.category}})}
      >
         <div className='productImageCont'>
-          <img src={product.image} alt="" className='productImage'/>
+
+          { product.gallery.length === 0 ? (
+            <img src={product.img_links[0]} alt="" className='productImage'/>
+          ):(
+            <img src={product.image} alt="" className='productImage'/>
+          )}
+    
         </div>
         <p>{product.title}</p>
           <div className='flexRowStart gap-15'>

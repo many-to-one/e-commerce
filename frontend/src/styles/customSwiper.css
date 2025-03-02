@@ -30,7 +30,7 @@
   
   /* 🎯 Specific Gallery Swiper Styles */
   .gallerySwiper .swiper-slide {
-    width: auto !important;  /* Ensure it adapts to image size */
+    width: auto !important; 
     height: auto;
     display: flex;
     justify-content: center;
@@ -39,7 +39,7 @@
   
   /* Gallery Images */
   .gallerySwiper .swiper-slide img {
-    max-width: 150px; /* Adjust image size for gallery */
+    max-width: 150px;
     max-height: 150px;
-    object-fit: contain; /* Ensures the image is fully visible */
+    object-fit: contain;
   }
