@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import '../../types/ProductType'
 import '../../types/CategoryType'
 import { useLocation, useParams } from 'react-router-dom';
@@ -30,6 +30,7 @@ const ProductsByCat: React.FC = () => {
   useEffect(() => {
       fetchData(`/api/store/category-products/${catId}`)
   }, [])
+
 
   return (
     <div>

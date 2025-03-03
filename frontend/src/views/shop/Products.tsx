@@ -18,7 +18,7 @@ const Products: React.FC = () => {
     // console.log('user', user)
 
     const [products, setProducts] = useState<ProductType[]>([]);
-    const [categories, setCategories] = useState<CategoryType[]>([]);
+    // const [categories, setCategories] = useState<CategoryType[]>([]);
 
     const fetchData = async (endpoint, state) => {
 
@@ -36,18 +36,18 @@ const Products: React.FC = () => {
         fetchData('/api/store/products', setProducts)
     }, [])
 
-    useEffect(() => {
-        fetchData('/api/store/categories', setCategories)
-    }, [])
+    // useEffect(() => {
+    //     fetchData('/api/store/categories', setCategories)
+    // }, [])
 
     return (
         <div>
             {/* <h3>{user}</h3> */}
-            <div className='flexRowStart categoryCont gap-15'>
+            {/* <div className='categoriesGrid'>
                 {categories?.map((category, index) => (
                     <Category key={index} category={category} />
                 ))}
-            </div>
+            </div> */}
             <div className='flexRowStart productCont'>
                 {products?.map((product, index) => (
                      <Product key={index} product={product} />

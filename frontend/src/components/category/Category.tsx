@@ -17,9 +17,8 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     }
 
   return (
-    <div className='flexColumnCenter' onClick={goToProducts}>
-        <img src={category.image} alt="" className='categoryCard categoryImage'/>
-        <p>{category.title}</p>
+    <div className='categoryCard' onClick={goToProducts}>
+        <p className='Cursor'>{category.title}</p>
     </div>
   )
 }

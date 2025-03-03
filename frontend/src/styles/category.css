@@ -2,17 +2,44 @@
     background-color: var(--p-card-bg-color);
 }
 
-.categoryCard {
+/* .showCat:hover .categoriesGrid{
+    display: grid;
+} */
+
+.categoriesGrid {
+    position: absolute;
+    top: 50;
+    left: 50;
+    width: 90%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    justify-items: center;
+    align-items: center;
+    border: 1px solid gray;
+    background-color: var(--p-card-bg-color);
+    z-index: 10;
+  }
+  
+  .categoryCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: ease-in-out .3s;
+  }
+  
+  .categoryCard:hover {
+    margin-top: -10px;
+    transform: scale(0.9);
+}
+
+/* .categoryCard {
     width: 150px;
     height: 150px;
     border-radius: 50%;
     padding: 10px;
     box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 12px;
     transition: ease-in-out .3s;
-}
-
-.categoryCard:hover {
-    margin-top: -10px;
 }
 
 .categoryImage {
@@ -22,4 +49,4 @@
 
 .categoryImage:hover {
     transform: scale(0.9);
-}
+} */
