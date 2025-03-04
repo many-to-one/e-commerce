@@ -10,6 +10,9 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+# from .tasks import store_product_images
+from store.tasks import store_product_images
+
 from vendor.models import Vendor
 
 from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer
@@ -20,6 +23,9 @@ import stripe
 import shortuuid
 import pandas as pd
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 stripe.api_key = os.environ.get("STRIPE_API_KEY")
 
 class CategoriesView(generics.ListAPIView):
@@ -29,11 +35,24 @@ class CategoriesView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
 
+@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsView(generics.ListAPIView):
 
     serializer_class = ProductSerializer
     queryset = Product.objects.all()
     permission_classes = (AllowAny, )
+
+
+class DeleteProductsView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def delete(self, request):
+        Product.objects.all().delete()
+
+        return Response({
+            "message": "All products has been deleted!"
+        })
 
 
 class ProductDetailsView(APIView):
@@ -311,7 +330,7 @@ class ProductCSVView(APIView):
             else:
                 return Response({"error": "Unsupported file format"}, status=400)
 
-            for index, row in df.iterrows():
+            for index, row in df.head(5).iterrows():
                 # print('***PANDAS-ROW-SKU***', row[7])
                 if row.iloc[7] == 'Aktywna':
                     # print('***PANDAS-ROW-SKU***', row.to_dict())
@@ -377,6 +396,8 @@ class ProductCSVView(APIView):
                         category=category_,
                         vendor=vendor,
                     )
+
+                    store_product_images.delay(product.id, img_links)
 
             return Response({"message": "CSV processed successfully"}, status=201)
         except Exception as e:

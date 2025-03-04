@@ -147,7 +147,13 @@ const ProductDetails: React.FC = () => {
                             ) : (
                                 gallery.map((gall, index) => (
                                     <SwiperSlide key={index}>
-                                        <img src={gall.image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(gall.image)} />
+                                        <img 
+                                            src={gall.image} alt="" 
+                                            className="galleryImage" 
+                                            key={index} 
+                                            onMouseOver={() => updateMainImg(gall.image)} 
+                                            loading="lazy" 
+                                        />
                                     </SwiperSlide>
                                 ))
                             )}

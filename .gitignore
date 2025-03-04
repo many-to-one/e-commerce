@@ -50,6 +50,7 @@ server/**/migrations/
 
 # Media files
 server/media/
+server/data
 
 # Static files
 server/staticfiles/
@@ -57,6 +58,16 @@ server/static/
 
 # Local environment variables
 server/.env
+
+# Ignore Celery logs
+celerybeat-schedule
+celery_worker_*
+
+# Ignore Redis data (if stored in the container)
+redis_data/
+
+# Ignore Docker volumes
+volumes/
 
 # VSCode settings
 .vscode/
