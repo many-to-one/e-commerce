@@ -46,8 +46,21 @@ const UploadAllegro: React.FC = () => {
 
 
   const deleteAllProducts = async () => {
+    setIsLoading(false);
     try {
       const resp = await axios_.delete('api/store/delete-all-products')
+      setIsLoading(true);
+      showToast("success", "Wszystkie produkty zostały usunięte");
+    } catch (error) {
+      showToast("error", "Coś poszło nie tak...");
+    }
+  }
+
+  const convertImages = async () => {
+    setIsLoading(false);
+    try {
+      const resp = await axios_.post('api/store/convert-links-to-imgs')
+      setIsLoading(true);
       showToast("success", "Wszystkie produkty zostały usunięte");
     } catch (error) {
       showToast("error", "Coś poszło nie tak...");
@@ -58,15 +71,19 @@ const UploadAllegro: React.FC = () => {
   return (
     <>
       {isLoading === true ? (
-        <div>
+        <div className='flexColumnCenter gap-15'>
           <label htmlFor="file" className='fileUpload'>
             Wybierz plik
             <input id="file" type="file" onChange={handleFileChange} style={{ display: 'none' }} />
           </label>
+          <button className='fileUpload' onClick={convertImages}>Zapisz zdjęcia</button>
           <button className='fileUpload' onClick={deleteAllProducts}>Usuń produkty</button>
         </div>
       ) : (
-        <DotsLoader />
+        <div className='flexColumnCenter gap-15'>
+          <DotsLoader />
+          <p>Proszę czekać...</p>
+        </div>
       )}
     </>
   )

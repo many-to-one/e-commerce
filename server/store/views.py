@@ -10,13 +10,12 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-# from .tasks import store_product_images
 from store.tasks import store_product_images
 
 from vendor.models import Vendor
 
 from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer
-from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers
+from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery
 
 from decimal import Decimal, InvalidOperation
 import stripe
@@ -25,6 +24,11 @@ import pandas as pd
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+
+import requests
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 
 stripe.api_key = os.environ.get("STRIPE_API_KEY")
 
@@ -55,6 +59,7 @@ class DeleteProductsView(APIView):
         })
 
 
+@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductDetailsView(APIView):
 
     ''' context={'request': request} - is nessecary to return
@@ -83,6 +88,7 @@ class ProductDetailsView(APIView):
         })
     
 
+@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsByCat(APIView):
     
     permission_classes = (AllowAny, )
@@ -330,7 +336,7 @@ class ProductCSVView(APIView):
             else:
                 return Response({"error": "Unsupported file format"}, status=400)
 
-            for index, row in df.head(5).iterrows():
+            for index, row in df.iterrows():
                 # print('***PANDAS-ROW-SKU***', row[7])
                 if row.iloc[7] == 'Aktywna':
                     # print('***PANDAS-ROW-SKU***', row.to_dict())
@@ -397,8 +403,6 @@ class ProductCSVView(APIView):
                         vendor=vendor,
                     )
 
-                    store_product_images.delay(product.id, img_links)
-
             return Response({"message": "CSV processed successfully"}, status=201)
         except Exception as e:
             # Log full error and traceback
@@ -406,3 +410,69 @@ class ProductCSVView(APIView):
             error_message = traceback.format_exc()
             print(f"Error: {error_message}")
             return Response({"error": str(e)}, status=500)
+        
+
+class LinksToGallery(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+
+        def compress_image(image: Image.Image, max_size_kb=200):
+            """
+            Compress image while keeping aspect ratio.
+            - Reduces quality if needed to fit within `max_size_kb`.
+            """
+            output = BytesIO()
+            quality = 85  # Start with high quality
+            image.save(output, format="JPEG", quality=quality, optimize=True)
+            
+            while output.tell() > max_size_kb * 1024 and quality > 10:
+                output.seek(0)
+                quality -= 5
+                output.truncate()
+                image.save(output, format="JPEG", quality=quality, optimize=True)
+            
+            output.seek(0)
+            return output
+
+        try:
+            products = Product.objects.all()
+
+            for product in products:
+                img_links = product.img_links
+
+                if not img_links:
+                    return f"No images found for product {product.id}"
+
+                for index, img_url in enumerate(img_links):
+                    response = requests.get(img_url.strip(), timeout=10)
+                    if response.status_code == 200:
+                        img = Image.open(BytesIO(response.content))
+                        img = img.convert("RGB")  # Convert to RGB to avoid format issues
+                        
+                        # Compress image
+                        compressed_img = compress_image(img)
+
+                        # Save first image as `product.image`
+                        if index == 0:
+                            product.image.save(f"product_{product.id}.jpg", ContentFile(compressed_img.read()), save=True)
+                        else:
+                            # Save the rest as gallery images
+                            gallery_img = Gallery(product=product)
+                            gallery_img.image.save(f"gallery_{product.id}_{index}.jpg", ContentFile(compressed_img.read()), save=True)
+                    else:
+                        print('########### RESPONSE NOT 200', response.status_code)
+
+            return Response({
+                "message": f"Images for products stored successfully"
+            })
+
+        except Product.DoesNotExist:
+             return Response({
+                    "message": f"Product {product.id} does not exist"
+                })
+        except Exception as e:
+            return Response({
+                    "message": f"Error: {str(e)}"
+                })

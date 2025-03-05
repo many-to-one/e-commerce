@@ -15,4 +15,5 @@ urlpatterns = [
     path('finish-order', FinishedCartOrderView.as_view(), name='finish-order'),
     path('upload-csv', ProductCSVView.as_view(), name='upload-csv'),
     path('delete-all-products', DeleteProductsView.as_view(), name='delete-all-products'),
+    path('convert-links-to-imgs', LinksToGallery.as_view(), name='convert-links-to-imgs'),
 ]

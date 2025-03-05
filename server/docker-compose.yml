@@ -77,7 +77,6 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
-      - db
       - redis
     env_file:
     - .env
@@ -88,7 +87,7 @@ services:
     container_name: eshop_redis
     restart: always
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
 
   celery:
