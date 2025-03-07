@@ -224,6 +224,8 @@ class CreateOrderView(APIView):
             shipping_amount=shipping_amount,
             total=total,
         )
+        order.payment_status = "processing"
+        order.order_status = "Processing"
         order.save()
 
         order_selializer = CartOrderSerializer(order)
@@ -255,6 +257,9 @@ class StripeView(APIView):
         print('*****settings.SITE_URL**********', settings.SITE_URL)
         order_oid = request.data['order_oid']
         order = get_object_or_404(CartOrder, oid=order_oid)
+        order.payment_status = "pending"
+        order.order_status = "Pending"
+        order.save()
 
         try:
             checkout_session = stripe.checkout.Session.create(
@@ -273,9 +278,10 @@ class StripeView(APIView):
                    }
                ],
                mode='payment',
-
-                success_url=settings.SITE_URL+'/payment-success/'+ order.oid +'?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=settings.SITE_URL+'/?session_id={CHECKOUT_SESSION_ID}',
+                # success_url=settings.SITE_URL+'/payment-success/'+ str(order.oid) +'?session_id={CHECKOUT_SESSION_ID}',
+                # cancel_url=settings.SITE_URL+'/?session_id={CHECKOUT_SESSION_ID}',
+                success_url = f"{settings.SITE_URL}/payment-success?order_id={order.oid}&session_id={{CHECKOUT_SESSION_ID}}&user={order.buyer.id}",
+                cancel_url=f"{settings.SITE_URL}/payment-failed?order_id={order.oid}&session_id={{CHECKOUT_SESSION_ID}}",
             )
             order.stripe_session_id = checkout_session.id 
             order.save()
@@ -285,6 +291,9 @@ class StripeView(APIView):
                 "checkout_session": checkout_session.url
             })
         except stripe.error.StripeError as e:
+            order.payment_status = "cancelled"
+            order.order_status = "Cancelled"
+            order.save()
             return Response( {'error': f'Something went wrong when creating stripe checkout session: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -295,13 +304,17 @@ class FinishedCartOrderView(APIView):
 
     def post(self, request, *args, **kwargs):
         oid = request.data["oid"]
+        user_id = request.data["user_id"]
+        print("********************** FinishedCartOrderView *********************", oid, user_id)
         order = CartOrder.objects.get(oid=oid)
         order.payment_status = "paid"
         order.order_status = "Fulfilled"
         order.save()
 
+        Cart.objects.filter(user__id=user_id).delete()
+
         return Response({
-            "message": "ok",
+            "message": "Order is Paid and status is Fulffield",
         })
     
 

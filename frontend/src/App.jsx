@@ -53,7 +53,8 @@ function AppContent() {
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
         <Route path='/order' element={<Order />} />
         <Route path='/checkout' element={<CheckOut />} />
-        <Route path='/payment-success/:oid' element={<SuccessPayment />} />
+        {/* <Route path='/payment-success/:oid' element={<SuccessPayment />} /> */}
+        <Route path="/payment-success" element={<SuccessPayment />} />
 
         {/* ADMIN */}
         <Route path='/upload-files' element={<UploadAllegro />} />

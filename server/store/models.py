@@ -9,6 +9,7 @@ from users.models import Profile, User
 from vendor.models import Vendor
 from shortuuid.django_fields import ShortUUIDField
 import shortuuid
+import uuid
 
 
 # Model for Product Categories
@@ -275,8 +276,9 @@ class Cart(models.Model):
     country = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=100, null=True, blank=True)
     color = models.CharField(max_length=100, null=True, blank=True)
-    cart_id = models.CharField(max_length=1000, null=True, blank=True)
+    cart_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     date = models.DateTimeField(auto_now_add=True)
+    # status = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.cart_id} - {self.product.title}'
@@ -301,6 +303,7 @@ class CartOrder(models.Model):
 
     ORDER_STATUS = (
         ("Pending", "Pending"),
+        ("Processing", "Processing"),
         ("Fulfilled", "Fulfilled"),
         ("Partially Fulfilled", "Partially Fulfilled"),
         ("Cancelled", "Cancelled"),
@@ -343,7 +346,8 @@ class CartOrder(models.Model):
     # coupons = models.ManyToManyField('store.Coupon', blank=True)
     
     stripe_session_id = models.CharField(max_length=200,null=True, blank=True)
-    oid = ShortUUIDField(length=10, max_length=25, alphabet="abcdefghijklmnopqrstuvxyz")
+    # oid = ShortUUIDField(length=10, max_length=25, alphabet="abcdefghijklmnopqrstuvxyz")
+    oid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     date = models.DateTimeField(default=timezone.now)
     
     class Meta:
@@ -351,7 +355,7 @@ class CartOrder(models.Model):
         verbose_name_plural = "Cart Order"
 
     def __str__(self):
-        return self.oid
+        return str(self.oid)
 
     def get_order_items(self):
         return CartOrderItem.objects.filter(order=self)

@@ -44,6 +44,15 @@ CORS_ALLOWED_ORIGINS = [
 # CORS_ALLOW_CREDENTIALS = True
 # SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups
 
+SESSION_COOKIE_SAMESITE = None
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_SECURE = True  # Only send over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
+SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF attacks
+
+
+# SESSION_COOKIE_SECURE = True  # Ensure this if using HTTPS
+
 
 # Application definition
 

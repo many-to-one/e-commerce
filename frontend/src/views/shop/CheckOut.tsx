@@ -16,6 +16,7 @@ const CheckOut: React.FC = () => {
     const cart = location.state.cart;
     const orderPay = location.state.orderPay;
     console.log('CheckOut', cart)
+    // console.log('user', user.user_id)
 
     const [fullName, setFullName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
@@ -25,6 +26,7 @@ const CheckOut: React.FC = () => {
     const [postCode, setPostCode] = useState<string>('');
     const [city, setCity] = useState<string>('');
     const [couriers, setCouriers] = useState<CourierType[]>([]);
+    const [selectedCourier, setSelectedCourier] = useState<string>('');
     const [totalOrderPrice, setTotalOrderPrice] = useState<number>(orderPay);
 
     useEffect(() => {
@@ -43,12 +45,17 @@ const CheckOut: React.FC = () => {
 
     const makeOrder = async () => {
 
-        // console.log('makeOrder', cart)
+        console.log('makeOrder, courier', selectedCourier)
 
-        if ( totalOrderPrice === orderPay ) {
+        if ( selectedCourier === '' ) {
             showToast("warning", "Please chouse the delivery")
             return;
         }
+
+        // if ( totalOrderPrice === orderPay ) {
+        //     showToast("warning", "Please chouse the delivery")
+        //     return;
+        // }
 
         if (!fullName || !email || !mobile || !street || !postCode || !number || !city) {
             // If any required field is missing, show an error message or take appropriate action
@@ -78,7 +85,7 @@ const CheckOut: React.FC = () => {
                     })
                     console.log('payment', payment)
                     if ( payment.status === 200 ) {
-                        await finishOrder(resp.data.order.oid)
+                        // await finishOrder(resp.data.order.oid)
                         window.location.href = payment.data.checkout_session
                     } else {
                         showToast("error", 'Problems with payment')
@@ -95,14 +102,20 @@ const CheckOut: React.FC = () => {
 
     const finishOrder = async (oid) => {
         axios.post('api/store/finish-order', {
-            oid: oid
+            oid: oid,
+            user_id: user.user_id,
         })
     }
 
     const handleCourierChange = (e) => {
-        setTotalOrderPrice(orderPay)
+        // setTotalOrderPrice(orderPay)
         console.log("handleCourierChange", e.target.value)
-        setTotalOrderPrice(orderPay + Number(e.target.value))
+        const { name } = JSON.parse(e.target.value);
+        console.log("handleCourierChange name", name)
+        setSelectedCourier(name);
+        const { price } = JSON.parse(e.target.value);
+        console.log("handleCourierChange price", price)
+        setTotalOrderPrice(orderPay + Number(price))
     }
 
   return (
@@ -136,7 +149,7 @@ const CheckOut: React.FC = () => {
                 <select name="" id="Select" onChange={handleCourierChange}>
                     <option value="">Courier:</option>
                     {couriers?.map((courier, index) => (
-                        <option key={index} value={courier.price}>
+                        <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}>
                             {courier.name}
                         </option>
                     ))}
