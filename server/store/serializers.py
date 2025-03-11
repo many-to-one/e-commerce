@@ -152,7 +152,8 @@ class CartCheckSerializer(serializers.ModelSerializer):
 # Define a serializer for the CartOrderItem model
 class CartOrderItemSerializer(serializers.ModelSerializer):
     # Serialize the related Product model
-    # product = ProductSerializer()  
+    # order = CartOrderSerializer()
+    product = ProductSerializer()  
 
     class Meta:
         model = CartOrderItem

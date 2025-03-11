@@ -14,8 +14,8 @@ from store.tasks import store_product_images
 
 from vendor.models import Vendor
 
-from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer
-from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery
+from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer
+from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem
 
 from decimal import Decimal, InvalidOperation
 import stripe
@@ -280,8 +280,8 @@ class StripeView(APIView):
                mode='payment',
                 # success_url=settings.SITE_URL+'/payment-success/'+ str(order.oid) +'?session_id={CHECKOUT_SESSION_ID}',
                 # cancel_url=settings.SITE_URL+'/?session_id={CHECKOUT_SESSION_ID}',
-                success_url = f"{settings.SITE_URL}/payment-success?order_id={order.oid}&session_id={{CHECKOUT_SESSION_ID}}&user={order.buyer.id}",
-                cancel_url=f"{settings.SITE_URL}/payment-failed?order_id={order.oid}&session_id={{CHECKOUT_SESSION_ID}}",
+                success_url = f"{settings.SITE_URL}/payment-success?order_id={order.oid}&buyer={order.buyer.id}&session_id={{CHECKOUT_SESSION_ID}}&user={order.buyer.id}",
+                cancel_url=f"{settings.SITE_URL}/payment-failed?order_id={order.oid}&buyer={order.buyer.id}&session_id={{CHECKOUT_SESSION_ID}}",
             )
             order.stripe_session_id = checkout_session.id 
             order.save()
@@ -305,17 +305,36 @@ class FinishedCartOrderView(APIView):
     def post(self, request, *args, **kwargs):
         oid = request.data["oid"]
         user_id = request.data["user_id"]
+        user = User.objects.get(id=user_id)
         print("********************** FinishedCartOrderView *********************", oid, user_id)
         order = CartOrder.objects.get(oid=oid)
         order.payment_status = "paid"
         order.order_status = "Fulfilled"
         order.save()
 
-        Cart.objects.filter(user__id=user_id).delete()
+        cart = Cart.objects.filter(user=user)
+        for item in cart:
+            CartOrderItem.objects.create(
+                order=order,
+                product=item.product,
+                qty=item.qty,
+                price=item.price,
+                )
+            
+        cart.delete()
 
         return Response({
             "message": "Order is Paid and status is Fulffield",
         })
+    
+
+class CartOrderItemView(generics.ListAPIView):
+    
+    serializer_class = CartOrderSerializer
+    queryset = CartOrder.objects.all()
+    permission_classes = (AllowAny, )
+
+
     
 
 class ProductCSVView(APIView):

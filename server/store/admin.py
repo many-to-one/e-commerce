@@ -1,9 +1,14 @@
 from django.contrib import admin
 from django import forms
+from django.db.models import F
 
 from import_export.admin import ImportExportModelAdmin
 
 from store.models import *
+
+@admin.action(description="Discount") #How to add 20% to the title/description?
+def apply_discount(modeladmin, request, queryset):
+    queryset.update(price=F('price') * 0.8) #20%
 
 class GalleryInline(admin.TabularInline):
     model = Gallery
@@ -34,10 +39,10 @@ class ProductAdminForm(forms.ModelForm):
 class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug']
-    list_filter = ['featured', 'status', 'in_stock', 'type', 'vendor']
+    list_filter = ['sku', 'status', 'in_stock', 'vendor']
     list_editable = ['image', 'title', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
-    list_display = ['id', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
-    # actions = [make_published, make_in_review, make_featured]
+    list_display = ['sku', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
+    actions = [apply_discount]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
@@ -80,15 +85,15 @@ class ProductFaqAdmin(ImportExportModelAdmin):
 class CartOrderAdmin(ImportExportModelAdmin):
     inlines = [CartOrderItemsInlineAdmin]
     search_fields = ['oid', 'full_name', 'email', 'mobile']
-    list_editable = ['order_status', 'payment_status']
-    list_filter = ['payment_status', 'order_status']
-    list_display = ['oid', 'payment_status', 'order_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'saved' ,'date']
+    list_editable = ['order_status', 'payment_status', 'delivery_status']
+    list_filter = ['payment_status', 'order_status', 'delivery_status']
+    list_display = ['oid', 'payment_status', 'order_status', 'delivery_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'saved' ,'date']
 
 
-# class CartOrderItemsAdmin(ImportExportModelAdmin):
-#     # list_filter = ['delivery_couriers', 'applied_coupon']
-#     list_editable = ['date']
-#     list_display = ['order_id', 'vendor', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'date']
+class CartOrderItemsAdmin(ImportExportModelAdmin):
+    list_filter = ['order__oid', 'date']
+    list_editable = ['date']
+    list_display = ['order_oid', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'date']
 
 
 class CartAdmin(ImportExportModelAdmin):
@@ -108,7 +113,7 @@ admin.site.register(Gallery)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(CartOrder, CartOrderAdmin)
 admin.site.register(Cart, CartAdmin)
-# admin.site.register(CartOrderItem, CartOrderItemsAdmin)
+admin.site.register(CartOrderItem, CartOrderItemsAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductFaq, ProductFaqAdmin)
 admin.site.register(Coupon, CouponAdmin)

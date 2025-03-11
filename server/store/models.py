@@ -310,11 +310,21 @@ class CartOrder(models.Model):
         
     )
 
+    DELIVERY_STATUS = (
+        ("On Hold", "On Hold"),
+        ("Shipping Processing", "Shipping Processing"),
+        ("Shipped", "Shipped"),
+        ("Arrived", "Arrived"),
+        ("Delivered", "Delivered"),
+        ("Returning", 'Returning'),
+        ("Returned", 'Returned'),
+        ("Canceled", 'Canceled'),
+    )
+
     # vendor = models.ManyToManyField(Vendor, blank=True)
     buyer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="buyer", blank=True)
-    # Total price of the order
+    # product = models.ForeignKey('CartOrderItem', on_delete=models.CASCADE, null=True)
     sub_total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
-    # Shipping cost
     shipping_amount = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
     # VAT (Value Added Tax) cost
     tax_fee = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
@@ -326,6 +336,8 @@ class CartOrder(models.Model):
     # Order status attributes
     payment_status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default="initiated")
     order_status = models.CharField(max_length=100, choices=ORDER_STATUS, default="Pending")
+    delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="Shipping Processing")
+    tracking_id = models.CharField(max_length=100000, null=True, blank=True)
     
     
     # Discounts
@@ -371,11 +383,13 @@ class CartOrderItem(models.Model):
         ("Delivered", "Delivered"),
         ("Returning", 'Returning'),
         ("Returned", 'Returned'),
+        ("Canceled", 'Canceled'),
     )
 
 
     order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="orderitem")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="order_item")
+    allegro_id = models.CharField(max_length=100, null=True, blank=True)
     qty = models.IntegerField(default=0)
     color = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=100, null=True, blank=True)
@@ -404,7 +418,10 @@ class CartOrderItem(models.Model):
     # Various fields for delivery status, delivery couriers, tracking ID, coupons, and more
     delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="On Hold")
     # delivery_couriers = models.ForeignKey("store.DeliveryCouriers", on_delete=models.SET_NULL, null=True, blank=True)
-    tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+    # tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+
+    def order_oid(self):
+        return self.order.oid
 
 
     # Model for Product FAQs

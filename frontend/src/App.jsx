@@ -21,6 +21,8 @@ import Order from './views/shop/Order';
 import CheckOut from './views/shop/CheckOut';
 import SuccessPayment from './views/shop/SuccessPayment';
 import UploadAllegro from './views/admin/UploadAllegro';
+import Profile from './views/shop/Profile';
+import OrderHistory from './views/shop/OrderHistory';
 
 
 function App() {
@@ -57,6 +59,8 @@ function AppContent() {
         <Route path="/payment-success" element={<SuccessPayment />} />
 
         {/* ADMIN */}
+        <Route path='/profile' element={<Profile />} />
+        <Route path='/orders-history' element={<OrderHistory />} />
         <Route path='/upload-files' element={<UploadAllegro />} />
 
       </Routes>

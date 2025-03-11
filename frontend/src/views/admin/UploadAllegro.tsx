@@ -73,7 +73,7 @@ const UploadAllegro: React.FC = () => {
       {isLoading === true ? (
         <div className='flexColumnCenter gap-15'>
           <label htmlFor="file" className='fileUpload'>
-            Wybierz plik
+            Importuj oferty
             <input id="file" type="file" onChange={handleFileChange} style={{ display: 'none' }} />
           </label>
           <button className='fileUpload' onClick={convertImages}>Zapisz zdjęcia</button>
