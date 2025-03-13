@@ -58,6 +58,27 @@ class ColorSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class IconProductSerializer(serializers.ModelSerializer):
+
+    gallery = GallerySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "title",
+            "image",
+            "img_links",
+            "slug",
+            "category",
+            "gallery",
+            "price",
+            "old_price",
+            "hot_deal",
+            "product_rating",
+        ]
+
+
 # Define a serializer for the Product model
 class ProductSerializer(serializers.ModelSerializer):
     # Serialize related Category, Tag, and Brand models
@@ -168,6 +189,16 @@ class CartOrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartOrder
+        fields = '__all__'
+
+
+class ReturnOrderItemSerializer(serializers.ModelSerializer):
+    # Serialize the related ReturnItem model
+    order = CartOrderSerializer()
+    product = ProductSerializer()  
+
+    class Meta:
+        model = ReturnItem
         fields = '__all__'
 
 

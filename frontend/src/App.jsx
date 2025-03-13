@@ -23,6 +23,8 @@ import SuccessPayment from './views/shop/SuccessPayment';
 import UploadAllegro from './views/admin/UploadAllegro';
 import Profile from './views/shop/Profile';
 import OrderHistory from './views/shop/OrderHistory';
+import Returns from './views/shop/Returns';
+import InitialReturn from './views/shop/InitialReturn';
 
 
 function App() {
@@ -62,6 +64,8 @@ function AppContent() {
         <Route path='/profile' element={<Profile />} />
         <Route path='/orders-history' element={<OrderHistory />} />
         <Route path='/upload-files' element={<UploadAllegro />} />
+        <Route path='/initial-return' element={<InitialReturn />} />
+        <Route path='/returns' element={<Returns />} />
 
       </Routes>
     </>

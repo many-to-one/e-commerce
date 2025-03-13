@@ -371,6 +371,50 @@ class CartOrder(models.Model):
 
     def get_order_items(self):
         return CartOrderItem.objects.filter(order=self)
+    
+
+class ReturnItem(models.Model):
+
+    RETURN_STATUS = (
+        ("On Hold", "On Hold"),
+        ("Shipping Processing", "Shipping Processing"),
+        ("Shipped", "Shipped"),
+        ("Arrived", "Arrived"),
+        ("Delivered", "Delivered"),
+        ("Returning", 'Returning'),
+        ("Returned", 'Returned'),
+        ("Canceled", 'Canceled'),
+    )
+
+    RETURN_REASONS = (
+        ("14 Dni: darmowy zwrot", "14 Dni: darmowy zwrot"),
+        ("Reklamacja", "Reklamacja"),
+        ("Bez powodu", "Bez powodu"),
+        ("Brak elementu", "Brak elementu"),
+        ("Nie zgodnie z opisem", "Nie zgodnie z opisem"),
+    )
+
+    RETURN_DECISIONS = (
+        ("Rozpatrywana", "Rozpatrywana"),
+        ("Odmowa", "Odmowa"),
+        ("Akcepttacja", "Akcepttacja"),
+    )
+
+    order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="returnorderitem")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="return_item")
+    qty = models.IntegerField(default=0)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    date = models.DateTimeField(default=timezone.now)
+    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Estimated Shipping Fee = shipping_fee * total")
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Grand Total of all amount listed above")
+    return_status = models.CharField(max_length=100, choices=RETURN_STATUS, default="Returning")
+    return_reason = models.CharField(max_length=100, choices=RETURN_REASONS, null=True, blank=True)
+    return_decision = models.CharField(max_length=100, choices=RETURN_DECISIONS, default="Rozpatrywana")
+    return_delivery_courier = models.CharField(max_length=100, null=True, blank=True)
+    return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+
+    def order_oid(self):
+        return self.order.oid
 
 
 class CartOrderItem(models.Model):
@@ -384,6 +428,14 @@ class CartOrderItem(models.Model):
         ("Returning", 'Returning'),
         ("Returned", 'Returned'),
         ("Canceled", 'Canceled'),
+    )
+
+    RETURN_REASONS = (
+        ("14 Dni: darmowy zwrot", "14 Dni: darmowy zwrot"),
+        ("Reklamacja", "Reklamacja"),
+        ("Bez powodu", "Bez powodu"),
+        ("Brak elementu", "Brak elementu"),
+        ("Nie zgodnie z opisem", "Nie zgodnie z opisem"),
     )
 
 
@@ -414,11 +466,16 @@ class CartOrderItem(models.Model):
     product_shipped = models.BooleanField(default=False)
     product_arrived = models.BooleanField(default=False)
     product_delivered = models.BooleanField(default=False)
+    initial_return = models.BooleanField(default=False)
+    return_qty = models.IntegerField(null=True, blank=True)
+    return_reason = models.CharField(max_length=100, choices=RETURN_REASONS, null=True, blank=True)
+    return_delivery_courier = models.CharField(max_length=100, null=True, blank=True)
+    return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 
     # Various fields for delivery status, delivery couriers, tracking ID, coupons, and more
     delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="On Hold")
-    # delivery_couriers = models.ForeignKey("store.DeliveryCouriers", on_delete=models.SET_NULL, null=True, blank=True)
-    # tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+    delivery_courier = models.ForeignKey("store.DeliveryCouriers", on_delete=models.SET_NULL, null=True, blank=True)
+    tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 
     def order_oid(self):
         return self.order.oid

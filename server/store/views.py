@@ -14,8 +14,9 @@ from store.tasks import store_product_images
 
 from vendor.models import Vendor
 
-from .serializers import CartCheckSerializer, ProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer
-from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem
+from .serializers import CartCheckSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer
+from .models import Category, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem
+from .store_pagination import StorePagination
 
 from decimal import Decimal, InvalidOperation
 import stripe
@@ -39,16 +40,16 @@ class CategoriesView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
 
-@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
+# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsView(generics.ListAPIView):
 
-    serializer_class = ProductSerializer
+    serializer_class = IconProductSerializer
     queryset = Product.objects.all()
+    pagination_class = StorePagination
     permission_classes = (AllowAny, )
 
 
 class DeleteProductsView(APIView):
-
     permission_classes = (AllowAny, )
 
     def delete(self, request):
@@ -334,6 +335,46 @@ class CartOrderItemView(generics.ListAPIView):
     queryset = CartOrder.objects.all()
     permission_classes = (AllowAny, )
 
+
+class ReturnProductView(APIView):
+    permission_classes = (AllowAny, )
+
+    def post(self, request, *args, **kwargs):
+        print('******************ReturnProductView', request.data)  
+        oid = request.data['orderId']
+        prod_id = request.data['prodId']
+        qty = request.data['qty']
+        # print('******************ReturnProductView orderId', oid)
+        # print('******************ReturnProductView prod_id', prod_id)
+        # print('******************ReturnProductView qty', qty)
+
+        order = get_object_or_404(CartOrder, oid=oid)
+        product = get_object_or_404(Product, id=prod_id)
+
+        order_item = CartOrderItem.objects.get(
+            order=order,
+            product=product,
+        )
+        order_item.return_qty=qty
+        order_item.initial_return=True
+        order_item.save()
+
+        return_item = ReturnItem(
+            order=order,
+            product=product,
+            price=order_item.price,
+            qty=qty,
+        )
+        return_item.save()
+
+        return_item_srlz = ReturnOrderItemSerializer(return_item)
+
+        return Response({
+            # "oid": oid,
+            # "prod_id": prod_id,
+            "return_item": return_item_srlz.data,
+            # "order_item": order_item,
+        })
 
     
 
