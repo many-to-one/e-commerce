@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import useAxios from '../../utils/useAxios';
 import { showToast } from '../../utils/toast';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/auth';
 
 function InitialReturn() {
 
+    const user = useAuthStore((state) => state.allUserData);
     const axios_ = useAxios();
     const location = useLocation();
     const navigate = useNavigate();
@@ -16,11 +18,13 @@ function InitialReturn() {
     const tracking_id = location.state.tracking_id;
     const total_price = location.state.total_price;
     const item = location.state.orderitem;
+    const return_reasons = location.state.return_reasons
 
     const [qty, setQty] = useState(item.qty);
     const [total, setTotal] = useState(total_price);
+    const [returnReason, setReturnReason] = useState('');
 
-    // console.log('InitialReturn', item)
+    console.log('InitialReturn', item, return_reasons)
 
     const handleQtyChange = (e) => {
 
@@ -41,19 +45,33 @@ function InitialReturn() {
 
     const initialReturn = async (product) => {
             console.log('initialReturn called', oid, product.id)
+
+            if (returnReason === 'Powód zwrotu' || returnReason === '') {
+                showToast('error', 'Wybierz powód zwrotu')
+                return
+            }
     
             const body = {
+                userId: user.user_id,
                 orderId: oid,
                 prodId: product.id,
                 qty: qty,
+                returnReason: returnReason,
             }
             try {
                 const resp = await axios_.post('api/store/return-item', body)
                 console.log('initialReturn', resp)
+                navigate('/returns')
             } catch (error) {
                 showToast("error", error)
             }
         }
+
+
+    const handleReason = (e) => {
+        console.log('handleReason---', e.target.value)
+        setReturnReason(e.target.value)
+    }
 
   return (
     <div className='cartItem'>
@@ -84,6 +102,12 @@ function InitialReturn() {
                                     /> szt.
                                 </p>
                                 <p className='flexRowBetween'><b>Razem:</b> {total} zł</p>
+                                <select name="" id="Select" onChange={handleReason}>
+                                    <option selected>Powód zwrotu</option>
+                                    {return_reasons?.map((reason, index) => (
+                                        <option key={index} value={reason[0]}>{reason[0]}</option>
+                                    ))}
+                                </select>
                                 <hr />
                                 <button onClick={() => initialReturn(item.product)} className='mainBtn'>Zwrot</button>
                             </div>

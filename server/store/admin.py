@@ -93,11 +93,17 @@ class CartOrderAdmin(ImportExportModelAdmin):
 class CartOrderItemsAdmin(ImportExportModelAdmin):
     list_filter = ['order__oid', 'date']
     list_editable = ['date']
-    list_display = ['order_oid', 'product' ,'qty', 'price', 'sub_total', 'shipping_amount' , 'service_fee', 'tax_fee', 'total' , 'date']
+    list_display = ['order_oid', 'product__sku', 'product_image', 'product' ,'qty', 'price', 'service_fee', 'tax_fee', 'date']
 
 
 class CartAdmin(ImportExportModelAdmin):
     list_display = ['product', 'cart_id', 'qty', 'price', 'sub_total' , 'shipping_amount', 'service_fee', 'tax_fee', 'total', 'country', 'size', 'color', 'date']
+
+class ReturnItemAdmin(ImportExportModelAdmin):
+    search_fields = ['order__oid', 'order__full_name', 'order__email', 'order__mobile', 'return_status', 'return_decision', 'product__title', 'product__sku']
+    list_editable = ['return_status', 'return_decision']
+    list_filter = ['return_status', 'return_decision']
+    list_display = ['order', 'product__sku', 'product_image', 'product', 'qty', 'return_reason', 'return_status', 'return_decision', 'return_delivery_courier']
 
 
 class CouponAdmin(ImportExportModelAdmin):
@@ -114,10 +120,11 @@ admin.site.register(Tag, TagAdmin)
 admin.site.register(CartOrder, CartOrderAdmin)
 admin.site.register(Cart, CartAdmin)
 admin.site.register(CartOrderItem, CartOrderItemsAdmin)
+admin.site.register(ReturnItem, ReturnItemAdmin)
+admin.site.register(Address, AddressAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductFaq, ProductFaqAdmin)
 admin.site.register(Coupon, CouponAdmin)
-admin.site.register(Address, AddressAdmin)
 admin.site.register(Wishlist)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)

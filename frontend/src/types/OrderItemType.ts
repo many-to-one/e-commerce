@@ -5,9 +5,9 @@ type OrderItemType = {
     oid: string;
     total: string;
     sub_total: string;
+    shipping_amount: string;
     order_status: string;
     payment_status: string;
-    initial_return: string;
     delivery_courier: string;
     tracking_id: string;
     orderitem: {
@@ -18,7 +18,8 @@ type OrderItemType = {
         price: string;
         qty: string;
         total: string;
+        initial_return: boolean;
+        return_delivery_courier: string;
+        return_tracking_id: string;
     }[];
-    return_delivery_courier: string;
-    return_tracking_id: string;
 };

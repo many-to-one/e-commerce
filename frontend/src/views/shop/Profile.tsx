@@ -14,6 +14,7 @@ function Profile() {
         {user.username === 'admin' &&
             <button className='Cursor fileUpload' onClick={()=> navigate('/upload-files')}>Importuj oferty allegro</button>
         }
+        <button className='Cursor' onClick={()=> navigate('/returns')}>Zwroty</button>
         <p>Historia zamówień:</p>
         <OrderHistory />
     </div>

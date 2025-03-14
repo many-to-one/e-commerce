@@ -88,7 +88,7 @@
 
 #Select {
   position: relative;
-  width: 150px;
+  width: auto;
   padding: 12px 14px;
   /* background-color: var(--elem-bg-color); */
   border-radius: 8px;
@@ -99,6 +99,7 @@
   font-weight: 500;
   font-family: inherit;
 }
+
 
 .fileUpload {
   padding: 10px;

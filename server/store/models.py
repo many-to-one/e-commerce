@@ -376,14 +376,13 @@ class CartOrder(models.Model):
 class ReturnItem(models.Model):
 
     RETURN_STATUS = (
-        ("On Hold", "On Hold"),
-        ("Shipping Processing", "Shipping Processing"),
-        ("Shipped", "Shipped"),
-        ("Arrived", "Arrived"),
-        ("Delivered", "Delivered"),
-        ("Returning", 'Returning'),
-        ("Returned", 'Returned'),
-        ("Canceled", 'Canceled'),
+        ("Rozpatrywana", "Rozpatrywana"),
+        ("Wstrzymany", "Wstrzymany"),
+        ("W procesie", "W procesie"),
+        ("Wysłane", "Wysłane"),
+        ("Wróciło", "Wróciło"),
+        ("W drodze", 'W drodze'),
+        ("Anulacja", 'Anulacja'),
     )
 
     RETURN_REASONS = (
@@ -400,6 +399,8 @@ class ReturnItem(models.Model):
         ("Akcepttacja", "Akcepttacja"),
     )
 
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    return_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, null=True, blank=True)
     order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="returnorderitem")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="return_item")
     qty = models.IntegerField(default=0)
@@ -415,6 +416,12 @@ class ReturnItem(models.Model):
 
     def order_oid(self):
         return self.order.oid
+    
+    def product_sku(self):
+        return self.product.sku
+    
+    def product_image(self):
+        return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.product.image.url))
 
 
 class CartOrderItem(models.Model):
@@ -479,6 +486,10 @@ class CartOrderItem(models.Model):
 
     def order_oid(self):
         return self.order.oid
+    
+    def product_image(self):
+        return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.product.image.url))
+
 
 
     # Model for Product FAQs

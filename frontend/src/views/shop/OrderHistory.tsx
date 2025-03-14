@@ -13,6 +13,7 @@ function OrderHistory() {
     const navigate = useNavigate();
 
     const [products, setProducts] = useState<OrderItemType[]>([]);
+    const [returnReasons, setReturnReasons] = useState<[]>([]);
 
     useEffect(() => {
         fetchHistory()
@@ -20,9 +21,11 @@ function OrderHistory() {
 
 
     const fetchHistory = async () => {
+
             try {
                 const resp = await axios_.get('api/store/order-history')
                 setProducts(resp.data.results)
+                setReturnReasons(resp.data.return_reasons)
                 console.log('OrderHistory', resp)
             } catch (error) {
                 showToast("error", error)
@@ -51,14 +54,37 @@ function OrderHistory() {
                                         <p>{order.product.title}</p>
                                     </div>
 
-                                    { item.initial_return &&
-                                        <p className='flexRowBetween'><b>Zwrot:</b> {item.return_delivery_courier}</p>
-                                    }
-                                    { item.return_tracking_id &&
-                                        <p className='flexRowBetween'><b>Numer śledzenia zwrotu:</b> {item.return_tracking_id}</p>
+                                    { order.initial_return === true ?
+                                        (
+                                            <div>
+                                                {/* <p className='flexRowBetween'><b>Otwarty zwrot</b> {order.return_delivery_courier}</p> */}
+                                                <a onClick={() => navigate('/returns')} className='Cursor'>Otwarty zwrot</a>
+                                                {order.return_tracking_id !== null &&
+                                                    <p className='flexRowBetween'><b>Numer śledzenia zwrotu:</b> {order.return_tracking_id}</p>
+                                                }
+                                            </div>
+                                        ) :
+                                        (
+                                            <button 
+                                                onClick={() => navigate(
+                                                    '/initial-return', 
+                                                    {state: {
+                                                        oid: item.oid, 
+                                                        date: item.date,
+                                                        payment_status: item.payment_status,
+                                                        order_status: item.order_status,
+                                                        tracking_id: item.tracking_id,
+                                                        total_price: item.sub_total,
+                                                        orderitem: order,
+                                                        return_reasons: returnReasons,
+                                                    }}
+                                                )} className='mainBtn'>
+                                                Zwrot
+                                            </button>
+                                        )
                                     }
 
-                                    <button 
+                                    {/* <button 
                                         onClick={() => navigate(
                                             '/initial-return', 
                                             {state: {
@@ -72,15 +98,17 @@ function OrderHistory() {
                                             }}
                                         )} className='mainBtn'>
                                         Zwrot
-                                    </button>
+                                    </button> */}
                                 </div>
                                 <p className='flexRowBetween'><b>Cena:</b> {order.price}$</p>
                                 <p className='flexRowBetween'><b>Ilość:</b> {order.qty} szt.</p>
+                                <p className='flexRowBetween'><b>Razem:</b> {item.sub_total}$</p>
+                                <p className='flexRowBetween'><b>Dostawa:</b> {item.shipping_amount}$</p>
                                 <hr />
                             </div>
                         ))}
                         <div className='flexRowBetween'>
-                            <p><b>RAZEM:</b></p>
+                            <p><b>KOSZT CAŁKOWITY:</b></p>
                             <p><b>{item.total} PLN</b></p>
                         </div>
                         <hr /> 

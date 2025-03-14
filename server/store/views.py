@@ -335,19 +335,29 @@ class CartOrderItemView(generics.ListAPIView):
     queryset = CartOrder.objects.all()
     permission_classes = (AllowAny, )
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+
+        # Add choices to response
+        response.data["return_reasons"] = ReturnItem.RETURN_REASONS
+        return response
+
 
 class ReturnProductView(APIView):
     permission_classes = (AllowAny, )
 
     def post(self, request, *args, **kwargs):
         print('******************ReturnProductView', request.data)  
+        user_id = request.data['userId']
         oid = request.data['orderId']
         prod_id = request.data['prodId']
         qty = request.data['qty']
+        return_reason = request.data['returnReason']
         # print('******************ReturnProductView orderId', oid)
         # print('******************ReturnProductView prod_id', prod_id)
         # print('******************ReturnProductView qty', qty)
 
+        user = get_object_or_404(User, id=user_id)
         order = get_object_or_404(CartOrder, oid=oid)
         product = get_object_or_404(Product, id=prod_id)
 
@@ -360,10 +370,12 @@ class ReturnProductView(APIView):
         order_item.save()
 
         return_item = ReturnItem(
+            user=user,
             order=order,
             product=product,
             price=order_item.price,
             qty=qty,
+            return_reason=return_reason,
         )
         return_item.save()
 
@@ -374,6 +386,23 @@ class ReturnProductView(APIView):
             # "prod_id": prod_id,
             "return_item": return_item_srlz.data,
             # "order_item": order_item,
+        })
+    
+
+class UsersReturns(APIView):
+
+    # serializer_class = ReturnOrderItemSerializer
+    # queryset = ReturnItem.objects.all()
+    permission_classes = (AllowAny, )
+
+    def post(self, request):
+        user_id = request.data['userId']
+        user = get_object_or_404(User, id=user_id)
+        returns = ReturnItem.objects.filter(user=user)
+        serializer = ReturnOrderItemSerializer(returns, many=True)
+
+        return Response({
+            'returns': serializer.data
         })
 
     
