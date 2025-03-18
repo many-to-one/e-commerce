@@ -6,10 +6,12 @@ import useAxios from '../../utils/useAxios';
 import { showToast } from '../../utils/toast';
 import { useAuthStore } from '../../store/auth';
 import '../../types/CourierType';
+import { __userId } from '../../utils/auth';
+import MaterialIcon from '@material/react-material-icon';
 
 const CheckOut: React.FC = () => {
 
-    const user = useAuthStore((state) => state.allUserData);
+    const user = __userId(); //useAuthStore((state) => state.allUserData);
     const axios = useAxios();
     const navigate = useNavigate();
     const location = useLocation();
@@ -28,6 +30,8 @@ const CheckOut: React.FC = () => {
     const [couriers, setCouriers] = useState<CourierType[]>([]);
     const [selectedCourier, setSelectedCourier] = useState<string>('');
     const [totalOrderPrice, setTotalOrderPrice] = useState<number>(orderPay);
+    const [isHovered, setIsHovered] = useState(false);
+    const [freeCity, setFreeCity] = useState('');
 
     useEffect(() => {
         fetchData('api/store/couriers')
@@ -64,7 +68,7 @@ const CheckOut: React.FC = () => {
         } else {
 
             const data = {
-                user_id: user.user_id,
+                user_id: user ? (user['user_id']):(null),
                 full_name: fullName,
                 email: email,
                 mobile: mobile,
@@ -74,9 +78,10 @@ const CheckOut: React.FC = () => {
                 city: city,
                 sub_total: orderPay,
                 shipping_amount: totalOrderPrice - orderPay,
-                total: totalOrderPrice 
+                total: totalOrderPrice, 
+                delivery: selectedCourier
             }
-            
+
             try {
                 const resp = await axios.post('api/store/create-order', data)
                 if ( resp.status === 200 ) {
@@ -103,7 +108,7 @@ const CheckOut: React.FC = () => {
     const finishOrder = async (oid) => {
         axios.post('api/store/finish-order', {
             oid: oid,
-            user_id: user.user_id,
+            user_id: user ? (user['user_id']):(null),
         })
     }
 
@@ -117,6 +122,45 @@ const CheckOut: React.FC = () => {
         console.log("handleCourierChange price", price)
         setTotalOrderPrice(orderPay + Number(price))
     }
+
+    const checkCity = (city) => {
+        setCity(city);
+    
+        const foundCity = free.find((c) => c === city);
+    
+        if (foundCity) {
+            setSelectedCourier("Darmowa");
+            if (foundCity) {
+                setSelectedCourier("Darmowa"); // Update the selected courier state
+                const selectElement = document.getElementById('Select') as HTMLSelectElement; // Get the select element
+                if (selectElement) {
+                    selectElement.value = "Darmowa"; // Set its value to "Darmowa"
+                }
+            }
+        }
+    };
+    
+    
+
+    const free = [
+        "Wschowa",
+        "Świdnica",
+        "Nowa Wieś",
+        "Przyczyna Dolna",
+        "Przyczyna Górna",
+        "Telewice",
+        "Osowa Sień",
+        "Hetmanice",
+        "Lgiń", 
+        "Radomyśl",
+        "Wjewo",
+        "Wieleń",
+        "Kaszczor",
+        "Mochy",
+        "Solec",
+        "Wolsztyn",
+    ]
+
 
   return (
     <div className='mt-20'>
@@ -145,15 +189,44 @@ const CheckOut: React.FC = () => {
                 Edit Cart
             </button>
 
-            <div>
-                <select name="" id="Select" onChange={handleCourierChange}>
+            <div 
+                className="flexRowBetween gap-15"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+
+                <select
+                    id="Select"
+                    name="courier"
+                    value={selectedCourier || ""}
+                    onChange={(e) => setSelectedCourier(e.target.value)}
+                >
                     <option value="">Courier:</option>
+                    <option value="Darmowa">Darmowa</option>
                     {couriers?.map((courier, index) => (
-                        <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}>
+                        // <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}></option>
+                        <option key={index} value={courier.name}>
                             {courier.name}
                         </option>
                     ))}
                 </select>
+             
+                    {/* <div>
+                        <MaterialIcon icon="info"  className="Cursor" />
+                        {isHovered && (
+                            <div
+                                className="free-shipping" 
+                                onMouseEnter={() => setIsHovered(true)} 
+                                onMouseLeave={() => setIsHovered(false)}
+                            >
+                                {free.map((city, index) => (
+                                    <p key={index}>{city}</p>
+                                ))}
+                            </div>
+                        )}
+
+                    </div> */}
+                
             </div>
         </div>
 
@@ -180,7 +253,7 @@ const CheckOut: React.FC = () => {
             </div>
             <div className='flexRowCenter'>
                 <input type="text" placeholder='Post Code' className='authInput' onChange={(e) => setPostCode(e.target.value)}/>
-                <input type="text" placeholder='City' className='authInput' onChange={(e) => setCity(e.target.value)}/>
+                <input type="text" placeholder='City' className='authInput' onChange={(e) => checkCity(e.target.value)}/>
             </div>
             <button onClick={makeOrder}>Order</button>
         </div>

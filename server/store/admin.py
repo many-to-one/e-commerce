@@ -84,10 +84,10 @@ class ProductFaqAdmin(ImportExportModelAdmin):
 
 class CartOrderAdmin(ImportExportModelAdmin):
     inlines = [CartOrderItemsInlineAdmin]
-    search_fields = ['oid', 'full_name', 'email', 'mobile']
+    search_fields = ['oid', 'full_name', 'email', 'mobile', 'delivery']
     list_editable = ['order_status', 'payment_status', 'delivery_status']
-    list_filter = ['payment_status', 'order_status', 'delivery_status']
-    list_display = ['oid', 'payment_status', 'order_status', 'delivery_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'saved' ,'date']
+    list_filter = ['payment_status', 'order_status', 'delivery_status', 'delivery']
+    list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'delivery_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'date']
 
 
 class CartOrderItemsAdmin(ImportExportModelAdmin):
@@ -105,6 +105,17 @@ class ReturnItemAdmin(ImportExportModelAdmin):
     list_filter = ['return_status', 'return_decision']
     list_display = ['order', 'product__sku', 'product_image', 'product', 'qty', 'return_reason', 'return_status', 'return_decision', 'return_delivery_courier']
 
+    def save_model(self, request, obj, form, change):
+        """
+        Update the return data of the related CartOrderItem whenever ReturnItem is saved.
+        """
+        super().save_model(request, obj, form, change)
+        
+        if obj.order_item:
+            obj.order_item.return_decision = obj.return_decision
+            obj.order_item.return_delivery_courier = obj.return_delivery_courier
+            obj.order_item.return_tracking_id = obj.return_tracking_id
+            obj.order_item.save() 
 
 class CouponAdmin(ImportExportModelAdmin):
     # inlines = [CouponUsersInlineAdmin]

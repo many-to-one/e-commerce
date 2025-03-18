@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/auth';
 import { API_BASE_URL } from '../../utils/constants';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { __userId } from '../../utils/auth';
 
 interface OrderProps {
     id: number,
@@ -21,7 +22,7 @@ const Order: React.FC<OrderProps> = () => {
 
     const axios_ = useAxios();
     const navigate = useNavigate();
-    const user = useAuthStore((state) => state.allUserData);
+    const user = __userId(); // useAuthStore((state) => state.allUserData);
     const count = useAuthStore((state) => state.cartCount);
     const accessToken = Cookies.get('access_token');
 
@@ -29,9 +30,9 @@ const Order: React.FC<OrderProps> = () => {
     const [orderPay, setOrderPay] = useState<number>(0.00);
     const [inputQty, setInputQty] = useState({});
 
-    const fetchData = async () => {
+    const fetchCartData = async () => {
         try {
-          const resp = await axios_.get(`api/store/cart/${user.user_id}`);
+          const resp = await axios_.get(`api/store/cart/${user['user_id']}`);
           console.log('Cart', resp.data.cart);
           setCart(resp.data.cart);
           useAuthStore.getState().updateCartCount(resp.data.cart.length); 
@@ -51,8 +52,8 @@ const Order: React.FC<OrderProps> = () => {
     }
         
     useEffect(() => {
-        fetchData();
-    }, [user])    
+        fetchCartData();
+    }, [])    
 
     useEffect(() => {
         console.log("Updated Cart:", cart);
@@ -103,7 +104,7 @@ const Order: React.FC<OrderProps> = () => {
 
         console.log('updateQty - id, quantity', id, quantity)
         const body = {
-          user_id: user.user_id || null,
+          user_id: user['user_id'] || null,
           cart_id: id,
           quantity: quantity
         }

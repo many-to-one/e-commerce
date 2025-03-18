@@ -14,7 +14,6 @@ import MaterialIcon from '@material/react-material-icon';
 const Products: React.FC = () => {
 
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-    const user = useAuthStore((state) => state.user);
     // console.log('isLoggedIn', isLoggedIn)
     // console.log('user', user)
 

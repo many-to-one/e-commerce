@@ -336,6 +336,7 @@ class CartOrder(models.Model):
     # Order status attributes
     payment_status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default="initiated")
     order_status = models.CharField(max_length=100, choices=ORDER_STATUS, default="Pending")
+    delivery = models.CharField(max_length=100, null=True, blank=True)
     delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="Shipping Processing")
     tracking_id = models.CharField(max_length=100000, null=True, blank=True)
     
@@ -394,14 +395,23 @@ class ReturnItem(models.Model):
     )
 
     RETURN_DECISIONS = (
-        ("Rozpatrywana", "Rozpatrywana"),
+        ("Rozpatrywany", "Rozpatrywany"),
         ("Odmowa", "Odmowa"),
-        ("Akcepttacja", "Akcepttacja"),
+        ("Akceptacja", "Akceptacja"),
     )
+
+    RETURN_COSTS = (
+        ("Decyzja rozpatrywana", "Decyzja rozpatrywana"),
+        ("Darmowy zwrot", "Darmowy zwrot"),
+        ("Na własny koszt", "Na własny koszt"),
+        ("Na koszt sprzedawcy", "Na koszt sprzedawcy"),
+    )
+
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
     return_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, null=True, blank=True)
-    order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="returnorderitem")
+    order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="returnorder")
+    order_item = models.ForeignKey("CartOrderItem", on_delete=models.CASCADE, related_name="returnorderitem", null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="return_item")
     qty = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -410,7 +420,8 @@ class ReturnItem(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Grand Total of all amount listed above")
     return_status = models.CharField(max_length=100, choices=RETURN_STATUS, default="Returning")
     return_reason = models.CharField(max_length=100, choices=RETURN_REASONS, null=True, blank=True)
-    return_decision = models.CharField(max_length=100, choices=RETURN_DECISIONS, default="Rozpatrywana")
+    return_decision = models.CharField(max_length=100, choices=RETURN_DECISIONS, default="Rozpatrywany")
+    return_costs = models.CharField(max_length=100, choices=RETURN_COSTS, default="Decyzja rozpatrywana")
     return_delivery_courier = models.CharField(max_length=100, null=True, blank=True)
     return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 
@@ -445,6 +456,19 @@ class CartOrderItem(models.Model):
         ("Nie zgodnie z opisem", "Nie zgodnie z opisem"),
     )
 
+    RETURN_DECISIONS = (
+        ("Rozpatrywany", "Rozpatrywany"),
+        ("Odmowa", "Odmowa"),
+        ("Akceptacja", "Akceptacja"),
+    )
+
+    RETURN_COSTS = (
+        ("Decyzja rozpatrywana", "Decyzja rozpatrywana"),
+        ("Darmowy zwrot", "Darmowy zwrot"),
+        ("Na własny koszt", "Na własny koszt"),
+        ("Na koszt sprzedawcy", "Na koszt sprzedawcy"),
+    )
+
 
     order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="orderitem")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="order_item")
@@ -476,6 +500,8 @@ class CartOrderItem(models.Model):
     initial_return = models.BooleanField(default=False)
     return_qty = models.IntegerField(null=True, blank=True)
     return_reason = models.CharField(max_length=100, choices=RETURN_REASONS, null=True, blank=True)
+    return_decision = models.CharField(max_length=100, choices=RETURN_DECISIONS, default="Rozpatrywany")
+    return_costs = models.CharField(max_length=100, choices=RETURN_COSTS, default="Decyzja rozpatrywana")
     return_delivery_courier = models.CharField(max_length=100, null=True, blank=True)
     return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 
@@ -692,10 +718,30 @@ class Coupon(models.Model):
 # Define a model for Delivery Couriers
 class DeliveryCouriers(models.Model):
 
+    FREE_DELIVERY = (
+        ("Wschowa", "Wschowa"),
+        ("Świdnica", "Świdnica"),
+        ("Nowa Wieś", "Nowa Wieś"),
+        ("Przyczyna Dolna", "Przyczyna Dolna"),
+        ("Przyczyna Górna", "Przyczyna Górna"),
+        ("Telewice", "Telewice"),
+        ("Osowa Sień", "Osowa Sień"),
+        ("Hetmanice", "Hetmanice"),
+        ("Lgiń", "Lgiń"),
+        ("Radomyśl", "Radomyśl"),
+        ("Wjewo", "Wjewo"),
+        ("Wieleń", "Wieleń"),
+        ("Kaszczor", "Kaszczor"),
+        ("Mochy", "Mochy"),
+        ("Solec", "Solec"),
+        ("Wolsztyn", "Wolsztyn"),
+    )
+
     name = models.CharField(max_length=1000, null=True, blank=True)
     tracking_website = models.URLField(null=True, blank=True)
     url_parameter = models.CharField(null=True, blank=True, max_length=100)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    free_delivery = models.CharField(choices=FREE_DELIVERY, null=True, blank=True)
     
     class Meta:
         ordering = ["name"]

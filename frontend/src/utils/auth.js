@@ -77,6 +77,17 @@ export const isAccessTokenExpired = (accessToken) => {
 };
 
 
+export const __userId = () => {
+    try {
+        const decodedToken = jwtDecode(Cookies.get('access_token'));
+        console.log('__userId', decodedToken);
+        return decodedToken;
+    } catch (error) {
+        console.log('__userId--error', error);
+    }
+}
+
+
 // Function to refresh the access token using the refresh token
 export const getRefreshToken = async () => {
     // Retrieving refresh token from cookies and making a POST request to refresh the access token

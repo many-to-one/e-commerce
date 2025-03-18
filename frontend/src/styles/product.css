@@ -100,3 +100,28 @@
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
+
+.return-info {
+    padding: 2px;
+    border: 1px solid green;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.return-data {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.free-shipping {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    height: 200px;
+    overflow-y: scroll;
+}

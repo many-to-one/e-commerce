@@ -39,6 +39,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://host.docker.internal:8100",
     'http://web:8100',
     'http://master:8089',
+    "https://api-preprod.dpsin.dpdgroup.com:8443"
+]
+
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-dpd-login",
+    "x-dpd-password",
+    "x-dpd-bucode",
 ]
 # CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOW_CREDENTIALS = True

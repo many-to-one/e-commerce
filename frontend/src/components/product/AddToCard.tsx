@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../../utils/constants';
 import { showToast } from '../../utils/toast';
 import { useAuthStore } from '../../store/auth';
 import Swal from 'sweetalert2';
+import { __userId } from '../../utils/auth';
 
 
 const Toast = Swal.mixin({
@@ -26,7 +27,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
 
   const navigate = useNavigate()
   const accessToken = Cookies.get('access_token');
-  const user = useAuthStore((state) => state.allUserData);
+  const user = __userId(); //useAuthStore((state) => state.allUserData);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   console.log('AddToCard user', user)
 
@@ -38,7 +39,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
         } else {
 
           const body = {
-            user_id: user.user_id || null,
+            user_id: user['user_id'] || null,
             product_id: id,
             quantity: quantity
           }

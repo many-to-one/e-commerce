@@ -10,6 +10,7 @@ type OrderItemType = {
     payment_status: string;
     delivery_courier: string;
     tracking_id: string;
+    delivery: string;
     orderitem: {
         product: {
             image: string;
@@ -19,6 +20,9 @@ type OrderItemType = {
         qty: string;
         total: string;
         initial_return: boolean;
+        return_reason: string;
+        return_decision: string;
+        return_costs: string;
         return_delivery_courier: string;
         return_tracking_id: string;
     }[];

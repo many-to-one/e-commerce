@@ -210,6 +210,7 @@ class CreateOrderView(APIView):
         sub_total = request.data['sub_total']
         shipping_amount = request.data['shipping_amount']
         total = request.data['total']
+        delivery = request.data['delivery']
 
         user = User.objects.get(id=user_id)
         order = CartOrder(
@@ -224,6 +225,7 @@ class CreateOrderView(APIView):
             sub_total=sub_total,
             shipping_amount=shipping_amount,
             total=total,
+            delivery=delivery,
         )
         order.payment_status = "processing"
         order.order_status = "Processing"
@@ -367,17 +369,18 @@ class ReturnProductView(APIView):
         )
         order_item.return_qty=qty
         order_item.initial_return=True
+        order_item.return_reason=return_reason
         order_item.save()
 
-        return_item = ReturnItem(
+        return_item = ReturnItem.objects.create(
             user=user,
             order=order,
+            order_item=order_item,
             product=product,
             price=order_item.price,
             qty=qty,
             return_reason=return_reason,
         )
-        return_item.save()
 
         return_item_srlz = ReturnOrderItemSerializer(return_item)
 

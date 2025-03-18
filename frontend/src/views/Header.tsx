@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Cart from '../components/product/Cart'
 import useAxios from '../utils/useAxios';
 import { useAuthStore } from '../store/auth';
@@ -6,16 +6,17 @@ import { useNavigate } from 'react-router-dom';
 import Category from '../components/category/Category';
 import Profile from './shop/Profile';
 import MaterialIcon from '@material/react-material-icon';
+import { __userId, logout } from '../utils/auth';
 
 function Header() {
 
-  const user = useAuthStore((state) => state.allUserData);
+  const user = __userId() //useAuthStore((state) => state.allUserData);
   const navigate = useNavigate()
   const axios = useAxios();
   const [categories, setCategories] = useState<CategoryType[]>([]);
   const [showCategories, setShowCategories] = useState(false);
 
-  console.log('Header-user', user);
+  // console.log('Header-user', user);
 
   const fetchData = async (endpoint, state) => {
 
@@ -32,6 +33,7 @@ function Header() {
   useEffect(() => {
         fetchData('/api/store/categories', setCategories)
     }, [])
+
 
   return (
     <div className='Header flexRowStart gap-15'>
@@ -53,9 +55,10 @@ function Header() {
         {user ? (
           <>
             <div className='Cursor loginSt flexRowBetween gap-15'>
-              <p>Witaj, {user.username}</p>
+              <p>Witaj, {user['username']}</p>
               <MaterialIcon icon="person" onClick={() => navigate('/profile')}/>
               <Cart />
+              <MaterialIcon icon="logout" onClick={logout} className='ml-30'/>
             </div>
           </>
         ): (

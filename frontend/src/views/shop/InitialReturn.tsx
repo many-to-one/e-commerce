@@ -3,10 +3,11 @@ import useAxios from '../../utils/useAxios';
 import { showToast } from '../../utils/toast';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
+import { __userId } from '../../utils/auth';
 
 function InitialReturn() {
 
-    const user = useAuthStore((state) => state.allUserData);
+    const user = __userId(); //useAuthStore((state) => state.allUserData);
     const axios_ = useAxios();
     const location = useLocation();
     const navigate = useNavigate();
@@ -52,7 +53,7 @@ function InitialReturn() {
             }
     
             const body = {
-                userId: user.user_id,
+                userId: user['user_id'],
                 orderId: oid,
                 prodId: product.id,
                 qty: qty,
@@ -61,7 +62,7 @@ function InitialReturn() {
             try {
                 const resp = await axios_.post('api/store/return-item', body)
                 console.log('initialReturn', resp)
-                navigate('/returns')
+                navigate('/profile')
             } catch (error) {
                 showToast("error", error)
             }
