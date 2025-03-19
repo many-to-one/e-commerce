@@ -101,6 +101,17 @@
     border-bottom-right-radius: 10px;
 }
 
+.orders-history {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: transparent;
+}
+
+.history-title {
+    width: 300px;
+}
+
 .return-info {
     padding: 2px;
     border: 1px solid green;

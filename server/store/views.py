@@ -311,8 +311,8 @@ class FinishedCartOrderView(APIView):
         user = User.objects.get(id=user_id)
         print("********************** FinishedCartOrderView *********************", oid, user_id)
         order = CartOrder.objects.get(oid=oid)
-        order.payment_status = "paid"
-        order.order_status = "Fulfilled"
+        order.payment_status = "Zapłacone"
+        order.order_status = "Czeka na Etykietę"
         order.save()
 
         cart = Cart.objects.filter(user=user)

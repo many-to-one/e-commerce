@@ -17,7 +17,7 @@ const CheckOut: React.FC = () => {
     const location = useLocation();
     const cart = location.state.cart;
     const orderPay = location.state.orderPay;
-    console.log('CheckOut', cart)
+    // console.log('CheckOut', cart)
     // console.log('user', user.user_id)
 
     const [fullName, setFullName] = useState<string>('');
@@ -113,14 +113,20 @@ const CheckOut: React.FC = () => {
     }
 
     const handleCourierChange = (e) => {
-        // setTotalOrderPrice(orderPay)
-        console.log("handleCourierChange", e.target.value)
-        const { name } = JSON.parse(e.target.value);
-        console.log("handleCourierChange name", name)
-        setSelectedCourier(name);
-        const { price } = JSON.parse(e.target.value);
-        console.log("handleCourierChange price", price)
-        setTotalOrderPrice(orderPay + Number(price))
+
+        if ( e === "Darmowa" ) {
+            console.log("handleCourierChange=Darmowa", e)
+            setSelectedCourier(e);
+            setTotalOrderPrice(orderPay)
+        } else {
+            console.log("handleCourierChange", e)
+            const { name } = JSON.parse(e);
+            console.log("handleCourierChange name", name)
+            setSelectedCourier(name);
+            const { price } = JSON.parse(e);
+            console.log("handleCourierChange price", price)
+            setTotalOrderPrice(orderPay + Number(price))
+        }
     }
 
     const checkCity = (city) => {
@@ -191,27 +197,32 @@ const CheckOut: React.FC = () => {
 
             <div 
                 className="flexRowBetween gap-15"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                // onMouseEnter={() => setIsHovered(true)}
+                // onMouseLeave={() => setIsHovered(false)}
             >
 
                 <select
                     id="Select"
                     name="courier"
-                    value={selectedCourier || ""}
-                    onChange={(e) => setSelectedCourier(e.target.value)}
+                    // value={selectedCourier || ""}
+                    onChange={(e) => handleCourierChange(e.target.value)}
                 >
                     <option value="">Courier:</option>
                     <option value="Darmowa">Darmowa</option>
                     {couriers?.map((courier, index) => (
-                        // <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}></option>
-                        <option key={index} value={courier.name}>
+                        <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}>
                             {courier.name}
                         </option>
+                        // <option key={index} value={courier.name}>
+                        //     {courier.name}
+                        // </option>
                     ))}
                 </select>
              
-                    {/* <div>
+                    <div
+                        onMouseEnter={() => setIsHovered(true)} 
+                        onMouseLeave={() => setIsHovered(false)}
+                    >
                         <MaterialIcon icon="info"  className="Cursor" />
                         {isHovered && (
                             <div
@@ -225,7 +236,7 @@ const CheckOut: React.FC = () => {
                             </div>
                         )}
 
-                    </div> */}
+                    </div>
                 
             </div>
         </div>
@@ -255,7 +266,7 @@ const CheckOut: React.FC = () => {
                 <input type="text" placeholder='Post Code' className='authInput' onChange={(e) => setPostCode(e.target.value)}/>
                 <input type="text" placeholder='City' className='authInput' onChange={(e) => checkCity(e.target.value)}/>
             </div>
-            <button onClick={makeOrder}>Order</button>
+            <button onClick={makeOrder}>Kupuję</button>
         </div>
         
     </div>

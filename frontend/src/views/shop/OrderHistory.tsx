@@ -23,16 +23,21 @@ function OrderHistory() {
 
 
     const fetchHistory = async () => {
-
-            try {
-                const resp = await axios_.get('api/store/order-history')
-                setProducts(resp.data.results)
-                setReturnReasons(resp.data.return_reasons)
-                console.log('OrderHistory', resp)
-            } catch (error) {
-                showToast("error", error)
-            }
+        try {
+            const resp = await axios_.get('api/store/order-history')
+            setProducts(resp.data.results)
+            setReturnReasons(resp.data.return_reasons)
+            console.log('OrderHistory', resp)
+        } catch (error) {
+            showToast("error", error)
         }
+    }
+
+    const formatDate = (isoString) => {
+        const date = new Date(isoString);
+        return date.toISOString().slice(0, 16).replace('T', ' '); // "2025-03-18 12:15"
+    };
+        
 
         const API_BASE_URL = "https://api-preprod.dpsin.dpdgroup.com:8443/shipping/v1";
 
@@ -63,25 +68,25 @@ function OrderHistory() {
 
 
     return (
-      <div>
+      <div className='orders-history'>
         {products?.map((item, index) => (
             <div key={index}>
                 <div className='cartItem'>
                     <div>
                         <div className='flexColumnStart'>
                             <p className='flexRowBetween'><b>ID zamówienie:</b> {item.oid}</p>
-                            <p className='flexRowBetween'><b>Data złożenia:</b> {item.date}</p>
+                            <p className='flexRowBetween'><b>Data złożenia:</b> {formatDate(item.date)}</p>
                             <p className='flexRowBetween'><b>Status opłaty:</b> {item.payment_status}</p>
-                            <p className='flexRowBetween'><b>Status dostawy:</b> {item.order_status}</p> 
+                            <p className='flexRowBetween'><b>Status dostawy:</b> {item.delivery_status}</p> 
                             <p className='flexRowBetween'><b>Dostawa:</b> {item.delivery}</p>
                             <p className='flexRowBetween'><b>Numer śledzenia:</b> {item.tracking_id}</p>
                         </div>
                         {item.orderitem.map((order, index) => (
                            <div>
                                 <div className='flexRowBetween'>
-                                    <div>
+                                    <div className='flexRowBetween gap-15'>
                                         <img src={order.product.image} alt="" width={100}/>
-                                        <p>{order.product.title}</p>
+                                        <p className='history-title'>{order.product.title}</p>
                                     </div>
 
                                     { order.initial_return === true ?
@@ -123,20 +128,20 @@ function OrderHistory() {
                                         ) :
                                         (
                                             <button 
-                                                // onClick={() => navigate(
-                                                //     '/initial-return', 
-                                                //     {state: {
-                                                //         oid: item.oid, 
-                                                //         date: item.date,
-                                                //         payment_status: item.payment_status,
-                                                //         order_status: item.order_status,
-                                                //         tracking_id: item.tracking_id,
-                                                //         total_price: item.sub_total,
-                                                //         orderitem: order,
-                                                //         return_reasons: returnReasons,
-                                                //     }}
-                                                // )} className='mainBtn'
-                                                onClick={getDPDToken}
+                                                onClick={() => navigate(
+                                                    '/initial-return', 
+                                                    {state: {
+                                                        oid: item.oid, 
+                                                        date: item.date,
+                                                        payment_status: item.payment_status,
+                                                        order_status: item.order_status,
+                                                        tracking_id: item.tracking_id,
+                                                        total_price: item.sub_total,
+                                                        orderitem: order,
+                                                        return_reasons: returnReasons,
+                                                    }}
+                                                )} className='mainBtn'
+                                                // onClick={getDPDToken}
                                             >
                                                 Otwórz zwrot
                                             </button>
@@ -155,6 +160,8 @@ function OrderHistory() {
                             <p><b>{item.total} PLN</b></p>
                         </div>
                         <hr /> 
+
+                       
                     </div>
                 </div>
             </div>

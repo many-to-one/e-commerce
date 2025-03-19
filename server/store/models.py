@@ -288,37 +288,35 @@ class Cart(models.Model):
 class CartOrder(models.Model):
 
     PAYMENT_STATUS = (
-        ("paid", "Paid"),
-        ("pending", "Pending"),
-        ("processing", "Processing"),
-        ("cancelled", "Cancelled"),
-        ("initiated", 'Initiated'),
-        ("failed", 'failed'),
-        ("refunding", 'refunding'),
-        ("refunded", 'refunded'),
-        ("unpaid", 'unpaid'),
-        ("expired", 'expired'),
+        ("Zapłacone", "Zapłacone"),
+        ("W trakcie", "W trakcie"),
+        ("Anulacja", "Anulacja"),
+        ("Rozpoczęto", 'Rozpoczęto'),
+        ("Wystąpił błąd", 'Wystąpił błąd'),
+        ("Zwrot kosztów", 'Zwrot kosztów'),
+        ("Nie zapłacone", 'Nie zapłacone'),
+        ("Sesja wygasła", 'Sesja wygasła'),
     )
 
 
     ORDER_STATUS = (
-        ("Pending", "Pending"),
-        ("Processing", "Processing"),
-        ("Fulfilled", "Fulfilled"),
-        ("Partially Fulfilled", "Partially Fulfilled"),
-        ("Cancelled", "Cancelled"),
+        ("W trakcie", "W trakcie"),
+        ("Czeka na Etykietę", "Czeka na Etykietę"),
+        ("Gotowe do wysyłki", "Gotowe do wysyłki"),
+        ("Częściowo zakończone", "Częściowo zakończone"),
+        ("Anulacja", "Anulacja"),
         
     )
 
     DELIVERY_STATUS = (
-        ("On Hold", "On Hold"),
-        ("Shipping Processing", "Shipping Processing"),
-        ("Shipped", "Shipped"),
-        ("Arrived", "Arrived"),
-        ("Delivered", "Delivered"),
-        ("Returning", 'Returning'),
-        ("Returned", 'Returned'),
-        ("Canceled", 'Canceled'),
+        ("Wstrzymana", "Wstrzymana"),
+        ("W trakcie", "W trakcie"),
+        ("Czeka na kuriera", "Czeka na kuriera"),
+        ("Wysłane", "Wysłane"),
+        ("Dostarczono", "Dostarczono"),
+        ("W drodze", 'W drodze'),
+        ("Wróciło", 'Wróciło'),
+        ("Anulacja", 'Anulacja'),
     )
 
     # vendor = models.ManyToManyField(Vendor, blank=True)
@@ -334,10 +332,11 @@ class CartOrder(models.Model):
     total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
 
     # Order status attributes
-    payment_status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default="initiated")
-    order_status = models.CharField(max_length=100, choices=ORDER_STATUS, default="Pending")
+    payment_status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default="Rozpoczęto")
+    order_status = models.CharField(max_length=100, choices=ORDER_STATUS, default="W trakcie")
+    shipping_label = models.FileField(upload_to='shipping_labels/', blank=True, null=True)
     delivery = models.CharField(max_length=100, null=True, blank=True)
-    delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="Shipping Processing")
+    delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="W trakcie")
     tracking_id = models.CharField(max_length=100000, null=True, blank=True)
     
     
@@ -372,6 +371,16 @@ class CartOrder(models.Model):
 
     def get_order_items(self):
         return CartOrderItem.objects.filter(order=self)
+    
+    def get_payment_status_display(self):
+        return dict(self.PAYMENT_STATUS).get(self.payment_status, self.payment_status)
+    
+    def save(self, *args, **kwargs):
+        """Automatically update delivery_status when shipping_label is uploaded."""
+        if self.shipping_label and self.delivery_status != "Czeka na kuriera":
+            self.delivery_status = "Czeka na kuriera"
+            self.order_status = "Gotowe do wysyłki"
+        super().save(*args, **kwargs)
     
 
 class ReturnItem(models.Model):
@@ -418,7 +427,7 @@ class ReturnItem(models.Model):
     date = models.DateTimeField(default=timezone.now)
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Estimated Shipping Fee = shipping_fee * total")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Grand Total of all amount listed above")
-    return_status = models.CharField(max_length=100, choices=RETURN_STATUS, default="Returning")
+    return_status = models.CharField(max_length=100, choices=RETURN_STATUS, default="W drodze")
     return_reason = models.CharField(max_length=100, choices=RETURN_REASONS, null=True, blank=True)
     return_decision = models.CharField(max_length=100, choices=RETURN_DECISIONS, default="Rozpatrywany")
     return_costs = models.CharField(max_length=100, choices=RETURN_COSTS, default="Decyzja rozpatrywana")
@@ -438,14 +447,14 @@ class ReturnItem(models.Model):
 class CartOrderItem(models.Model):
 
     DELIVERY_STATUS = (
-        ("On Hold", "On Hold"),
-        ("Shipping Processing", "Shipping Processing"),
-        ("Shipped", "Shipped"),
-        ("Arrived", "Arrived"),
-        ("Delivered", "Delivered"),
-        ("Returning", 'Returning'),
-        ("Returned", 'Returned'),
-        ("Canceled", 'Canceled'),
+        ("Rozpoczęto", "Rozpoczęto"),
+        ("Wstrzymana", "Wstrzymana"),
+        ("W trakcie", "W trakcie"),
+        ("Wysłane", "Wysłane"),
+        ("Dostarczono", "Dostarczono"),
+        ("W drodze", 'W drodze'),
+        ("Wróciło", 'Wróciło'),
+        ("Anulacja", 'Anulacja'),
     )
 
     RETURN_REASONS = (
@@ -506,7 +515,7 @@ class CartOrderItem(models.Model):
     return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 
     # Various fields for delivery status, delivery couriers, tracking ID, coupons, and more
-    delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="On Hold")
+    delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="Rozpoczęto")
     delivery_courier = models.ForeignKey("store.DeliveryCouriers", on_delete=models.SET_NULL, null=True, blank=True)
     tracking_id = models.CharField(max_length=100000, null=True, blank=True)
 

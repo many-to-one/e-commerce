@@ -2,6 +2,12 @@ from django.contrib import admin
 from django import forms
 from django.db.models import F
 
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from django.http import HttpResponse
+import json
+
 from import_export.admin import ImportExportModelAdmin
 
 from store.models import *
@@ -85,10 +91,77 @@ class ProductFaqAdmin(ImportExportModelAdmin):
 class CartOrderAdmin(ImportExportModelAdmin):
     inlines = [CartOrderItemsInlineAdmin]
     search_fields = ['oid', 'full_name', 'email', 'mobile', 'delivery']
-    list_editable = ['order_status', 'payment_status', 'delivery_status']
+    list_editable = ['order_status', 'payment_status', 'delivery_status', 'shipping_label']
     list_filter = ['payment_status', 'order_status', 'delivery_status', 'delivery']
-    list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'delivery_status', 'sub_total', 'shipping_amount', 'tax_fee', 'service_fee' ,'total', 'date']
+    list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'shipping_label', 'delivery_status', 'sub_total', 'shipping_amount', 'total', 'date']
+    actions = ['generate_pdf_labels']
 
+    def generate_pdf_labels(self, request, queryset):
+        """Generate a PDF with shipping labels & product list."""
+        
+        # Create a BytesIO buffer to hold the PDF content
+        buffer = BytesIO()
+        
+        # Create the PDF in the buffer
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # Set starting position for the content
+        y_position = height - 50
+
+        # # Draw the border
+        # c.rect(10, y_position - 10, width - 40, 20, stroke=1, fill=0)
+
+        # Determine the top and bottom positions for the box
+        top_y = height - 20  # Start near the top of the page
+        bottom_y = y_position - 25  # A little below the last row
+
+        # Draw a single large rectangle covering all orders
+        c.rect(10, bottom_y, width - 40, top_y - bottom_y, stroke=1, fill=0)
+
+
+        for order in queryset:
+            # Add the order details (order summary)
+            c.setFont("Helvetica-Bold", 12)
+            c.setFont("Helvetica", 10)
+
+            # Draw the border
+            # c.rect(10, y_position - 5, width - 40, 20, stroke=1, fill=0)
+
+            # Add product list (CartOrderItems)
+            items = order.orderitem.all()  # Assuming you have a related name for CartOrderItem
+            for item in items:
+                # Title on the left and quantity on the right
+                c.drawString(20, y_position, f"{item.product.title}")  # Title on the left
+                c.drawString(width - 50, y_position, f"{item.qty}")  # Quantity on the right
+                # Draw underline for the current row
+                # c.line(20, y_position - 5, width - 50, y_position - 5)
+
+                y_position -= 20
+
+            # y_position -= 10  # Add some space between orders
+        
+            # Add a page if the content exceeds the page height
+            if y_position < 100:
+                c.showPage()
+                y_position = height - 50  # Reset to the top of the next page
+
+        # Finalize and save the PDF content into the buffer
+        c.save()
+
+        # Get the buffer value and prepare the response
+        buffer.seek(0)  # Rewind the buffer to the beginning
+        response = HttpResponse(buffer, content_type='application/pdf')
+
+        # Optionally, set a filename for the downloaded PDF
+        response['Content-Disposition'] = 'attachment; filename="shipping_labels_and_products.pdf"'
+
+        # Close the buffer
+        buffer.close()
+
+        return response
+
+    generate_pdf_labels.short_description = "Generuj liste zamówień"
 
 class CartOrderItemsAdmin(ImportExportModelAdmin):
     list_filter = ['order__oid', 'date']
