@@ -16,7 +16,8 @@ urlpatterns = [
     path('couriers', DeliveryCouriersView.as_view(), name='couriers'),
     path('stripe-payment', StripeView.as_view(), name='stripe-payment'),
     path('finish-order', FinishedCartOrderView.as_view(), name='finish-order'),
-    path('upload-csv', ProductCSVView.as_view(), name='upload-csv'),
+    # path('upload-csv-all', ProductCSVView.as_view(), name='upload-csv'),
+    path('upload-csv-new/', ProductCSVViewNew.as_view(), name='upload-csv'),
     path('delete-all-products', DeleteProductsView.as_view(), name='delete-all-products'),
     path('convert-links-to-imgs', LinksToGallery.as_view(), name='convert-links-to-imgs'),
 ]

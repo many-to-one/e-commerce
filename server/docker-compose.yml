@@ -44,10 +44,10 @@
 
 services:
   db:
-    image: postgres:16
-    container_name: eshopdb
+    image: postgres:latest
+    container_name: shopdb
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:${DB_PORT}"
     environment:

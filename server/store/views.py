@@ -410,7 +410,7 @@ class UsersReturns(APIView):
 
     
 
-class ProductCSVView(APIView):
+class ProductCSVViewNew(APIView):
 
     permission_classes = (AllowAny,)
 
