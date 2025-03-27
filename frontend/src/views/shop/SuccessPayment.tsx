@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { showToast } from '../../utils/toast';
 import useAxios from '../../utils/useAxios';
 import { useAuthStore } from '../../store/auth';
+import Cookies from 'js-cookie';
+import { __userId } from '../../utils/auth';
 
 function SuccessPayment() {
     
   const navigate = useNavigate();  
   const axios = useAxios();
-  const user = useAuthStore((state) => state.allUserData);
+  const user = __userId()
 
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("order_id");
@@ -19,7 +21,7 @@ function SuccessPayment() {
     console.log("SuccessPayment finishOrder", orderId)
     const res = await axios.post('api/store/finish-order', {
         oid: orderId,
-        user_id: userId,
+        user_id: user?.['user_id'],
     })
 
     console.log("SuccessPayment res", res)

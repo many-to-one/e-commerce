@@ -4,13 +4,16 @@ import { showToast } from '../../utils/toast';
 import axios from 'axios';
 import { useAuthStore } from '../../store/auth';
 import DotsLoader from '../../components/DotsLoader';
+import Cookies from 'js-cookie';
+import { __userId } from '../../utils/auth';
 
 const UploadAllegro: React.FC = () => {
 
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const axios_ = useAxios();
-  const user = useAuthStore((state) => state.allUserData);
+  const user = __userId(); 
+  // console.log("user", user?.['user_id']);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -25,14 +28,12 @@ const UploadAllegro: React.FC = () => {
       return;
     }
 
-    console.log("user_id", user.user_id);
     const myData = new FormData();
     myData.append("file", file);
-    myData.append("user_id", user.user_id);
+    myData.append("user_id", user?.['user_id']);
     setIsLoading(false);
 
     try {
-      console.log('user...', user)
       const resp = await axios_.post("api/store/upload-csv", myData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -42,6 +43,19 @@ const UploadAllegro: React.FC = () => {
     } catch (error) {
       showToast("error", "Coś poszło nie tak...");
     }
+
+    // try {
+    //   console.log('user...', user)
+    //   const resp = await axios_.post("api/store/test", myData, {
+    //     headers: { "Content-Type": "multipart/form-data" },
+    //   });
+    //   setIsLoading(true);
+    //   console.log("sendFile", resp);
+    //   showToast("success", "Plik przesłany pomyślnie!");
+    // } catch (error) {
+    //   showToast("error", "Coś poszło nie tak...");
+    // }
+
   };
 
 

@@ -407,10 +407,27 @@ class UsersReturns(APIView):
         return Response({
             'returns': serializer.data
         })
+    
+
+class TestView(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        csv_file = request.FILES.get("file")
+        user_id = request.data["user_id"]
+        print('TestView - user_id', user_id)
+        print('TestView - csv_file', csv_file)
+
+        return Response({
+            'returns': "Url is working"
+        })
 
     
 
-class ProductCSVViewNew(APIView):
+class ProductCSVView(APIView):
+
+    """ The vendor must be created first!!! """
 
     permission_classes = (AllowAny,)
 
@@ -419,7 +436,15 @@ class ProductCSVViewNew(APIView):
         user_id = request.data["user_id"]
         # print('ProductCSVView', user_id)
         user = User.objects.get(id=user_id)
-        vendor = get_object_or_404(Vendor, user=user)
+        try:
+            vendor = Vendor.objects.get(user=user)
+        except:
+            return Response({
+                    "Error": "No vendor",
+                    "Błąd": "Nie ma żadnego sprzedającego",
+                    }, 
+                    status=404
+                )
         if not csv_file:
             return Response({"error": "No file uploaded"}, status=400)
         
@@ -441,7 +466,8 @@ class ProductCSVViewNew(APIView):
             else:
                 return Response({"error": "Unsupported file format"}, status=400)
 
-            for index, row in df.iterrows():
+            for index, row in df.head(150).iterrows():  # Use .head(5) to get the first 5 rows
+            # for index, row in df.iterrows()[5]:
                 # print('***PANDAS-ROW-SKU***', row[7])
                 if row.iloc[7] == 'Aktywna':
                     # print('***PANDAS-ROW-SKU***', row.to_dict())
@@ -452,10 +478,16 @@ class ProductCSVViewNew(APIView):
                     # print('***PANDAS-ROW-price***', row[14])
 
                     category = row.iloc[10].split('>')
+                    print('***PANDAS-ROW-category***', category)
                     for cat in category:
-                        clean_cat = re.sub(r"\s*\(\d+\)", "", cat).strip()
+                        # clean_cat = re.sub(r"\s*\(\d+\)", "", category).strip()
+                        match = re.search(r"\((\d+)\)", cat)
+                        if match:
+                            allegro_cat_id = match.group(1)
 
-                    # print('***PANDAS-ROW***', clean_cat)
+                    print('*** PANDAS-ROW category ***', category[0])
+                    # print('*** PANDAS-ROW clean_cat ***', clean_cat)
+                    print('*** PANDAS-ROW allegro_cat_id ***', allegro_cat_id)
 
                     # DESCR
                     descr = []
@@ -491,7 +523,9 @@ class ProductCSVViewNew(APIView):
 
 
                     category_, created = Category.objects.get_or_create(
-                        title=clean_cat,
+                        title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
+                        category_hierarchy=category,
+                        allegro_cat_id=allegro_cat_id
                         # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
                     )       
                     # print('***PANDAS-ROW-category_***', category_) 
@@ -507,6 +541,27 @@ class ProductCSVViewNew(APIView):
                         category=category_,
                         vendor=vendor,
                     )
+
+
+                    # category_, created = Category.objects.get_or_create(
+                    #     title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
+                    #     category_hierarchy=category,
+                    #     allegro_cat_id=allegro_cat_id
+                    #     # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
+                    # )       
+                    # # print('***PANDAS-ROW-category_***', category_) 
+                    # # print('***USER***', user) 
+                    # product, created_product = Product.objects.get_or_create(
+                    #     title=row.iloc[21],
+                    #     img_links=img_links,
+                    #     description=descr,
+                    #     price=safe_decimal(row.iloc[14]),
+                    #     stock_qty=row.iloc[12],
+                    #     sku=row.iloc[11],
+                    #     shipping_amount=safe_decimal(14.99),
+                    #     category=category_,
+                    #     vendor=vendor,
+                    # )
 
             return Response({"message": "CSV processed successfully"}, status=201)
         except Exception as e:

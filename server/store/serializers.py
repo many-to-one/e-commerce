@@ -11,9 +11,20 @@ from users.serializer import ProfileSerializer, UserSerializer
 
 # Define a serializer for the Category model
 class CategorySerializer(serializers.ModelSerializer):
+    category_hierarchy = serializers.SerializerMethodField()
+
     class Meta:
         model = Category
         fields = '__all__'
+
+    def get_category_hierarchy(self, obj):
+        # Skip the first element and clean the remaining elements
+        if obj.category_hierarchy:
+            cleaned_hierarchy = [
+                item.split('(')[0].strip() for item in obj.category_hierarchy[1:]
+            ]
+            return cleaned_hierarchy
+        return []
 
 # Define a serializer for the Tag model
 class TagSerializer(serializers.ModelSerializer):

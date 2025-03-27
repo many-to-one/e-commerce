@@ -16,6 +16,8 @@ import uuid
 class Category(models.Model):
 
     title = models.CharField(max_length=100)
+    category_hierarchy = models.JSONField(null=True, blank=True) 
+    allegro_cat_id = models.CharField(max_length=100, null=True, blank=True)
     image = models.ImageField(upload_to="category", default="default.jpg", null=True, blank=True)
     active = models.BooleanField(default=True)
     # Slug for SEO-friendly URLs
@@ -29,7 +31,7 @@ class Category(models.Model):
         return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.image.url))
 
     def __str__(self):
-        return self.title
+        return f'{self.title} - {self.allegro_cat_id}'
     
     # Returns the count of products in this category
     def product_count(self):

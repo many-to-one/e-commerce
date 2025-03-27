@@ -62,7 +62,9 @@ export const register = async (full_name, email, phone, password, password2) => 
 export const logout = async () => {
     Cookies.remove('access_token');
     Cookies.remove('refresh_token');
+    Cookies.remove('user');
     useAuthStore.getState().setUser(null);
+    window.location.reload();
 };
 
 
@@ -134,6 +136,10 @@ export const setAuthUser = (access_token, refresh_token) => {
 
     // Decoding access token to get user information
     const user = jwtDecode(access_token) ?? null;
+    Cookies.set('user', user, {
+        expires: 7,  // Refresh token expires in 7 days
+        secure: true,
+    });
     console.log('setAuthUser', user)
 
     // If user information is present, update user state; otherwise, set loading state to false
