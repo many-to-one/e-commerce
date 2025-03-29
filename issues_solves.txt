@@ -1,0 +1,26 @@
+# If permission deniad in vs code to edit file
+
+1. Chek permissions of the file
+ls -l <filename>
+2.Chanfe file ownership:
+sudo chown <your-username>:<your-group> docker-compose.yml
+id -un  # Get username
+id -gn  # Get group name
+3. Change File Permissions
+sudo chmod u+w docker-compose.yml
+
+or this:
+
+sudo chmod -R 777 /path/to/your/file(or directory) - for everyone
+# 777: Grants read (4), write (2), and execute (1) permissions to everyone (owner, group, and others).
+sudo chown -R $USER /path/to/your/file(or directory) - for logged user
+-----------------------------------------------------------
+
+# Problems with pull from github:
+git stash
+git stash clear
+git pull origin main
+-----------------------------------------------------------
+
+# Create db logic
+CREATE DATABASE shop_db;

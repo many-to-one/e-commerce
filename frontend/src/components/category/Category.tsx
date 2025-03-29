@@ -22,7 +22,7 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     // }
 
     const parseCateg = () => {
-      // console.log('category_hierarchy:', category.category_hierarchy);
+      console.log('category +++', category)
       if (!Array.isArray(category.category_hierarchy)) {
         console.error('category_hierarchy is not an array or is undefined');
         return;

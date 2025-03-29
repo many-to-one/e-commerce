@@ -9,12 +9,17 @@ import MaterialIcon from '@material/react-material-icon';
 import { __userId, logout } from '../utils/auth';
 import '../types/SortCategory';
 
+type CatCatalog = {
+  title: string;
+  category_hierarchy: string[]
+}
+
 function Header() {
 
   const user = __userId() //useAuthStore((state) => state.allUserData);
   const navigate = useNavigate()
   const axios = useAxios();
-  const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [categories, setCategories] = useState<CategoryType[]>([]) 
   const [showCategories, setShowCategories] = useState(false);
 
   const [sortCat, setSortCat] = useState<SortCategory[]>([]);
@@ -31,7 +36,7 @@ function Header() {
 
         const response = await axios.get(endpoint);
         // console.log(`${endpoint}`, response.data);
-        state(response.data.results);
+        // state(response.data.results);
         console.log(`CATEGORIES`, response.data.results);
         const allCats: Category_[] = response.data.results; // Explicitly type `allCats`
 
@@ -39,23 +44,31 @@ function Header() {
             new Set(allCats.map((cat) => cat.title)) // Ensure `cat.title` is a string
         );
 
-        console.log(`uniqueTitles`, uniqueTitles);
-        let arr_ = []
+        let arr_: { title: string; category_hierarchy: string[] }[] = [];
 
-        // response.data.results.map((cat) => {
-        //   if (cat.category_hierarchy[0].trim() === cat.title) {
-        //     console.log(`sortCat`, cat.category_hierarchy.slice(1, cat.category_hierarchy.length));
-        //   //   setSortCat((prevSortCat) => [
-        //   //     ...prevSortCat, // Spread the existing sortCat array
-        //   //     {
-        //   //         title: cat.title,
-        //   //         sub_cat: cat.category_hierarchy.slice(1, cat.category_hierarchy.length),
-        //   //     },
-        //   // ]);
-        //   }
-        // })
+        uniqueTitles.forEach((cat) => {
+          arr_.push({
+            title: cat,
+            category_hierarchy: []
+          });
+        })
 
-        // console.log(`sortCat`, sortCat);
+        // console.log(`uniqueTitles`, uniqueTitles);
+
+        uniqueTitles.forEach((cat) => {
+          for (let i = 0; i < allCats.length; i++) {
+              if (cat === allCats[i]['title']) {
+                // console.log('/////////////////', arr_[cat])
+                const obj = arr_.find((item) => item.title === cat);
+                if (obj) {
+                  // console.log('allCats[category_hierarchy]', allCats[i]['category_hierarchy']);
+                    obj.category_hierarchy.push(allCats[i]['category_hierarchy']); // Update category_hierarchy
+                }
+              }
+          }
+      });
+      setCategories(arr_)
+      // console.log('arr_', arr_)
         
     } catch (error) {
         console.log('Products error', error)

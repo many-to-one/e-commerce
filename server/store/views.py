@@ -40,7 +40,7 @@ class CategoriesView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
 
-# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
+@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsView(generics.ListAPIView):
 
     serializer_class = IconProductSerializer
