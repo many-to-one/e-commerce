@@ -1,14 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../../styles/category.css';
 import '../../types/CategoryType';
 import { useNavigate } from 'react-router-dom';
 
 interface CategoryProps {
     category: CategoryType;
+    // showCategories: boolean;
   }
 
 
 const Category: React.FC<CategoryProps> = ({category}) => {
+
+  const [showCategories, setShowCategories] = useState(false);
+  const [showSubCategories, setShowSubCategories] = useState<CategoryType | null>();
 
 
   useEffect(() => {
@@ -22,7 +26,7 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     // }
 
     const parseCateg = () => {
-      console.log('category +++', category)
+      // console.log('category +++', category)
       if (!Array.isArray(category.category_hierarchy)) {
         console.error('category_hierarchy is not an array or is undefined');
         return;
@@ -56,10 +60,49 @@ const Category: React.FC<CategoryProps> = ({category}) => {
       window.location.reload();
     }
 
+    const upOn = () => {
+      setShowCategories(false);
+      // setInterval(() => {
+      //   setShowCategories(true);
+      // }, 2000)
+    }
+
+    // const upDown = () => {
+    //   setShowSubCategories(null);
+    // }
+
   return (
-    <div className='categoryCard' onClick={goToProducts}>
-        <p className='Cursor'>{category.title}</p>
-    </div>
+    <div className='CatTitIn'>
+        <div
+          className='Cursor catTitle'
+          onClick={goToProducts}
+          onMouseEnter={() => {
+            setShowCategories(true);
+          }}
+          onMouseLeave={() => {
+            setShowCategories(false);
+          }}
+        >
+          <p>{category.title}</p>
+        </div>
+        
+        <div className='subCat'
+          onMouseEnter={() => {
+            setShowCategories(true);
+          }}
+          onMouseLeave={() => {
+            // setShowCategories(false);
+          }}
+        >
+          {showCategories &&
+            <div>
+              {category.category_hierarchy?.map((subcat, index) => (
+                <p className='Cursor' key={index}>{subcat}</p>
+              ))}
+            </div>
+          }
+        </div>
+      </div>
   )
 }
 

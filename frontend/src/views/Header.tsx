@@ -21,7 +21,6 @@ function Header() {
   const axios = useAxios();
   const [categories, setCategories] = useState<CategoryType[]>([]) 
   const [showCategories, setShowCategories] = useState(false);
-
   const [sortCat, setSortCat] = useState<SortCategory[]>([]);
 
   // console.log('Header-user', user);
@@ -44,12 +43,23 @@ function Header() {
             new Set(allCats.map((cat) => cat.title)) // Ensure `cat.title` is a string
         );
 
-        let arr_: { title: string; category_hierarchy: string[] }[] = [];
+        let arr_: { 
+          id: number | 0;
+          title: string;
+          category_hierarchy: string[];
+          allegro_cat_id: string;
+          slug: string;
+          image: string;
+        }[] = [];
 
         uniqueTitles.forEach((cat) => {
           arr_.push({
+            id: 0,
             title: cat,
-            category_hierarchy: []
+            category_hierarchy: [],
+            allegro_cat_id: '',
+            slug: '',
+            image: '',
           });
         })
 
@@ -63,12 +73,18 @@ function Header() {
                 if (obj) {
                   // console.log('allCats[category_hierarchy]', allCats[i]['category_hierarchy']);
                     obj.category_hierarchy.push(allCats[i]['category_hierarchy']); // Update category_hierarchy
+                    obj.slug = allCats[i]['slug'];
+                    obj.id = allCats[i]['id'];
+                    obj.allegro_cat_id = allCats[i]['allegro_cat_id'];
+                    obj.image = allCats[i]['image'];
                 }
               }
           }
-      });
+        });
+
       setCategories(arr_)
-      // console.log('arr_', arr_)
+
+      console.log('arr_', arr_)
         
     } catch (error) {
         console.log('Products error', error)
@@ -86,14 +102,25 @@ function Header() {
         <p className='Cursor' onClick={() => navigate('/')}>Główna</p>
         <p 
           className='Cursor showCat'
-          onMouseEnter={() => setShowCategories(true)}
-          onMouseLeave={() => setShowCategories(false)}
+          onMouseEnter={() => {
+            setShowCategories(true);
+            // setShowSubCategories(true);
+          }}
+          onMouseLeave={() => {
+            setShowCategories(false);
+            // setShowSubCategories(false);
+          }}
+        
         >
           Kategorie
           { showCategories && 
-            <div className='categoriesGrid'>
+            <div className='categoryTitles'>
               {categories?.map((category, index) => (
-                  <Category key={index} category={category} /> 
+                  <Category  
+                    key={index} 
+                    category={category} 
+                    // showCategories={showCategories}
+                  /> 
               ))}
             </div>
           }
