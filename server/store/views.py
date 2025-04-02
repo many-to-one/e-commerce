@@ -436,6 +436,9 @@ class ProductCSVView(APIView):
         user_id = request.data["user_id"]
         # print('ProductCSVView', user_id)
         user = User.objects.get(id=user_id)
+
+        cat_set = set()
+
         try:
             vendor = Vendor.objects.get(user=user)
         except:
@@ -478,14 +481,15 @@ class ProductCSVView(APIView):
                     # print('***PANDAS-ROW-price***', row[14])
 
                     category = row.iloc[10].split('>')
-                    print('***PANDAS-ROW-category***', category)
+                    print('*** PANDAS-ROW-category ***', category)
                     for cat in category:
                         # clean_cat = re.sub(r"\s*\(\d+\)", "", category).strip()
                         match = re.search(r"\((\d+)\)", cat)
                         if match:
                             allegro_cat_id = match.group(1)
 
-                    print('*** PANDAS-ROW category ***', category[0])
+                    print('*** PANDAS-ROW category MAIN ***', category[0])
+                    cat_set.add(category[-1:][0])
                     # print('*** PANDAS-ROW clean_cat ***', clean_cat)
                     print('*** PANDAS-ROW allegro_cat_id ***', allegro_cat_id)
 
@@ -521,26 +525,36 @@ class ProductCSVView(APIView):
                     # print('##############################################',)
                     # print('----------------------------------------------',)
 
+                    try:
+                        category_ = Category.objects.get(
+                            title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
+                            )
+                        category_.category_hierarchy=category,
+                        category_.allegro_cat_id=allegro_cat_id
+                    except:
+                        category_, created = Category.objects.get_or_create(
+                            title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
+                            category_hierarchy=category,
+                            allegro_cat_id=allegro_cat_id
+                            # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
+                        )   
 
-                    category_, created = Category.objects.get_or_create(
-                        title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
-                        category_hierarchy=category,
-                        allegro_cat_id=allegro_cat_id
-                        # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
-                    )       
+            print('-------------cat_set---------------', cat_set) 
+
                     # print('***PANDAS-ROW-category_***', category_) 
                     # print('***USER***', user) 
-                    product, created_product = Product.objects.get_or_create(
-                        title=row.iloc[21],
-                        img_links=img_links,
-                        description=descr,
-                        price=safe_decimal(row.iloc[14]),
-                        stock_qty=row.iloc[12],
-                        sku=row.iloc[11],
-                        shipping_amount=safe_decimal(14.99),
-                        category=category_,
-                        vendor=vendor,
-                    )
+
+                    # product, created_product = Product.objects.get_or_create(
+                    #     title=row.iloc[21],
+                    #     img_links=img_links,
+                    #     description=descr,
+                    #     price=safe_decimal(row.iloc[14]),
+                    #     stock_qty=row.iloc[12],
+                    #     sku=row.iloc[11],
+                    #     shipping_amount=safe_decimal(14.99),
+                    #     category=category_,
+                    #     vendor=vendor,
+                    # )
 
 
                     # category_, created = Category.objects.get_or_create(
