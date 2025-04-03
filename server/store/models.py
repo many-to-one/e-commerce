@@ -73,6 +73,7 @@ class Product(models.Model):
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")
+    sub_cat = models.JSONField(null=True, blank=True)
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)

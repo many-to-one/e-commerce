@@ -60,12 +60,17 @@ const Category: React.FC<CategoryProps> = ({category}) => {
       window.location.reload();
     }
 
-    const upOn = () => {
-      setShowCategories(false);
-      // setInterval(() => {
-      //   setShowCategories(true);
-      // }, 2000)
+    const goToSubProducts = (subCat) => {
+      navigate(`sub-category-products/${category.slug}`, {state: {subCat: subCat}});
+      window.location.reload();
     }
+
+    // const upOn = () => {
+    //   setShowCategories(false);
+    //   // setInterval(() => {
+    //   //   setShowCategories(true);
+    //   // }, 2000)
+    // }
 
     // const upDown = () => {
     //   setShowSubCategories(null);
@@ -94,13 +99,17 @@ const Category: React.FC<CategoryProps> = ({category}) => {
             // setShowCategories(false);
           }}
         >
-          {showCategories &&
+          {showCategories && (
             <div>
-              {category.category_hierarchy?.map((subcat, index) => (
-                <p className='Cursor' key={index}>{subcat}</p>
-              ))}
+              {category.category_hierarchy
+                ?.flat() // Flatten the nested array
+                .map((subcat, index) => (
+                  <p className="Cursor" key={index} onClick={() => goToSubProducts(subcat)}>
+                    {subcat}
+                  </p>
+                ))}
             </div>
-          }
+          )}
         </div>
       </div>
   )

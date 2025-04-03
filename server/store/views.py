@@ -40,7 +40,7 @@ class CategoriesView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
 
-@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
+# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsView(generics.ListAPIView):
 
     serializer_class = IconProductSerializer
@@ -60,7 +60,7 @@ class DeleteProductsView(APIView):
         })
 
 
-@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
+# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductDetailsView(APIView):
 
     ''' context={'request': request} - is nessecary to return
@@ -89,7 +89,7 @@ class ProductDetailsView(APIView):
         })
     
 
-@method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
+# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
 class ProductsByCat(APIView):
     
     permission_classes = (AllowAny, )
@@ -102,6 +102,23 @@ class ProductsByCat(APIView):
         return Response({
             "products": prod_serializer.data,
             "category": cat_serializer.data,
+        })
+    
+
+class ProductsBySubCat(APIView):
+    
+    permission_classes = (AllowAny, )
+
+    def get(self, request, sub_cat):
+        # sc = eval(f"[{sub_cat}]")
+        # print('************************ ProductsBySubCat *****************************', sc)
+        from django.db.models import Q
+
+        products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
+        # products = Product.objects.filter(sub_cat=)      
+        prod_serializer = ProductSerializer(products, many=True, context={'request': request})
+        return Response({
+            "products": prod_serializer.data,
         })
     
 
@@ -525,57 +542,43 @@ class ProductCSVView(APIView):
                     # print('##############################################',)
                     # print('----------------------------------------------',)
 
+                    sub_cat = []
                     try:
                         category_ = Category.objects.get(
                             title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
                             )
-                        category_.category_hierarchy=category,
+                        for cat in category[1:]:
+                            category_.category_hierarchy.append(cat),
                         category_.allegro_cat_id=allegro_cat_id
+                        category_.save()
                     except:
                         category_, created = Category.objects.get_or_create(
                             title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
-                            category_hierarchy=category,
+                            category_hierarchy=[],
                             allegro_cat_id=allegro_cat_id
-                            # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
-                        )   
+                        )  
+                        for cat in category[1:]:
+                            category_.category_hierarchy.append(cat),
+                        category_.save()
 
-            print('-------------cat_set---------------', cat_set) 
+                    product, created_product = Product.objects.get_or_create(
+                        title=row.iloc[21],
+                        img_links=img_links,
+                        description=descr,
+                        price=safe_decimal(row.iloc[14]),
+                        stock_qty=row.iloc[12],
+                        sku=row.iloc[11],
+                        shipping_amount=safe_decimal(14.99),
+                        category=category_,
+                        sub_cat=category,
+                        vendor=vendor,
+                    )
 
-                    # print('***PANDAS-ROW-category_***', category_) 
-                    # print('***USER***', user) 
-
-                    # product, created_product = Product.objects.get_or_create(
-                    #     title=row.iloc[21],
-                    #     img_links=img_links,
-                    #     description=descr,
-                    #     price=safe_decimal(row.iloc[14]),
-                    #     stock_qty=row.iloc[12],
-                    #     sku=row.iloc[11],
-                    #     shipping_amount=safe_decimal(14.99),
-                    #     category=category_,
-                    #     vendor=vendor,
-                    # )
-
-
-                    # category_, created = Category.objects.get_or_create(
-                    #     title=re.sub(r"\s*\(\d+\)", "", category[0]).strip(),
-                    #     category_hierarchy=category,
-                    #     allegro_cat_id=allegro_cat_id
-                    #     # slug=clean_cat.replace(" ", "-").lower() + "-" + shortuuid.uuid()[:4],
-                    # )       
-                    # # print('***PANDAS-ROW-category_***', category_) 
-                    # # print('***USER***', user) 
-                    # product, created_product = Product.objects.get_or_create(
-                    #     title=row.iloc[21],
-                    #     img_links=img_links,
-                    #     description=descr,
-                    #     price=safe_decimal(row.iloc[14]),
-                    #     stock_qty=row.iloc[12],
-                    #     sku=row.iloc[11],
-                    #     shipping_amount=safe_decimal(14.99),
-                    #     category=category_,
-                    #     vendor=vendor,
-                    # )
+            categories = Category.objects.all()
+            for cat in categories:
+                cat_ = Category.objects.get(title=cat.title)
+                cat_.category_hierarchy=list(set(cat_.category_hierarchy))
+                cat_.save()
 
             return Response({"message": "CSV processed successfully"}, status=201)
         except Exception as e:

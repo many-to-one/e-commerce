@@ -25,6 +25,7 @@ import Profile from './views/shop/Profile';
 import OrderHistory from './views/shop/OrderHistory';
 import Returns from './views/shop/Returns';
 import InitialReturn from './views/shop/InitialReturn';
+import ProductsBySubCat from './views/shop/ProductsBySubCat';
 
 
 function App() {
@@ -55,6 +56,7 @@ function AppContent() {
         <Route path='/' element={<Products />} />
         <Route path='/product-details/:slug' element={<ProductDetails />} />
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
+        <Route path='/sub-category-products/:slug' element={<ProductsBySubCat />} />
         <Route path='/order' element={<Order />} />
         <Route path='/checkout' element={<CheckOut />} />
         {/* <Route path='/payment-success/:oid' element={<SuccessPayment />} /> */}

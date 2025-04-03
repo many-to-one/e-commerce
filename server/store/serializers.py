@@ -21,7 +21,7 @@ class CategorySerializer(serializers.ModelSerializer):
         # Skip the first element and clean the remaining elements
         if obj.category_hierarchy:
             cleaned_hierarchy = [
-                item.split('(')[0].strip() for item in obj.category_hierarchy[1:]
+                item.split('(')[0].strip() for item in obj.category_hierarchy #[1:]
             ]
             return cleaned_hierarchy
         return []
@@ -115,6 +115,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "img_links",
             "description",
             "category",
+            "sub_cat",
             "tags",
             "brand",
             "price",
