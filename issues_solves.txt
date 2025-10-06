@@ -20,6 +20,9 @@ sudo chown -R $USER /path/to/your/file(or directory) - for logged user
 git stash
 git stash clear
 git pull origin main
+
+# Check the comment of last git commit
+git log -1 --pretty=%B
 -----------------------------------------------------------
 
 # Create db logic

@@ -26,6 +26,7 @@ import OrderHistory from './views/shop/OrderHistory';
 import Returns from './views/shop/Returns';
 import InitialReturn from './views/shop/InitialReturn';
 import ProductsBySubCat from './views/shop/ProductsBySubCat';
+import AllegroAuth from './views/admin/AllegroAuth';
 
 
 function App() {
@@ -68,6 +69,7 @@ function AppContent() {
         <Route path='/upload-files' element={<UploadAllegro />} />
         <Route path='/initial-return' element={<InitialReturn />} />
         <Route path='/returns' element={<Returns />} />
+        <Route path='/allegro-auth-code' element={<AllegroAuth />} />
 
       </Routes>
     </>

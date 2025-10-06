@@ -69,6 +69,7 @@ class Product(models.Model):
     )
 
     title = models.CharField(max_length=100)
+    ean = models.CharField(max_length=100, null=True)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True)

@@ -65,7 +65,8 @@ services:
   web:
     build: .
     container_name: eshopweb
-    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}
+    # command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}
+    command: sh -c "uvicorn backend.asgi:application --host 0.0.0.0 --port ${DJANGO_PORT} --reload"
     volumes:
       - .:/app
     ports:

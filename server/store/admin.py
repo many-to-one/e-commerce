@@ -44,7 +44,7 @@ class ProductAdminForm(forms.ModelForm):
 
 class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
-    search_fields = ['title', 'price', 'slug']
+    search_fields = ['title', 'price', 'slug', 'sku', 'ean',]
     list_filter = ['sku', 'status', 'in_stock', 'vendor']
     list_editable = ['image', 'title', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
     list_display = ['sku', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']

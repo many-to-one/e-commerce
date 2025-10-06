@@ -29,17 +29,21 @@ SITE_URL = os.environ.get('SITE_URL')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "https://checkout.stripe.com", "host.docker.internal"]
+ALLOWED_HOSTS = ["127.0.0.1", "https://checkout.stripe.com", "host.docker.internal", "localhost", "https://allegro.pl.allegrosandbox.pl",]
 CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1",
     "http://host.docker.internal",]
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
     "http://127.0.0.1:8100",
+    "http://0.0.0.0:8100",
+    "http://localhost:8100",
     "http://host.docker.internal:8100",
     'http://web:8100',
     'http://master:8089',
     "https://api-preprod.dpsin.dpdgroup.com:8443"
+    "https://allegro.pl",
+    "https://allegro.pl.allegrosandbox.pl",
 ]
 
 CORS_ALLOW_HEADERS = [
