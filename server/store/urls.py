@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from .allegro_views.views import *
 
 urlpatterns = [
     path('categories', CategoriesView.as_view(), name='categories'),
@@ -21,4 +22,6 @@ urlpatterns = [
     path('upload-csv', ProductCSVView.as_view(), name='upload-csv'), 
     path('delete-all-products', DeleteProductsView.as_view(), name='delete-all-products'),
     path('convert-links-to-imgs', LinksToGallery.as_view(), name='convert-links-to-imgs'),
+
+    path('allegro-token/<str:code>', exchange_token_view, name='allegro-token'),
 ]
