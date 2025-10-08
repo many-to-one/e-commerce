@@ -41,7 +41,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://host.docker.internal:8100",
     'http://web:8100',
     'http://master:8089',
-    "https://api-preprod.dpsin.dpdgroup.com:8443"
+    "https://api-preprod.dpsin.dpdgroup.com:8443",
     "https://allegro.pl",
     "https://allegro.pl.allegrosandbox.pl",
 ]

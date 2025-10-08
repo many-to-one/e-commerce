@@ -8,9 +8,15 @@ from users.models import User
 
 
 class Vendor(models.Model):
-    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, related_name="vendor")
+    # user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, related_name="vendor")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vendor')
     image = models.ImageField(upload_to="vendor", default="shop-image.jpg", blank=True)
     name = models.CharField(max_length=100, help_text="Shop Name", null=True, blank=True)
+    marketplace = models.CharField(max_length=100, help_text="Marketplace", null=True, blank=True)
+    client_id = models.CharField(max_length=100, help_text="Client_id", null=True, blank=True)
+    secret_id = models.CharField(max_length=100, help_text="Secret_id", null=True, blank=True)
+    access_token  = models.CharField(max_length=3000, null=True, blank=True)
+    reset_token  = models.CharField(max_length=3000, null=True, blank=True)
     email = models.EmailField(max_length=100, help_text="Shop Email", null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     mobile = models.CharField(max_length = 150, null=True, blank=True)

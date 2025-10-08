@@ -6,6 +6,9 @@ import requests
 import json
 import os
 
+from vendor.models import Vendor
+
+
 def get_access_token(authorization_code):
     print("Getting access token...----------------", authorization_code)
 
@@ -28,14 +31,19 @@ def get_access_token(authorization_code):
     
 
 @api_view(['POST'])
-def exchange_token_view(request, code):
-    print("Getting exchange_token_view...----------------", code)
+def exchange_token_view(request, code, vendor_name):
+    print("Getting exchange_token_view...----------------", code, vendor_name)
     authorization_code = code #request.data.get('code')
     if not authorization_code:
         return JsonResponse({'error': 'Missing authorization code'}, status=400)
 
     try:
         access_token = get_access_token(authorization_code)
+        if access_token:
+            print("Access Token:", access_token)
+            vendor = Vendor.objects.get(name=vendor_name)
+            vendor.access_token = access_token
+            vendor.save()
         return Response({'access_token': access_token})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
