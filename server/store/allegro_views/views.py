@@ -9,14 +9,22 @@ import os
 from vendor.models import Vendor
 
 
-def get_access_token(authorization_code):
-    print("Getting access token...----------------", authorization_code)
+def get_access_token(authorization_code, vendor_name):
+    print("Getting access token...----------------", authorization_code, vendor_name)
+    vendor = Vendor.objects.get(name=vendor_name)
+    print("Getting RETSET_CLIENT_ID...----------------", vendor.client_id)
+    print("Getting access RETSET_CLIENT_SECRET...----------------", vendor.secret_id)
 
     try:
-        data = {'grant_type': 'client_credentials', 'code': authorization_code, 'redirect_uri': "http://localhost"}
-        response = requests.post("https://allegro.pl.allegrosandbox.pl/auth/oauth/token", data=data, verify=False,
-                                              allow_redirects=False, auth=(os.environ.get('RETSET_CLIENT_ID'), os.environ.get('RETSET_CLIENT_SECRET')))
+        # data = {'grant_type': 'authorization_code', 'code': authorization_code, 'redirect_uri': "http://localhost:5173/allegro-auth-code/retse"}
+        # response = requests.post("https://allegro.pl.allegrosandbox.pl/auth/oauth/token", data=data, verify=False,
+        #                                       allow_redirects=True, auth=(os.environ.get('RETSET_CLIENT_ID'), os.environ.get('RETSET_CLIENT_SECRET')))
 
+        data = {'grant_type': 'authorization_code', 'code': authorization_code, 'redirect_uri': f"http://localhost:5173/allegro-auth-code/{vendor_name}"}
+        response = requests.post("https://allegro.pl.allegrosandbox.pl/auth/oauth/token", data=data, verify=True,
+                                            allow_redirects=True, auth=(vendor.client_id, vendor.secret_id))
+        print("RESPONSE CONTENT *$*$*$*$*$*$*$*$*$*$*$:", response.text)
+        
         print("Status --------------------------- :", response.status_code)
         print("Body --------------------------- :", response.text)
 
@@ -38,7 +46,7 @@ def exchange_token_view(request, code, vendor_name):
         return JsonResponse({'error': 'Missing authorization code'}, status=400)
 
     try:
-        access_token = get_access_token(authorization_code)
+        access_token = get_access_token(authorization_code, vendor_name)
         if access_token:
             print("Access Token:", access_token)
             vendor = Vendor.objects.get(name=vendor_name)

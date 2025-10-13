@@ -68,6 +68,7 @@ class Product(models.Model):
         ("offer", "Offer")
     )
 
+    # allegro_id = models.CharField(max_length=100, null=True, blank=True)
     title = models.CharField(max_length=100)
     ean = models.CharField(max_length=100, null=True)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")

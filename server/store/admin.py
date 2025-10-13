@@ -9,6 +9,7 @@ from django.http import HttpResponse
 import json
 
 from import_export.admin import ImportExportModelAdmin
+import requests
 
 from store.models import *
 
@@ -46,14 +47,137 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean',]
     list_filter = ['sku', 'status', 'in_stock', 'vendor']
-    list_editable = ['image', 'title', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
+    list_editable = ['image', 'title', 'ean', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
     list_display = ['sku', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
-    actions = [apply_discount]
+    actions = [apply_discount, 'allegro_export', 'price_change']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
 
+    def allegro_export(self, request, queryset):
+
+        print('allegro_export request.user ----------------', request.user)
+        url = "https://api.allegro.pl.allegrosandbox.pl/sale/product-offers"
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+        for vendor in vendors:
+            print('allegro_export vendors ----------------', vendors)
+
+        for vendor in vendors:
+            access_token = vendor.access_token
+            producer = self.responsible_producers(access_token)
+            print('allegro_export producer ----------------', producer)
+            for product in queryset:
+                # print('allegro_export ----------------', product.ean)
+                self.create_offer_from_product(product, url, access_token, producer)
+
+
+    def responsible_producers(self, access_token):
+
+        url = "https://api.allegro.pl.allegrosandbox.pl/sale/responsible-producers" 
+
+        headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        response = requests.request("GET", url, headers=headers)
+        print('create_offer_from_product response ----------------', response.text)
+        return response.json()
+
+
+    def create_offer_from_product(self, product, url, access_token, producer):
+
+        print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
+
+        try:
+            payload = json.dumps({
+            "productSet": [
+                {
+                "product": {
+                    "id": product.ean,
+                    "idType": "GTIN"
+                },
+                "responsibleProducer": {
+                    "type": "ID",
+                    "id": producer["responsibleProducers"][0]['id']
+                },
+                },
+            ],
+            "sellingMode": {
+                "price": {
+                "amount": "220.85",
+                "currency": "PLN"
+                }
+            },
+            "stock": {
+                "available": 10
+            },
+            'delivery': {
+                'shippingRates': {
+                    'name': 'Standard'
+                }
+            },
+            })
+
+            headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Content-Type': 'application/vnd.allegro.public.v1+json',
+            'Accept-Language': 'pl-PL',
+            'Authorization': f'Bearer {access_token}'
+            }
+
+            response = requests.request("POST", url, headers=headers, data=payload)
+            print('create_offer_from_product response ----------------', response.text)
+            return response
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
+        
+
+    def get_offers(self, access_token):
+
+        url = "https://api.allegro.pl.allegrosandbox.pl/sale/offers"
+
+        headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        response = requests.request("GET", url, headers=headers)
+        print('get_offers response ----------------', response.text)
+        return response
+        
+
+    def price_change(self, request, queryset):
+
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+
+        for vendor in vendors:
+            access_token = vendor.access_token
+            offers = self.get_offers(access_token)
+
+
+        # try:
+        #     url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{product.id}"
+
+        #     payload = json.dumps({
+        #     "price": {
+        #         "amount": f"{price}",
+        #         "currency": "PLN"
+        #     }
+        #     })
+        #     headers = {
+        #     'Accept': 'application/vnd.allegro.public.v1+json',
+        #     'Content-Type': 'application/vnd.allegro.public.v1+json',
+        #     'Accept-Language': 'pl-PL',
+        #     'Authorization': f'Bearer {access_token}'
+        #     }
+
+        #     response = requests.request("PUT", url, headers=headers, data=payload)
+        #     print('price_change response ----------------', response.text)
+        #     return response
+        # except requests.exceptions.HTTPError as err:
+        #     raise SystemExit(err)
 
 class TagAdmin(ImportExportModelAdmin):
     list_display = ['title', 'category', 'active']
