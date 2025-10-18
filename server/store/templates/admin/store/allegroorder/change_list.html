@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+    {% extends "admin/change_list.html" %}
+
+    {% block content %}
+    <!-- {% if allegro_data %}
+        <div class="module">
+        <h2>📦 Allegro Zamówienia</h2>
+        {% for vendor_data in allegro_data %}
+            <h3>{{ vendor_data.vendor }}</h3>
+            {% if vendor_data.error %}
+            <p style="color:red;">Błąd: {{ vendor_data.error }}</p>
+            {% elif vendor_data.offers %}
+            <ul>
+                {% for offer in vendor_data.offers %}
+                <li>
+                    <strong>{{ offer.type }}</strong> — {{ offer.occurredAt }}<br>
+                    <em>{{ offer.order.buyer.login }}</em> ({{ offer.order.buyer.email }})<br>
+                    {% for item in offer.order.lineItems %}
+                    🧸 {{ item.offer.name }} — {{ item.quantity }} szt. — {{ item.price.amount }} {{ item.price.currency }}<br>
+                    {% endfor %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Brak zamówień.</p>
+            {% endif %}
+        {% endfor %}
+        </div>
+    {% endif %} -->
+    {{ block.super }}
+    {% endblock %}
+
+
+
+</body>
+</html>

@@ -8,6 +8,8 @@ from io import BytesIO
 from django.http import HttpResponse
 import json
 
+from django.utils.dateparse import parse_datetime
+
 from import_export.admin import ImportExportModelAdmin
 import requests
 
@@ -37,23 +39,67 @@ class CartOrderItemsInlineAdmin(admin.TabularInline):
 
 
 class ProductAdminForm(forms.ModelForm):
+
+    vendor = forms.ModelChoiceField(queryset=Vendor.objects.filter(user__is_staff=True))
+
+    vendors = forms.ModelMultipleChoiceField(
+        queryset=Vendor.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+    )
+
     class Meta:
         model = Product
         fields = '__all__'
 
-    vendor = forms.ModelChoiceField(queryset=Vendor.objects.filter(user__is_staff=True))
 
 class ProductAdmin(ImportExportModelAdmin):
+# class ProductAdmin(admin.ModelAdmin):
+
+    save_on_top = True
+
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean',]
-    list_filter = ['sku', 'status', 'in_stock', 'vendor']
-    list_editable = ['image', 'title', 'ean', 'price', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
-    list_display = ['sku', 'product_image', 'image', 'title',   'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty',  'vendor' ,'status', 'featured', 'special_offer' ,'hot_deal']
+    list_filter = ['sku', 'status', 'in_stock', 'vendors']
+    list_editable = ['image', 'title', 'ean', 'price', 'stock_qty', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
+    list_display = ['sku', 'product_image', 'image', 'title', 'ean', 'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty', 'status', 'featured', 'special_offer' ,'hot_deal']
     actions = [apply_discount, 'allegro_export', 'price_change']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
+
+    offers = []
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # print("---- selected_vendors obj ----", obj)
+
+        selected_vendors = obj.vendors.all().order_by('id')
+        # print("---- selected_vendors main ----", selected_vendors)
+        for vendor in selected_vendors:
+            # print("---- selected_vendors ----", vendor.name)
+            access_token = vendor.access_token
+
+            offers = self.get_offers(access_token, vendor.name)
+            # self.get_me(access_token, vendor.name) # To verify access token is valid
+            # print("---- selected_offers ----", offers.text)
+
+            for offer in offers.json()['offers']:
+                # print('price_change MATCH ----------------', offer['external']['id'])
+                if offer['external'] is not None:
+                    if str(offer['external']['id']) == str(obj.sku):
+                        # print('offer[id]----------------', offer['id'])
+
+                        self.allegro_price_change(access_token, offer['id'], obj.price)
+                        self.allegro_stock_change(access_token, offer['id'], obj.stock_qty)
+                        offers = []
+                else:
+                    continue
+
+
+
 
     def allegro_export(self, request, queryset):
 
@@ -128,13 +174,29 @@ class ProductAdmin(ImportExportModelAdmin):
             }
 
             response = requests.request("POST", url, headers=headers, data=payload)
-            print('create_offer_from_product response ----------------', response.text)
+            print('create_offer_from_product response ----------------', response)
             return response
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
-        
+       
 
-    def get_offers(self, access_token):
+    def get_me(self, access_token, name):
+
+        url = "https://api.allegro.pl.allegrosandbox.pl/me"
+
+        headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        response = requests.request("GET", url, headers=headers)
+        # print('get_me NAME ----------------', name)
+        # print('get_me access_token ----------------', access_token)
+        # print('get_me response ----------------', response.text)
+        return response
+
+
+    def get_offers(self, access_token, name):
 
         url = "https://api.allegro.pl.allegrosandbox.pl/sale/offers"
 
@@ -144,7 +206,9 @@ class ProductAdmin(ImportExportModelAdmin):
         }
 
         response = requests.request("GET", url, headers=headers)
-        print('get_offers response ----------------', response.text)
+        # print('get_offers NAME ----------------', name)
+        # print('get_offers access_token ----------------', access_token)
+        # print('get_offers response ----------------', response.text)
         return response
         
 
@@ -152,32 +216,72 @@ class ProductAdmin(ImportExportModelAdmin):
 
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
 
-        for vendor in vendors:
-            access_token = vendor.access_token
-            offers = self.get_offers(access_token)
+        for product in queryset:  # Loop through selected products
+            product_price = product.price 
+            # print('product_price MATCH ----------------', product_price) 
+
+            for vendor in vendors:
+                access_token = vendor.access_token
+                offers = self.get_offers(access_token, vendor.name)
+
+                for offer in offers.json()['offers']:
+                    # print('price_change MATCH ----------------', offer['external'])
+                    if offer['external'] is not None:
+                        if str(offer['external']['id']) == str(product.sku):
+                            # print('offer[id]----------------', offer['id'])
+                            self.allegro_price_change(access_token, offer['id'], product_price)
 
 
-        # try:
-        #     url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{product.id}"
+    def allegro_price_change(self, access_token, offer_id, new_price):
 
-        #     payload = json.dumps({
-        #     "price": {
-        #         "amount": f"{price}",
-        #         "currency": "PLN"
-        #     }
-        #     })
-        #     headers = {
-        #     'Accept': 'application/vnd.allegro.public.v1+json',
-        #     'Content-Type': 'application/vnd.allegro.public.v1+json',
-        #     'Accept-Language': 'pl-PL',
-        #     'Authorization': f'Bearer {access_token}'
-        #     }
+        try:
+            url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{offer_id}"
 
-        #     response = requests.request("PUT", url, headers=headers, data=payload)
-        #     print('price_change response ----------------', response.text)
-        #     return response
-        # except requests.exceptions.HTTPError as err:
-        #     raise SystemExit(err)
+            payload = {
+                "sellingMode": {
+                    "price": {
+                        "amount": f"{new_price}",
+                        "currency": "PLN"
+                    }
+                }
+            }
+
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Content-Type": "application/vnd.allegro.public.v1+json"
+            }
+
+            response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            # print('allegro_price_change response ----------------', response.text)
+
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
+        
+
+    def allegro_stock_change(self, access_token, offer_id, quantity):
+
+        try:
+            url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{offer_id}"
+
+            payload = {
+                "stock": {
+                    "available": quantity,
+                    "unit": "UNIT"
+                }
+            }
+
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Content-Type": "application/vnd.allegro.public.v1+json"
+            }
+
+            response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            # print('allegro_price_change response ----------------', response.text)
+
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
 
 class TagAdmin(ImportExportModelAdmin):
     list_display = ['title', 'category', 'active']
@@ -212,13 +316,61 @@ class ProductFaqAdmin(ImportExportModelAdmin):
     list_display = ['user', 'question', 'answer' ,'active']
 
 
+@admin.register(AllegroOrder)
+class AllegroOrderAdmin(admin.ModelAdmin):
+    list_display = ['vendor', 'order_id', 'buyer_login', 'offer_name', 'quantity', 'price_amount', 'occurred_at', 'type']
+    list_filter = ['vendor', 'type', 'occurred_at']
+    search_fields = ['order_id', 'buyer_login', 'buyer_email', 'offer_name']
+
+    change_list_template = "admin/store/allegroorder/change_list.html"
+
+    def changelist_view(self, request, extra_context=None):
+        self.fetch_and_store_allegro_orders()
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def fetch_and_store_allegro_orders(self):
+        vendors = Vendor.objects.filter(marketplace='allegro.pl')
+        for vendor in vendors:
+            try:
+                url = "https://api.allegro.pl.allegrosandbox.pl/order/events"
+                headers = {
+                    'Accept': 'application/vnd.allegro.public.v1+json',
+                    'Authorization': f'Bearer {vendor.access_token}'
+                }
+                response = requests.get(url, headers=headers)
+                events = response.json().get('events', [])
+
+                for event in events:
+                    order = event.get('order', {})
+                    for item in order.get('lineItems', []):
+                        AllegroOrder.objects.update_or_create(
+                            order_id=event['id'],
+                            vendor=vendor,
+                            defaults={
+                                'buyer_login': order['buyer']['login'],
+                                'buyer_email': order['buyer']['email'],
+                                'offer_id': item['offer']['id'],
+                                'offer_name': item['offer']['name'],
+                                'quantity': item['quantity'],
+                                'price_amount': item['price']['amount'],
+                                'price_currency': item['price']['currency'],
+                                'occurred_at': parse_datetime(event['occurredAt']),
+                                'type': event['type'],
+                            }
+                        )
+            except Exception as e:
+                print(f"Error fetching orders for {vendor.name}: {e}")
+
+
 class CartOrderAdmin(ImportExportModelAdmin):
+
     inlines = [CartOrderItemsInlineAdmin]
     search_fields = ['oid', 'full_name', 'email', 'mobile', 'delivery']
     list_editable = ['order_status', 'payment_status', 'delivery_status', 'shipping_label']
     list_filter = ['payment_status', 'order_status', 'delivery_status', 'delivery']
     list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'shipping_label', 'delivery_status', 'sub_total', 'shipping_amount', 'total', 'date']
     actions = ['generate_pdf_labels']
+
 
     def generate_pdf_labels(self, request, queryset):
         """Generate a PDF with shipping labels & product list."""

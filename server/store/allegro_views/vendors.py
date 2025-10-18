@@ -14,7 +14,10 @@ def user_vendors(request, email):
     try:
         user = User.objects.get(email=email)
         vendors = user.vendor.all()  # assuming ForeignKey with related_name='vendors'
-        vendor_data = [{'id': v.id, 'name': v.name, 'client_id': v.client_id, 'marketplace': v.marketplace,} for v in vendors]
+        vendor_data = sorted(
+            [{'id': v.id, 'name': v.name, 'client_id': v.client_id, 'marketplace': v.marketplace} for v in vendors],
+            key=lambda x: x['id']
+        )
         return Response({'vendors': vendor_data})
     except User.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)

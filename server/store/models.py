@@ -54,6 +54,12 @@ class Category(models.Model):
 
 class Product(models.Model):
 
+    MARKETPLACE_CHOICES = (
+        ('shop', 'Web Shop'),
+        ('allegro_1', 'Allegro Account 1'),
+        ('allegro_2', 'Allegro Account 2'),
+    )
+
     STATUS = (
         ("draft", "Product is draft"),
         ("disabled", "Product is disabled"),
@@ -70,7 +76,7 @@ class Product(models.Model):
 
     # allegro_id = models.CharField(max_length=100, null=True, blank=True)
     title = models.CharField(max_length=100)
-    ean = models.CharField(max_length=100, null=True)
+    ean = models.CharField(max_length=100, null=True, blank=True)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True)
@@ -101,7 +107,8 @@ class Product(models.Model):
     rating = models.IntegerField(default=0, null=True, blank=True)
 
     # Vendor associated with the product
-    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="vendor")
+    # vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="vendor")
+    vendors = models.ManyToManyField(Vendor, blank=True)
     
     # Unique short UUIDs for SKU and product
     sku = models.CharField(max_length=150, null=True, blank=True)
@@ -114,6 +121,10 @@ class Product(models.Model):
     class Meta:
         ordering = ['-id']
         verbose_name_plural = "Products"
+
+
+    # def get_vendors(self):
+    #     return ", ".join([v.name for v in self.vendors.all()])
 
     # Returns an HTML image tag for the product's image
     def product_image(self):
@@ -287,6 +298,24 @@ class Cart(models.Model):
 
     def __str__(self):
         return f'{self.cart_id} - {self.product.title}'
+    
+
+class AllegroOrder(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    order_id = models.CharField(max_length=100, unique=True)
+    buyer_login = models.CharField(max_length=100)
+    buyer_email = models.EmailField()
+    offer_id = models.CharField(max_length=100)
+    offer_name = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField()
+    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    price_currency = models.CharField(max_length=10)
+    occurred_at = models.DateTimeField()
+    type = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.offer_name} ({self.order_id})"
+
     
 
 # Model for Cart Orders
