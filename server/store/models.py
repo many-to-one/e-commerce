@@ -302,7 +302,8 @@ class Cart(models.Model):
 
 class AllegroOrder(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    order_id = models.CharField(max_length=100, unique=True)
+    event_id = models.CharField(max_length=300, unique=True, null=True, blank=True)
+    order_id = models.CharField(max_length=300, null=True, blank=True)
     buyer_login = models.CharField(max_length=100)
     buyer_email = models.EmailField()
     offer_id = models.CharField(max_length=100)
@@ -312,11 +313,35 @@ class AllegroOrder(models.Model):
     price_currency = models.CharField(max_length=10)
     occurred_at = models.DateTimeField()
     type = models.CharField(max_length=50)
+    invoice_generated = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.offer_name} ({self.order_id})"
 
-    
+
+class Invoice(models.Model):
+    invoice_number = models.CharField(max_length=20, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    generated_at = models.DateTimeField(null=True, blank=True)
+    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE)
+    buyer_name = models.CharField(max_length=100)
+    buyer_email = models.EmailField(null=True, blank=True)
+    buyer_street = models.CharField(max_length=100, null=True, blank=True)
+    buyer_zipcode = models.CharField(max_length=100, null=True, blank=True)
+    buyer_city = models.CharField(max_length=100, null=True, blank=True)
+    buyer_nip = models.CharField(max_length=100, null=True, blank=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    offer_name = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField()
+    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    price_currency = models.CharField(max_length=10)
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            # Example: INV-20251019-UUID
+            self.invoice_number = f"INV-{self.created_at.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
 
 # Model for Cart Orders
 class CartOrder(models.Model):

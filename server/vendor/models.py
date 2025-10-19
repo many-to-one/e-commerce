@@ -12,6 +12,8 @@ class Vendor(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vendor')
     image = models.ImageField(upload_to="vendor", default="shop-image.jpg", blank=True)
     name = models.CharField(max_length=100, help_text="Shop Name", null=True, blank=True)
+    nip = models.CharField(max_length=255, help_text="NIP", null=True, blank=True)
+    address = models.CharField(max_length=300, help_text="Address", null=True, blank=True)
     marketplace = models.CharField(max_length=100, help_text="Marketplace", null=True, blank=True)
     client_id = models.CharField(max_length=100, help_text="Client_id", null=True, blank=True)
     secret_id = models.CharField(max_length=100, help_text="Secret_id", null=True, blank=True)
