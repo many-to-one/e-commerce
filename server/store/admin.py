@@ -12,8 +12,9 @@ import requests, json, csv
 
 from import_export.admin import ImportExportModelAdmin
 
-from store.utils.invoice import generate_invoice_allegro
+from store.utils.invoice import *
 from store.models import *
+from store.tasks import *
 
 @admin.action(description="Discount") #How to add 20% to the title/description?
 def apply_discount(modeladmin, request, queryset):
@@ -319,14 +320,14 @@ class ProductFaqAdmin(ImportExportModelAdmin):
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
     list_display = ['vendor', 'order_id', 'buyer_login', 'offer_id', 'offer_name', 'quantity', 'price_amount', 'occurred_at', 'type']
-    list_filter = ['vendor', 'type', 'occurred_at']
+    list_filter = ['vendor', 'type', 'occurred_at',]
     search_fields = ['order_id', 'buyer_login', 'buyer_email', 'offer_name']
 
     change_list_template = "admin/store/allegroorder/change_list.html"
 
-    def changelist_view(self, request, extra_context=None):
-        self.fetch_and_store_allegro_orders()
-        return super().changelist_view(request, extra_context=extra_context)
+    # def changelist_view(self, request, extra_context=None):
+    #     self.fetch_and_store_allegro_orders(request, self.get_queryset(request))
+    #     return super().changelist_view(request, extra_context=extra_context)
     
     def get_buyer_info(self, order_id, access_token):
 
@@ -337,12 +338,14 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 'Authorization': f'Bearer {access_token}'
             }
             response = requests.get(url, headers=headers)
-            print('Fetching order ----------------', response, response.text)
+            # print('Fetching order buyer_info ----------------', response, response.text)
             return response.json()
         except Exception as e:
                 print(f"Error fetching orders for {order_id}: {e}")
 
-    def fetch_and_store_allegro_orders(self):
+
+
+    def fetch_and_store_allegro_orders(self, request, queryset=None):
         vendors = Vendor.objects.filter(marketplace='allegro.pl')
         for vendor in vendors:
             try:
@@ -352,22 +355,34 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     'Authorization': f'Bearer {vendor.access_token}'
                 }
                 response = requests.get(url, headers=headers)
+                if response.status_code != 200:
+                    self.message_user(
+                        request,
+                        f"✅ Pobrano zamówienia allegro dla {vendor.name}",
+                        level='success'
+                    )
                 events = response.json().get('events', [])
 
                 for event in events:
-                    buyer_info = self.get_buyer_info(event['order']['checkoutForm']['id'], vendor.access_token)
-                    buyer = buyer_info.get('buyer', {})
                     order = event.get('order', {})
+                    checkout_form_id = order.get('checkoutForm', {}).get('id')
+                    if not checkout_form_id:
+                        print("⚠️ Missing checkoutForm ID — skipping event.")
+                        continue
+
+                    buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token)
+                    buyer = buyer_info.get('buyer', {})
                     invoice = buyer_info.get('invoice', {})
-                    print('Fetching order invoice  ----------------', invoice)
-                    for item in order.get('lineItems', []):
+                    line_items = order.get('lineItems', [])
+
+                    for item in line_items:
                         allegro_order, created = AllegroOrder.objects.update_or_create(
                             event_id=event['id'],
-                            order_id=order['checkoutForm']['id'],
+                            order_id=checkout_form_id,
                             vendor=vendor,
                             defaults={
-                                'buyer_login': order['buyer']['login'],
-                                'buyer_email': order['buyer']['email'],
+                                'buyer_login': order.get('buyer', {}).get('login', ''),
+                                'buyer_email': order.get('buyer', {}).get('email', ''),
                                 'offer_id': item['offer']['id'],
                                 'offer_name': item['offer']['name'],
                                 'quantity': item['quantity'],
@@ -378,74 +393,103 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             }
                         )
 
-                        # ✅ Auto-generate invoice if READY_FOR_PROCESSING
                         if event['type'] == 'READY_FOR_PROCESSING':
-                            if invoice['required'] == True:
-                                print('Generating invoice for order TRUE ----------------', invoice['required'])
-                                Invoice.objects.get_or_create(
-                                    allegro_order=allegro_order,
-                                    defaults={
-                                        'created_at': now(),
-                                        'buyer_name': invoice['address']['company']['name'] if invoice['address']['company']['name'] else allegro_order.buyer_login,
-                                        'buyer_email': allegro_order.buyer_email,
-                                        'buyer_street': invoice.get('address', {}).get('street'),
-                                        'buyer_zipcode': invoice.get('address', {}).get('zipCode'),
-                                        'buyer_city': invoice.get('address', {}).get('city'),
-                                        'buyer_nip': invoice.get('address', {}).get('company', {}).get('ids', [{}])[0].get('value', 'brak'),
-                                        'vendor': allegro_order.vendor,
-                                        'offer_name': allegro_order.offer_name,
-                                        'quantity': allegro_order.quantity,
-                                        'price_amount': allegro_order.price_amount,
-                                        'price_currency': allegro_order.price_currency,
-                                    }
-                                )
+                            invoice_required = invoice.get('required', False)
+                            invoice_data = {
+                                'created_at': now(),
+                                'buyer_email': allegro_order.buyer_email,
+                                'vendor': allegro_order.vendor,
+                                'offer_name': allegro_order.offer_name,
+                                'quantity': allegro_order.quantity,
+                                'price_amount': allegro_order.price_amount,
+                                'price_currency': allegro_order.price_currency,
+                                'is_generated': True,
+                            }
+
+                            if invoice_required:
+                                # print('Generating invoice for order TRUE ----------------', invoice_required)
+                                invoice_data.update({
+                                    'buyer_name': invoice.get('address', {}).get('company', {}).get('name', allegro_order.buyer_login),
+                                    'buyer_street': invoice.get('address', {}).get('street', ''),
+                                    'buyer_zipcode': invoice.get('address', {}).get('zipCode', ''),
+                                    'buyer_city': invoice.get('address', {}).get('city', ''),
+                                    'buyer_nip': invoice.get('address', {}).get('company', {}).get('ids', [{}])[0].get('value', 'brak'),
+                                })
                             else:
-                                print('Generating invoice for order FALSE ----------------', invoice['required'])
-                                Invoice.objects.get_or_create(
-                                    allegro_order=allegro_order,
-                                    defaults = {   
-                                        'created_at': now(),
-                                        'buyer_name': allegro_order.buyer_login,
-                                        'buyer_email': allegro_order.buyer_email,
-                                        'buyer_street': buyer.get('address', {}).get('street'),
-                                        'buyer_zipcode': buyer.get('address', {}).get('postalCode'),
-                                        'buyer_city': buyer.get('address', {}).get('city'),
-                                        'buyer_nip': 'Brak',
-                                        'vendor': allegro_order.vendor,
-                                        'offer_name': allegro_order.offer_name,
-                                        'quantity': allegro_order.quantity,
-                                        'price_amount': allegro_order.price_amount,
-                                        'price_currency': allegro_order.price_currency,
-                                    }
-                                )
+                                # print('Generating invoice for order FALSE ----------------', invoice_required)
+                                invoice_data.update({
+                                    'buyer_name': allegro_order.buyer_login,
+                                    'buyer_street': buyer.get('address', {}).get('street', ''),
+                                    'buyer_zipcode': buyer.get('address', {}).get('postalCode', ''),
+                                    'buyer_city': buyer.get('address', {}).get('city', ''),
+                                    'buyer_nip': 'Brak',
+                                })
+
+                            Invoice.objects.get_or_create(
+                                allegro_order=allegro_order,
+                                order=allegro_order.offer_name,
+                                defaults=invoice_data
+                            )
+
+                            if created:
+                                try:
+                                    external_id = item['offer'].get('external', {}).get('id')
+                                    product = Product.objects.get(sku=external_id)
+                                    product.stock_qty = max(product.stock_qty - item['quantity'], 0)
+                                    product.save(update_fields=['stock_qty'])
+                                    allegro_order.stock_updated = True
+                                    allegro_order.save(update_fields=['stock_updated'])
+                                    self.message_user(
+                                        request,
+                                        f"✅ Zaktualizowano stan magazynowy dla {product.sku}: -{item['quantity']} → {product.stock_qty}",
+                                        level='success'
+                                    )
+                                    print(f"✅ Updated stock for {product.sku}: -{item['quantity']} → {product.stock_qty}")
+                                except Product.DoesNotExist:
+                                    print(f"⚠️ Product with SKU {external_id} not found — stock not updated.")
+
+                            # else:
+                            #     external_id = item['offer'].get('external', {}).get('id')
+                            #     product = Product.objects.get(sku=external_id)
+                            #     self.message_user(
+                            #             request,
+                            #             f"✅ Stan magazynowy dla {product.sku}: -{item['quantity']} → {product.stock_qty} już został zaktualizowany",
+                            #             level='success'
+                            #         )
+                            #     print(f"ℹ️ Stock_qty for product already updated.")
+
             except Exception as e:
-                print(f"Error fetching orders for {vendor.name}: {e}")
+                self.message_user(
+                    request,
+                    f"⚠️ Nie znaleziono produktu dla {checkout_form_id} — stan magazynowy nie został zaktualizowany.",
+                    level='error'
+                )
+
+                print(f"❌ Error fetching orders for {vendor.name}: {e}")
 
 
-    # "🧾 Wygeneruj faktury Allegro"
-
-
+    
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Faktura', {
-            'fields': ('invoice_number', 'created_at', 'generated_at')
+            'fields': ('invoice_number', 'allegro_order', 'created_at', 'generated_at', 'sent_to_buyer')
         }),
         ('Kupujący', {
             'fields': ('buyer_name', 'buyer_email', 'buyer_street', 'buyer_zipcode', 'buyer_city', 'buyer_nip')
         }),
         ('Zamówienie', {
-            'fields': ('allegro_order', 'vendor', 'offer_name', 'quantity', 'price_amount', 'price_currency')
+            'fields': ('vendor', 'offer_name', 'quantity', 'price_amount', 'price_currency')
         }),
     )
-    readonly_fields = ['invoice_number', 'created_at', 'generated_at']
+    readonly_fields = ['invoice_number', 'created_at', 'generated_at', 'allegro_order']
 
-    list_display = ['invoice_number', 'buyer_name', 'vendor', 'price_amount', 'created_at']
-    search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'offer_name']
-    list_filter = ['vendor', 'created_at']
-    actions = ['generate_invoice_pdf']
+    list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'price_amount', 'created_at']
+    search_fields = ['invoice_number', 'allegro_order', 'buyer_name', 'buyer_email', 'offer_name']
+    list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
+    actions = ['print_invoice_pdf', 'generate_invoice']
 
-    def generate_invoice_pdf(self, request, queryset):
+    def print_invoice_pdf(self, request, queryset):
         for invoice in queryset:
             vendor = invoice.vendor
             buyer_info = {
@@ -467,57 +511,42 @@ class InvoiceAdmin(admin.ModelAdmin):
             }]
 
             pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
-            if pdf_content is None:
-                self.post_invoice_to_allegro(invoice, pdf_content)
-                continue
 
             response = HttpResponse(pdf_content, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
             return response
+
+    def generate_invoice(self, request, queryset):
+        for invoice in queryset:
+            vendor = invoice.vendor
+            buyer_info = {
+                'name': invoice.buyer_name,
+                'street': invoice.buyer_street,
+                'zipCode': invoice.buyer_zipcode,
+                'city': invoice.buyer_city,
+                'taxId': invoice.buyer_nip,
+            }
+            products = [{
+                'offer': {
+                    'name': invoice.offer_name,
+                },
+                'quantity': invoice.quantity,
+                'price': {
+                    'amount': invoice.price_amount,
+                    'currency': invoice.price_currency,
+                }
+            }]
+
+            pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
+
+            try:
+                post_invoice_to_allegro(invoice, pdf_content)
+            except Exception as e:
+                print(f"Error posting invoice {invoice.invoice_number} to Allegro: {e}")
         
-    def post_invoice_to_allegro(self, invoice, pdf_content):
-        """Post the generated invoice to Allegro API."""
-        access_token = invoice.vendor.access_token
-        order_id = invoice.allegro_order.order_id
-        url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices"
 
-        payload = {
-            "file": {
-                "name": f"invoice_{invoice.invoice_number}.pdf"
-            },
-            "invoiceNumber": invoice.invoice_number
-        }
-
-        headers = {
-            'Accept': 'application/vnd.allegro.public.v1+json',
-            'Content-Type': 'application/vnd.allegro.public.v1+json',
-            'Authorization': f'Bearer {access_token}'
-        }
-
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        if response.status_code == 201:
-            invoice_id = response.json().get("id")
-            self.add_invoice_to_order(invoice_id, order_id, access_token, pdf_content)
-            print(f"Invoice {invoice.invoice_number} posted successfully to Allegro.")
-        else:
-            print(f"Failed to post invoice {invoice.invoice_number} to Allegro: {response.text}")
-
-    def add_invoice_to_order(self, invoice_id, order_id, access_token, pdf_content):
-        url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices/{invoice_id}"
-
-        headers = {
-            'Accept': 'application/vnd.allegro.public.v1+json',
-            'Authorization': f'Bearer {access_token}'
-        }
-
-        response = requests.put(url, headers=headers, data=pdf_content)
-        if response.status_code == 200:
-            print(f"Invoice {invoice_id} added successfully to order {order_id}.")
-        else:
-            print(f"Failed to add invoice {invoice_id} to order {order_id}: {response.text}")
-
-
-    generate_invoice_pdf.short_description = "🧾 Drukuj faktury Allegro PDF"
+    generate_invoice.short_description = "🧾 Wyslij faktury do klienta"
+    print_invoice_pdf.short_description = "🖨️ Drukuj faktury"
 
 
 

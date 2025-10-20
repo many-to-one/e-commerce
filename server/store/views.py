@@ -10,7 +10,7 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from store.tasks import store_product_images
+# from store.tasks import store_product_images
 
 from vendor.models import Vendor
 

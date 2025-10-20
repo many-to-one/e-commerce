@@ -10,6 +10,13 @@
     {% extends "admin/change_list.html" %}
 
     {% block content %}
+    <div class="object-tools">
+        <ul class="object-tools">
+        <li>
+            <a href="{% url 'sync_allegro_orders' %}" class="button">🔄 Synchronizuj nowe zamówienia allegro</a>
+        </li>
+        </ul>
+    </div>
     {{ block.super }}
     {% endblock %}
 
@@ -17,3 +24,4 @@
 
 </body>
 </html>
+

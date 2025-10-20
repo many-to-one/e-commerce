@@ -314,6 +314,7 @@ class AllegroOrder(models.Model):
     occurred_at = models.DateTimeField()
     type = models.CharField(max_length=50)
     invoice_generated = models.BooleanField(default=False)
+    stock_updated = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.offer_name} ({self.order_id})"
@@ -323,7 +324,9 @@ class Invoice(models.Model):
     invoice_number = models.CharField(max_length=20, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     generated_at = models.DateTimeField(null=True, blank=True)
-    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE)
+    shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
+    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True)
+    order = models.CharField(max_length=255, null=True, blank=True)
     buyer_name = models.CharField(max_length=100)
     buyer_email = models.EmailField(null=True, blank=True)
     buyer_street = models.CharField(max_length=100, null=True, blank=True)
@@ -335,10 +338,14 @@ class Invoice(models.Model):
     quantity = models.PositiveIntegerField()
     price_amount = models.DecimalField(max_digits=10, decimal_places=2)
     price_currency = models.CharField(max_length=10)
+    is_generated = models.BooleanField(default=False)
+    sent_to_buyer = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             # Example: INV-20251019-UUID
+            if not self.created_at:
+                self.created_at = timezone.now()
             self.invoice_number = f"INV-{self.created_at.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
         super().save(*args, **kwargs)
 
@@ -397,6 +404,7 @@ class CartOrder(models.Model):
     delivery = models.CharField(max_length=100, null=True, blank=True)
     delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="W trakcie")
     tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+    stock_updated = models.BooleanField(default=False)
     
     
     # Discounts

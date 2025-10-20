@@ -1,4 +1,5 @@
 from io import BytesIO
+import json
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -8,6 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from django.utils.timezone import localtime
+import requests
 from num2words import num2words
 
 import os
@@ -23,7 +25,6 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23)
     # Dynamically resolve path
     font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
     pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-    # pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
 
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
@@ -109,14 +110,60 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23)
     c.drawString(2 * cm, height - 17.5 * cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
 
     # Signatures
-    c.drawString(2 * cm, height - 21 * cm, "_______________________________")
-    c.drawString(2 * cm, height - 21.5 * cm, "podpis osoby upoważnionej do odbioru faktury")
+    # c.drawString(2 * cm, height - 21 * cm, "_______________________________")
+    # c.drawString(2 * cm, height - 21.5 * cm, "podpis osoby upoważnionej do odbioru faktury")
 
-    c.drawString(12 * cm, height - 21 * cm, "_______________________________")
-    c.drawString(12 * cm, height - 21.5 * cm, "podpis osoby upoważnionej")
-    c.drawString(12 * cm, height - 22 * cm, "do wystawienia faktury")
+    # c.drawString(12 * cm, height - 21 * cm, "_______________________________")
+    # c.drawString(12 * cm, height - 21.5 * cm, "podpis osoby upoważnionej")
+    # c.drawString(12 * cm, height - 22 * cm, "do wystawienia faktury")
 
     c.save()
     pdf_content = buffer.getvalue()
     buffer.close()
     return pdf_content
+
+
+
+def post_invoice_to_allegro(invoice, pdf_content):
+    """Post the generated invoice to Allegro API."""
+    access_token = invoice.vendor.access_token
+    order_id = invoice.allegro_order.order_id
+    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices"
+
+    payload = {
+        "file": {
+            "name": f"invoice_{invoice.invoice_number}.pdf"
+        },
+        "invoiceNumber": invoice.invoice_number
+    }
+
+    headers = {
+        'Accept': 'application/vnd.allegro.public.v1+json',
+        'Content-Type': 'application/vnd.allegro.public.v1+json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code == 201:
+        invoice_id = response.json().get("id")
+        add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_content)
+        print(f"Invoice {invoice.invoice_number} posted successfully to Allegro.")
+    else:
+        print(f"Failed to post invoice {invoice.invoice_number} to Allegro: {response.text}")
+
+def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_content):
+    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices/{invoice_id}/file"
+
+    headers = {
+        'Accept': 'application/vnd.allegro.public.v1+json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    response = requests.put(url, headers=headers, data=pdf_content)
+    print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
+    if response.status_code == 200:
+        invoice.sent_to_buyer = True
+        invoice.save()
+        print(f"Invoice {invoice_id} added successfully to order {order_id}.")
+    else:
+        print(f"Failed to add invoice {invoice_id} to order {order_id}: {response.text}")

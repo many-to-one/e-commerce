@@ -26,4 +26,6 @@ urlpatterns = [
 
     path('allegro-token/<str:code>/<str:vendor_name>/', exchange_token_view, name='allegro-token'),
     path('vendors/<str:email>', user_vendors, name='vendors'),
+
+    path('admin/sync-allegro-orders/', AllegroOrderAdminView.as_view(), name='sync_allegro_orders'),
 ]

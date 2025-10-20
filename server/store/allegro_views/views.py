@@ -1,6 +1,12 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
 from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.shortcuts import redirect
 
 import requests
 import json
@@ -55,3 +61,16 @@ def exchange_token_view(request, code, vendor_name):
         return Response({'access_token': access_token})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+@method_decorator(staff_member_required, name='dispatch')
+class AllegroOrderAdminView(View):
+    def get(self, request):
+        from store.admin import AllegroOrderAdmin
+        from store.models import AllegroOrder
+
+        admin_instance = AllegroOrderAdmin(AllegroOrder, admin_site=None)
+        admin_instance.fetch_and_store_allegro_orders(request, queryset=None)
+
+        messages.success(request, "✅ Synchronizacja Allegro zakończona.")
+        return redirect('/admin/store/allegroorder/')
