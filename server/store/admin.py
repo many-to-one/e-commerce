@@ -364,6 +364,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 events = response.json().get('events', [])
 
                 for event in events:
+                    # print('Processing event ----------------', event)
                     order = event.get('order', {})
                     checkout_form_id = order.get('checkoutForm', {}).get('id')
                     if not checkout_form_id:
@@ -375,23 +376,61 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     invoice = buyer_info.get('invoice', {})
                     line_items = order.get('lineItems', [])
 
+                    items_total = sum(
+                        float(item['price']['amount']) for item in buyer_info.get('lineItems', [])
+                    )
+                    delivery_cost = float(buyer_info['delivery']['cost']['amount'])
+                    total_to_pay = float(buyer_info['summary']['totalToPay']['amount'])
+                    is_smart = buyer_info.get('delivery', {}).get('smart', False)
+
+
+                    # for item in line_items:
+                    #     allegro_order, created = AllegroOrder.objects.update_or_create(
+                    #         event_id=event['id'],
+                    #         order_id=checkout_form_id,
+                    #         vendor=vendor,
+                    #         defaults={
+                    #             'buyer_login': order.get('buyer', {}).get('login', ''),
+                    #             'buyer_email': order.get('buyer', {}).get('email', ''),
+                    #             'offer_id': item['offer']['id'],
+                    #             'offer_name': item['offer']['name'],
+                    #             'quantity': item['quantity'],
+                    #             'price_amount': item['price']['amount'],
+                    #             'price_currency': item['price']['currency'],
+                    #             'occurred_at': parse_datetime(event['occurredAt']),
+                    #             'type': event['type'],
+                    #         }
+
+                    #         # Dodaj koszt dostawy tylko jeśli nie jest Smart
+                    #         if not is_smart:
+                    #             defaults['delivery_cost'] = delivery_cost / len(line_items)
+                    #     )
+
                     for item in line_items:
+                        defaults = {
+                            'buyer_login': order.get('buyer', {}).get('login', ''),
+                            'buyer_email': order.get('buyer', {}).get('email', ''),
+                            'offer_id': item['offer']['id'],
+                            'offer_name': item['offer']['name'],
+                            'quantity': item['quantity'],
+                            'price_amount': item['price']['amount'],
+                            'price_currency': item['price']['currency'],
+                            'is_smart': is_smart,
+                            'occurred_at': parse_datetime(event['occurredAt']),
+                            'type': event['type'],
+                        }
+
+                        # Dodaj koszt dostawy tylko jeśli nie jest Smart
+                        if not is_smart:
+                            defaults['delivery_cost'] = delivery_cost / len(line_items)
+
                         allegro_order, created = AllegroOrder.objects.update_or_create(
                             event_id=event['id'],
                             order_id=checkout_form_id,
                             vendor=vendor,
-                            defaults={
-                                'buyer_login': order.get('buyer', {}).get('login', ''),
-                                'buyer_email': order.get('buyer', {}).get('email', ''),
-                                'offer_id': item['offer']['id'],
-                                'offer_name': item['offer']['name'],
-                                'quantity': item['quantity'],
-                                'price_amount': item['price']['amount'],
-                                'price_currency': item['price']['currency'],
-                                'occurred_at': parse_datetime(event['occurredAt']),
-                                'type': event['type'],
-                            }
+                            defaults=defaults
                         )
+
 
                         if event['type'] == 'READY_FOR_PROCESSING':
                             invoice_required = invoice.get('required', False)
@@ -504,6 +543,9 @@ class InvoiceAdmin(admin.ModelAdmin):
                     'name': invoice.offer_name,
                 },
                 'quantity': invoice.quantity,
+                'is_smart': invoice.allegro_order.is_smart,
+                'delivery_cost': invoice.allegro_order.delivery_cost,
+                'tax_rate': invoice.allegro_order.product.tax_rate if invoice.allegro_order.product else 23,
                 'price': {
                     'amount': invoice.price_amount,
                     'currency': invoice.price_currency,
@@ -531,6 +573,9 @@ class InvoiceAdmin(admin.ModelAdmin):
                     'name': invoice.offer_name,
                 },
                 'quantity': invoice.quantity,
+                'is_smart': invoice.allegro_order.is_smart,
+                'delivery_cost': invoice.allegro_order.delivery_cost,
+                'tax_rate': invoice.allegro_order.product.tax_rate if invoice.allegro_order.product else 23,
                 'price': {
                     'amount': invoice.price_amount,
                     'currency': invoice.price_currency,

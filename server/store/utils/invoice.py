@@ -17,7 +17,7 @@ import os
 # from staticfiles.backend import settings
 from django.conf import settings
 
-def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23):
+def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=23
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -38,8 +38,12 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23)
 
     # Title
     c.setFont("DejaVuSans", 10)
-    c.drawString(2 * cm, height - 2 * cm, "Faktura")
+    c.drawString(2 * cm, height - 2 * cm, "Faktura VAT")
     c.drawString(2 * cm, height - 2.5 * cm, f"nr: {invoice.invoice_number}")
+
+    # Delivery info
+    c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {invoice.created_at.strftime('%Y-%m-%d')}")
+    c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_date}")
 
     # Seller info
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
@@ -56,9 +60,6 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23)
     c.drawString(12 * cm, height - 5 * cm, f"ul. {buyer_info['street']}, {buyer_info['zipCode']} {buyer_info['city']}")
     c.drawString(12 * cm, height - 5.5 * cm, f"NIP {buyer_info['taxId']}")
 
-    # Delivery info
-    c.drawString(2 * cm, height - 7.5 * cm, f"Data wykonania usługi {invoice.created_at.strftime('%Y-%m-%d')}")
-    c.drawString(2 * cm, height - 8 * cm, f"Wystawiona w dniu: {formatted_date}")
     invoice.generated_at = formatted_date
     invoice.save()
     # c.drawString(2 * cm, height - 8 * cm, f"Data zakończenia dostawy/usługi: {formatted_date}")
@@ -71,22 +72,43 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products, tax_rate=23)
     total_netto = total_vat = total_brutto = 0
 
     for i, product in enumerate(products, start=1):
+        tax_rate = float(product.get('tax_rate'))
         name = Paragraph(product['offer']['name'], normal_style)
         quantity = product['quantity']
-        price_netto = float(product['price']['amount'])
+        price_brutto = float(product['price']['amount'])
+        price_netto = price_brutto / (1 + tax_rate / 100)
+        vat_value = price_brutto - price_netto
         value_netto = price_netto * quantity
-        vat_value = value_netto * (tax_rate / 100)
-        value_brutto = value_netto + vat_value
+        value_brutto = price_brutto * quantity
+        value_vat = vat_value * quantity
 
         total_netto += value_netto
-        total_vat += vat_value
+        total_vat += value_vat
         total_brutto += value_brutto
 
         data.append([
             str(i), name, "szt.", str(quantity),
             f"{price_netto:.2f} PLN", f"{value_netto:.2f} PLN",
-            f"{tax_rate:.2f}%", f"{vat_value:.2f} PLN", f"{value_brutto:.2f} PLN"
+            f"{tax_rate}%", f"{value_vat:.2f} PLN", f"{value_brutto:.2f} PLN"
         ])
+
+    # Transport (if not Smart)
+    transport_items = [p for p in products if not p.get('is_smart') and p.get('delivery_cost')]
+    if transport_items:
+        transport_brutto = sum(float(p['delivery_cost']) for p in transport_items)
+        transport_netto = transport_brutto / (1 + tax_rate / 100)
+        transport_vat = transport_brutto - transport_netto
+
+        total_netto += transport_netto
+        total_vat += transport_vat
+        total_brutto += transport_brutto
+
+        data.append([
+            str(len(data)), "Transport", "", "", 
+            f"{transport_netto:.2f} PLN", f"{transport_netto:.2f} PLN",
+            f"{tax_rate}%", f"{transport_vat:.2f} PLN", f"{transport_brutto:.2f} PLN"
+        ])
+
 
     data.append(["", "", "", "", "Razem:", f"{total_netto:.2f} PLN", "", f"{total_vat:.2f} PLN", f"{total_brutto:.2f} PLN"])
 

@@ -4,6 +4,8 @@ from django.utils.text import slugify
 from django.utils import timezone
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+from django.utils import timezone
+from django.db.models import F
 
 from users.models import Profile, User
 from vendor.models import Vendor
@@ -85,6 +87,7 @@ class Product(models.Model):
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     stock_qty = models.PositiveIntegerField(default=0)
@@ -302,6 +305,7 @@ class Cart(models.Model):
 
 class AllegroOrder(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     event_id = models.CharField(max_length=300, unique=True, null=True, blank=True)
     order_id = models.CharField(max_length=300, null=True, blank=True)
     buyer_login = models.CharField(max_length=100)
@@ -311,6 +315,8 @@ class AllegroOrder(models.Model):
     quantity = models.PositiveIntegerField()
     price_amount = models.DecimalField(max_digits=10, decimal_places=2)
     price_currency = models.CharField(max_length=10)
+    is_smart = models.BooleanField(default=False)
+    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     occurred_at = models.DateTimeField()
     type = models.CharField(max_length=50)
     invoice_generated = models.BooleanField(default=False)
@@ -321,7 +327,7 @@ class AllegroOrder(models.Model):
 
 
 class Invoice(models.Model):
-    invoice_number = models.CharField(max_length=20, unique=True, editable=False)
+    invoice_number = models.CharField(max_length=30, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     generated_at = models.DateTimeField(null=True, blank=True)
     shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
@@ -343,10 +349,28 @@ class Invoice(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
-            # Example: INV-20251019-UUID
             if not self.created_at:
                 self.created_at = timezone.now()
-            self.invoice_number = f"INV-{self.created_at.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+            # Pobierz rok i miesiąc z daty utworzenia
+            year = self.created_at.year
+            month = self.created_at.month
+
+            # Policz ile faktur już istnieje w tym miesiącu
+            count = Invoice.objects.filter(
+                created_at__year=year,
+                created_at__month=month
+            ).count()
+
+            current_number = count + 1  # zaczynamy od 1
+
+            # Sformatuj numer faktury
+            formatted_number = str(current_number).zfill(5)
+            date_part = self.created_at.strftime('%d/%m/%Y')
+            unique_part = uuid.uuid4().hex[:6].upper()
+
+            self.invoice_number = f"FV-{formatted_number}/{date_part}/{unique_part}"
+
         super().save(*args, **kwargs)
 
 
