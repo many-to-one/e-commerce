@@ -133,7 +133,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "orders",
             "saved",
             # "rating",
-            "vendor",
+            "vendors",
             "sku",
             "pid",
             "slug",

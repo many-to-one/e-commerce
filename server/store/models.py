@@ -305,16 +305,16 @@ class Cart(models.Model):
 
 class AllegroOrder(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    # product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     event_id = models.CharField(max_length=300, unique=True, null=True, blank=True)
     order_id = models.CharField(max_length=300, null=True, blank=True)
     buyer_login = models.CharField(max_length=100)
     buyer_email = models.EmailField()
-    offer_id = models.CharField(max_length=100)
-    offer_name = models.CharField(max_length=255)
-    quantity = models.PositiveIntegerField()
-    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    price_currency = models.CharField(max_length=10)
+    # offer_id = models.CharField(max_length=100)
+    # offer_name = models.CharField(max_length=255)
+    # quantity = models.PositiveIntegerField()
+    # price_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # price_currency = models.CharField(max_length=10)
     is_smart = models.BooleanField(default=False)
     delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     occurred_at = models.DateTimeField()
@@ -323,11 +323,25 @@ class AllegroOrder(models.Model):
     stock_updated = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.offer_name} ({self.order_id})"
+        return f"{self.order_id} "
+    
+
+class AllegroOrderItem(models.Model):
+    order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey("Product", on_delete=models.CASCADE)
+    offer_id = models.CharField(max_length=100)
+    offer_name = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField(default=1)
+    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    price_currency = models.CharField(max_length=3, default="PLN")
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
+
+    def __str__(self):
+        return f"{self.offer_name} x {self.quantity}"
 
 
 class Invoice(models.Model):
-    invoice_number = models.CharField(max_length=30, unique=True, editable=False)
+    invoice_number = models.CharField(max_length=100, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     generated_at = models.DateTimeField(null=True, blank=True)
     shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
@@ -340,10 +354,10 @@ class Invoice(models.Model):
     buyer_city = models.CharField(max_length=100, null=True, blank=True)
     buyer_nip = models.CharField(max_length=100, null=True, blank=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    offer_name = models.CharField(max_length=255)
-    quantity = models.PositiveIntegerField()
-    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    price_currency = models.CharField(max_length=10)
+    # offer_name = models.CharField(max_length=255)
+    # quantity = models.PositiveIntegerField()
+    # price_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # price_currency = models.CharField(max_length=10)
     is_generated = models.BooleanField(default=False)
     sent_to_buyer = models.BooleanField(default=False)
 
