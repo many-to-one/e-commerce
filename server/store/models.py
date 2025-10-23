@@ -354,12 +354,9 @@ class Invoice(models.Model):
     buyer_city = models.CharField(max_length=100, null=True, blank=True)
     buyer_nip = models.CharField(max_length=100, null=True, blank=True)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    # offer_name = models.CharField(max_length=255)
-    # quantity = models.PositiveIntegerField()
-    # price_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    # price_currency = models.CharField(max_length=10)
     is_generated = models.BooleanField(default=False)
     sent_to_buyer = models.BooleanField(default=False)
+    corrected = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
@@ -383,7 +380,53 @@ class Invoice(models.Model):
             date_part = self.created_at.strftime('%d/%m/%Y')
             unique_part = uuid.uuid4().hex[:6].upper()
 
-            self.invoice_number = f"FV-{formatted_number}/{date_part}/{unique_part}"
+            self.invoice_number = f"FV-{formatted_number}/{date_part}"
+
+        super().save(*args, **kwargs)
+
+
+class InvoiceCorrection(models.Model):
+    invoice_number = models.CharField(max_length=100, unique=True, editable=False)
+    main_invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="corrections", null=True, blank=True)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    generated_at = models.DateTimeField(null=True, blank=True)
+    # shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
+    # allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True)
+    order = models.CharField(max_length=255, null=True, blank=True)
+    products = models.JSONField(null=True, blank=True)  # Przechowuje skorygowane produkty jako JSON
+    buyer_name = models.CharField(max_length=100)
+    buyer_email = models.EmailField(null=True, blank=True)
+    buyer_street = models.CharField(max_length=100, null=True, blank=True)
+    buyer_zipcode = models.CharField(max_length=100, null=True, blank=True)
+    buyer_city = models.CharField(max_length=100, null=True, blank=True)
+    buyer_nip = models.CharField(max_length=100, null=True, blank=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    is_generated = models.BooleanField(default=False)
+    sent_to_buyer = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            if not self.created_at:
+                self.created_at = timezone.now()
+
+            # Pobierz rok i miesiąc z daty utworzenia
+            year = self.created_at.year
+            month = self.created_at.month
+
+            # Policz ile faktur już istnieje w tym miesiącu
+            count = InvoiceCorrection.objects.filter(
+                created_at__year=year,
+                created_at__month=month
+            ).count()
+
+            current_number = count + 1  # zaczynamy od 1
+
+            # Sformatuj numer faktury
+            formatted_number = str(current_number).zfill(5)
+            date_part = self.created_at.strftime('%d/%m/%Y')
+            unique_part = uuid.uuid4().hex[:6].upper()
+
+            self.invoice_number = f"FV-{formatted_number}/KOR/{date_part}"
 
         super().save(*args, **kwargs)
 
