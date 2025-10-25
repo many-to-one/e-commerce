@@ -33,8 +33,10 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=
     normal_style.fontName = 'DejaVuSans'
     normal_style.encoding = 'utf-8'
 
-    formatted_date = localtime(invoice.created_at).strftime('%Y-%m-%d')
+    allegro_order_occurred = localtime(invoice.allegro_order.occurred_at).strftime('%d-%m-%Y')
     # year = localtime(invoice.created_at).year
+
+    formatted_generated = localtime(invoice.created_at).strftime('%d-%m-%Y')
 
     # Title
     c.setFont("DejaVuSans", 10)
@@ -42,8 +44,8 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=
     c.drawString(2 * cm, height - 2.5 * cm, f"nr: {invoice.invoice_number}")
 
     # Delivery info
-    c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {invoice.created_at.strftime('%Y-%m-%d')}")
-    c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_date}")
+    c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {allegro_order_occurred}")
+    c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_generated}")
 
     # Seller info
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
@@ -59,10 +61,6 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=
     c.drawString(12 * cm, height - 4.5 * cm, buyer_info['name'])
     c.drawString(12 * cm, height - 5 * cm, f"ul. {buyer_info['street']}, {buyer_info['zipCode']} {buyer_info['city']}")
     c.drawString(12 * cm, height - 5.5 * cm, f"NIP {buyer_info['taxId']}")
-
-    invoice.generated_at = formatted_date
-    invoice.save()
-    # c.drawString(2 * cm, height - 8 * cm, f"Data zakończenia dostawy/usługi: {formatted_date}")
 
     # Table setup
     data = [
@@ -151,19 +149,28 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=
 def post_invoice_to_allegro(invoice, pdf_content, correction):
     """Post the generated invoice to Allegro API."""
 
-    print('post_invoice_to_allegro invoice vendor ---------', correction)
+    _invoice = None
+    _order_id = None
+
+    message = ''
 
     if correction:
-        invoice = invoice.main_invoice
+        # print('post_invoice_to_allegro invoice correction TRUE ---------', correction)
+        _invoice = invoice
+        _order_id = invoice.main_invoice.allegro_order.order_id
+    else:
+        # print('post_invoice_to_allegro invoice correction FALSE ---------', correction)
+        _invoice = invoice
+        _order_id = invoice.allegro_order.order_id
+    print('post_invoice_to_allegro invoice_number ---------', _invoice.invoice_number)
     access_token = invoice.vendor.access_token
-    order_id = invoice.allegro_order.order_id
-    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices"
+    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{_order_id}/invoices"
 
     payload = {
         "file": {
-            "name": f"invoice_{invoice.invoice_number}.pdf"
+            "name": f"invoice_{_invoice.invoice_number}.pdf"
         },
-        "invoiceNumber": invoice.invoice_number
+        "invoiceNumber": _invoice.invoice_number
     }
 
     headers = {
@@ -173,12 +180,20 @@ def post_invoice_to_allegro(invoice, pdf_content, correction):
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(payload))
+    # print(f"--post_invoice_to_allegro--POST---- {response, response.text}.")
     if response.status_code == 201:
         invoice_id = response.json().get("id")
-        add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_content, correction)
-        print(f"Invoice {invoice.invoice_number} posted successfully to Allegro.")
+        res = add_invoice_to_order(invoice_id, invoice, _order_id, access_token, pdf_content, correction)
+        message = res
+        # print(f"Invoice {invoice.invoice_number} posted successfully to Allegro.")
+    elif response.status_code == 422:
+        message = f"Faktura {invoice_id} przekroczyła dozwolony limit 10 faktur na zamówienie."
+        # print(f"Invoice {invoice_id} has reached limit of maximum number of invoices, which is 10 per order.")
     else:
-        print(f"Failed to post invoice {invoice.invoice_number} to Allegro: {response.text}")
+        message = f"Nie udało się wysłać fakturę {invoice.invoice_number} do Allegro: {response.text}"
+        # print(f"Failed to post invoice {invoice.invoice_number} to Allegro: {response.text}")
+
+    return message
 
 def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_content, correction):
     url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices/{invoice_id}/file"
@@ -189,16 +204,15 @@ def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_conten
     }
 
     response = requests.put(url, headers=headers, data=pdf_content)
-    print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
+    # print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
     if response.status_code == 200:
-        if correction:
-            invoice = invoice.main_invoice.sent_to_buyer = True
-        else:
-            invoice.sent_to_buyer = True
-            invoice.save()
-            print(f"Invoice {invoice_id} added successfully to order {order_id}.")
+        invoice.sent_to_buyer = True
+        invoice.save()
+        return f"Fakturę {invoice.invoice_number} wysłąno do Allegro."
+        # print(f"Fakturę {invoice_id} załącząno do zamuwienia {order_id}.")
     else:
-        print(f"Failed to add invoice {invoice_id} to order {order_id}: {response.text}")
+        return f"Nie udało się załączyć faktury {invoice_id} do zamówienia {order_id}: {response.text}"
+        # print(f"Nie udało się załączyć faktury {invoice_id} do zamówienia {order_id}: {response.text}")
 
 
 
@@ -218,14 +232,16 @@ def generate_correction_invoice_allegro(invoice, buyer_info, products, _main_inv
     normal_style.fontSize = 6
     normal_style.fontName = 'DejaVuSans'
 
-    formatted_date = localtime(invoice.created_at).strftime('%Y-%m-%d')
+    correct_invoice_created_at = localtime(invoice.created_at).strftime('%d-%m-%Y')
+
+    main_invoice_created_at = localtime(invoice.main_invoice.created_at).strftime('%d-%m-%Y')
 
     # --- Nagłówek ---
     c.setFont("DejaVuSans", 10)
     c.drawString(2 * cm, height - 2 * cm, f"Faktura VAT – korygująca nr: {invoice.invoice_number}")
-    c.drawString(2 * cm, height - 2.7 * cm, f"Data wystawienia: {formatted_date}")
+    c.drawString(2 * cm, height - 2.7 * cm, f"Data wystawienia: {correct_invoice_created_at}")
     c.drawString(2 * cm, height - 4 * cm, f"Dotyczy faktury nr: {invoice.main_invoice.invoice_number}")
-    c.drawString(2 * cm, height - 4.7 * cm, f"Wystawionej w dniu: {invoice.main_invoice.generated_at}")
+    c.drawString(2 * cm, height - 4.7 * cm, f"Wystawionej w dniu: {main_invoice_created_at}")
 
     # --- Dane sprzedawcy i nabywcy ---
     c.setFont("DejaVuSans", 9)
@@ -298,7 +314,8 @@ def build_products_table(products, normal_style, allegro_order, tax_rate_default
             total_vat += transport_vat
             total_brutto += transport_brutto
             data.append([
-                str(len(data)), "Transport", "", "1",
+                # str(len(data)), "Transport", "", "1",
+                str(len(data)), "Transport", "", "",
                 f"{transport_netto:.2f} PLN", f"{transport_netto:.2f} PLN",
                 f"{tax_rate}%", f"{transport_vat:.2f} PLN", f"{transport_brutto:.2f} PLN"
             ])

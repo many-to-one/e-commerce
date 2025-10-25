@@ -304,81 +304,89 @@ class Cart(models.Model):
     
 
 class AllegroOrder(models.Model):
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    # product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
-    event_id = models.CharField(max_length=300, unique=True, null=True, blank=True)
-    order_id = models.CharField(max_length=300, null=True, blank=True)
-    buyer_login = models.CharField(max_length=100)
-    buyer_email = models.EmailField()
-    # offer_id = models.CharField(max_length=100)
-    # offer_name = models.CharField(max_length=255)
-    # quantity = models.PositiveIntegerField()
-    # price_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    # price_currency = models.CharField(max_length=10)
-    is_smart = models.BooleanField(default=False)
-    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    occurred_at = models.DateTimeField()
-    type = models.CharField(max_length=50)
-    invoice_generated = models.BooleanField(default=False)
-    stock_updated = models.BooleanField(default=False)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, verbose_name="Sprzedawca")
+    event_id = models.CharField("ID zdarzenia", max_length=300, unique=True, null=True, blank=True)
+    order_id = models.CharField("ID zamówienia", max_length=300, null=True, blank=True)
+    buyer_login = models.CharField("Login kupującego", max_length=100)
+    buyer_email = models.EmailField("E-mail kupującego")
+    buyer_name = models.CharField("Imię i nazwisko", max_length=100, null=True, blank=True)
+    buyer_company_name = models.CharField("Nazwa firmy", max_length=100, null=True, blank=True)
+    buyer_street = models.CharField("Ulica", max_length=100, null=True, blank=True)
+    buyer_zipcode = models.CharField("Kod pocztowy", max_length=100, null=True, blank=True)
+    buyer_city = models.CharField("Miasto", max_length=100, null=True, blank=True)
+    buyer_nip = models.CharField("NIP", max_length=100, null=True, blank=True)
+    is_smart = models.BooleanField("Dostawa SMART", default=False)
+    delivery_cost = models.DecimalField("Koszt dostawy", max_digits=10, decimal_places=2, default=0.00)
+    occurred_at = models.DateTimeField("Data zakupu")
+    type = models.CharField("Typ zdarzenia", max_length=50)
+    invoice_generated = models.BooleanField("Faktura wygenerowana", default=False)
+    stock_updated = models.BooleanField("Stan magazynowy zaktualizowany", default=False)
+
+    class Meta:
+        verbose_name = "Zamówienie Allegro"
+        verbose_name_plural = "Zamówienia Allegro"
 
     def __str__(self):
-        return f"{self.order_id} "
-    
+        return f"{self.order_id}"
+
 
 class AllegroOrderItem(models.Model):
-    order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("Product", on_delete=models.CASCADE)
-    offer_id = models.CharField(max_length=100)
-    offer_name = models.CharField(max_length=255)
-    quantity = models.PositiveIntegerField(default=1)
-    price_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    price_currency = models.CharField(max_length=3, default="PLN")
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
+    order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, related_name="items", verbose_name="Zamówienie Allegro")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name="Produkt")
+    offer_id = models.CharField("ID oferty", max_length=100)
+    offer_name = models.CharField("Nazwa oferty", max_length=255)
+    quantity = models.PositiveIntegerField("Ilość", default=1)
+    price_amount = models.DecimalField("Cena", max_digits=10, decimal_places=2)
+    price_currency = models.CharField("Waluta", max_length=3, default="PLN")
+    tax_rate = models.DecimalField("Stawka VAT", max_digits=5, decimal_places=2, default=23.00)
+
+    class Meta:
+        verbose_name = "Pozycja zamówienia Allegro"
+        verbose_name_plural = "Pozycje zamówienia Allegro"
 
     def __str__(self):
         return f"{self.offer_name} x {self.quantity}"
 
 
 class Invoice(models.Model):
-    invoice_number = models.CharField(max_length=100, unique=True, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    generated_at = models.DateTimeField(null=True, blank=True)
-    shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
-    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True)
-    order = models.CharField(max_length=255, null=True, blank=True)
-    buyer_name = models.CharField(max_length=100)
-    buyer_email = models.EmailField(null=True, blank=True)
-    buyer_street = models.CharField(max_length=100, null=True, blank=True)
-    buyer_zipcode = models.CharField(max_length=100, null=True, blank=True)
-    buyer_city = models.CharField(max_length=100, null=True, blank=True)
-    buyer_nip = models.CharField(max_length=100, null=True, blank=True)
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    is_generated = models.BooleanField(default=False)
-    sent_to_buyer = models.BooleanField(default=False)
-    corrected = models.BooleanField(default=False)
+    invoice_number = models.CharField("Numer faktury", max_length=100, unique=True, editable=False)
+    created_at = models.DateTimeField("Data wygenerowania", auto_now_add=True)
+    # generated_at = models.DateTimeField("Data wygenerowania", null=True, blank=True)
+    shop_order = models.ForeignKey("CartOrder", on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie sklepu")
+    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie Allegro")
+    order = models.CharField("Numer zamówienia", max_length=255, null=True, blank=True)
+    buyer_name = models.CharField("Nabywca", max_length=100)
+    buyer_company_name = models.CharField("Firma nabywcy", max_length=100, null=True, blank=True)
+    buyer_email = models.EmailField("E-mail nabywcy", null=True, blank=True)
+    buyer_street = models.CharField("Ulica", max_length=100, null=True, blank=True)
+    buyer_zipcode = models.CharField("Kod pocztowy", max_length=100, null=True, blank=True)
+    buyer_city = models.CharField("Miasto", max_length=100, null=True, blank=True)
+    buyer_nip = models.CharField("NIP", max_length=100, null=True, blank=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, verbose_name="Sprzedawca")
+    is_generated = models.BooleanField("Wygenerowana", default=False)
+    sent_to_buyer = models.BooleanField("Wysłana do kupującego", default=False)
+    corrected = models.BooleanField("Skorygowana", default=False)
+
+    class Meta:
+        verbose_name = "Faktura"
+        verbose_name_plural = "Faktury"
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             if not self.created_at:
                 self.created_at = timezone.now()
 
-            # Pobierz rok i miesiąc z daty utworzenia
             year = self.created_at.year
             month = self.created_at.month
 
-            # Policz ile faktur już istnieje w tym miesiącu
             count = Invoice.objects.filter(
                 created_at__year=year,
                 created_at__month=month
             ).count()
 
-            current_number = count + 1  # zaczynamy od 1
-
-            # Sformatuj numer faktury
+            current_number = count + 1
             formatted_number = str(current_number).zfill(5)
             date_part = self.created_at.strftime('%d/%m/%Y')
-            unique_part = uuid.uuid4().hex[:6].upper()
 
             self.invoice_number = f"FV-{formatted_number}/{date_part}"
 
@@ -386,49 +394,50 @@ class Invoice(models.Model):
 
 
 class InvoiceCorrection(models.Model):
-    invoice_number = models.CharField(max_length=100, unique=True, editable=False)
-    main_invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="corrections", null=True, blank=True)  
-    created_at = models.DateTimeField(auto_now_add=True)
-    generated_at = models.DateTimeField(null=True, blank=True)
-    # shop_order = models.ForeignKey('CartOrder', on_delete=models.CASCADE, null=True, blank=True)
-    # allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True)
-    order = models.CharField(max_length=255, null=True, blank=True)
-    products = models.JSONField(null=True, blank=True)  # Przechowuje skorygowane produkty jako JSON
-    buyer_name = models.CharField(max_length=100)
-    buyer_email = models.EmailField(null=True, blank=True)
-    buyer_street = models.CharField(max_length=100, null=True, blank=True)
-    buyer_zipcode = models.CharField(max_length=100, null=True, blank=True)
-    buyer_city = models.CharField(max_length=100, null=True, blank=True)
-    buyer_nip = models.CharField(max_length=100, null=True, blank=True)
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    is_generated = models.BooleanField(default=False)
-    sent_to_buyer = models.BooleanField(default=False)
+    invoice_number = models.CharField("Numer korekty", max_length=100, unique=True, editable=False)
+    main_invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="corrections", null=True, blank=True, verbose_name="Faktura główna")
+    created_at = models.DateTimeField("Data wygenerowania", auto_now_add=True)
+    # generated_at = models.DateTimeField("Data wygenerowania", null=True, blank=True)
+    shop_order = models.ForeignKey("CartOrder", on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie sklepu")
+    allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie Allegro")
+    order = models.CharField("Numer zamówienia", max_length=255, null=True, blank=True)
+    products = models.JSONField("Produkty (JSON)", null=True, blank=True)
+    buyer_name = models.CharField("Nabywca", max_length=100)
+    buyer_company_name = models.CharField("Firma nabywcy", max_length=100, null=True, blank=True)
+    buyer_email = models.EmailField("E-mail nabywcy", null=True, blank=True)
+    buyer_street = models.CharField("Ulica", max_length=100, null=True, blank=True)
+    buyer_zipcode = models.CharField("Kod pocztowy", max_length=100, null=True, blank=True)
+    buyer_city = models.CharField("Miasto", max_length=100, null=True, blank=True)
+    buyer_nip = models.CharField("NIP", max_length=100, null=True, blank=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, verbose_name="Sprzedawca")
+    is_generated = models.BooleanField("Wygenerowana", default=False)
+    sent_to_buyer = models.BooleanField("Wysłana do kupującego", default=False)
+
+    class Meta:
+        verbose_name = "Korekta faktury"
+        verbose_name_plural = "Korekty faktur"
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             if not self.created_at:
                 self.created_at = timezone.now()
 
-            # Pobierz rok i miesiąc z daty utworzenia
             year = self.created_at.year
             month = self.created_at.month
 
-            # Policz ile faktur już istnieje w tym miesiącu
             count = InvoiceCorrection.objects.filter(
                 created_at__year=year,
                 created_at__month=month
             ).count()
 
-            current_number = count + 1  # zaczynamy od 1
-
-            # Sformatuj numer faktury
+            current_number = count + 1
             formatted_number = str(current_number).zfill(5)
             date_part = self.created_at.strftime('%d/%m/%Y')
-            unique_part = uuid.uuid4().hex[:6].upper()
 
             self.invoice_number = f"FV-{formatted_number}/KOR/{date_part}"
 
         super().save(*args, **kwargs)
+
 
 
 # Model for Cart Orders
