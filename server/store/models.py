@@ -1,3 +1,5 @@
+import datetime
+import os
 from django.db import models
 from django.utils.html import mark_safe
 from django.utils.text import slugify
@@ -7,6 +9,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from django.db.models import F
 
+from store.utils.invoice import invoice_upload_path
 from users.models import Profile, User
 from vendor.models import Vendor
 from shortuuid.django_fields import ShortUUIDField
@@ -438,8 +441,6 @@ class InvoiceCorrection(models.Model):
 
         super().save(*args, **kwargs)
 
-
-
 # Model for Cart Orders
 class CartOrder(models.Model):
 
@@ -495,7 +496,15 @@ class CartOrder(models.Model):
     delivery_status = models.CharField(max_length=100, choices=DELIVERY_STATUS, default="W trakcie")
     tracking_id = models.CharField(max_length=100000, null=True, blank=True)
     stock_updated = models.BooleanField(default=False)
-    
+
+    # Invoice
+    invoice_generated = models.BooleanField(default=False, null=True, blank=True)
+    invoice_pdf = models.FileField(
+        upload_to=invoice_upload_path,
+        null=True,
+        blank=True,
+        verbose_name="Faktura (PDF)"
+    )
     
     # Discounts
     initial_total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2, help_text="The original total before discounts")
@@ -505,6 +514,7 @@ class CartOrder(models.Model):
     full_name = models.CharField(max_length=1000)
     email = models.CharField(max_length=1000)
     mobile = models.CharField(max_length=1000)
+    buyer_nip = models.CharField("NIP", max_length=100, null=True, blank=True)
     
      # Shipping Address
     street = models.CharField(max_length=1000, null=True, blank=True)
@@ -530,7 +540,7 @@ class CartOrder(models.Model):
         return CartOrderItem.objects.filter(order=self)
     
     def get_payment_status_display(self):
-        return dict(self.PAYMENT_STATUS).get(self.payment_status, self.payment_status)
+        return dict(self.PAYMENT_STATUS).get(self.payment_status, self.payment_status)    
     
     def save(self, *args, **kwargs):
         """Automatically update delivery_status when shipping_label is uploaded."""

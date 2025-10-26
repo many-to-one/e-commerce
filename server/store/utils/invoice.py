@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 import json
 from reportlab.lib.pagesizes import A4
@@ -16,6 +17,17 @@ import os
 
 # from staticfiles.backend import settings
 from django.conf import settings
+
+def invoice_upload_path(instance, filename):
+        # Pobierz aktualną datę
+        now = datetime.now()
+        # Zbuduj ścieżkę: invoices/rok/miesiąc/nazwa_pliku.pdf
+        return os.path.join(
+            "invoices",
+            str(now.year),
+            str(now.month).zfill(2),  # np. "01", "02"
+            filename
+        )
 
 def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=23
     buffer = BytesIO()
@@ -70,10 +82,11 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products): # tax_rate=
     total_netto = total_vat = total_brutto = 0
 
     for i, product in enumerate(products, start=1):
-        tax_rate = float(product.get('tax_rate'))
-        name = Paragraph(product['offer']['name'], normal_style)
-        quantity = product['quantity']
-        price_brutto = float(product['price']['amount'])
+        tax_rate = float(product.get('tax_rate') or 0)
+        name = Paragraph(product.get('offer', {}).get('name') or "", normal_style)
+        quantity = int(product.get('quantity') or 0)
+        price_brutto = float(product.get('price', {}).get('amount') or 0)
+        # currency = str(product.get('price', {}).get('currency') or "PLN")
         price_netto = price_brutto / (1 + tax_rate / 100)
         vat_value = price_brutto - price_netto
         value_netto = price_netto * quantity
@@ -336,3 +349,136 @@ def build_products_table(products, normal_style, allegro_order, tax_rate_default
     ]))
     return table
 
+
+
+
+# WEBSTORE LOGIC 
+
+def generate_invoice_webstore(invoice, vendor, buyer_info, products): # tax_rate=23
+    print(' ----------- generate_invoice_webstore products -------------', products)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Dynamically resolve path
+    font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    normal_style.wordWrap = 'CJK'
+    normal_style.fontSize = 6
+    normal_style.fontName = 'DejaVuSans'
+    normal_style.encoding = 'utf-8'
+
+    web_order_occurred = localtime(invoice.shop_order.date).strftime('%d-%m-%Y')
+    # year = localtime(invoice.created_at).year
+
+    formatted_generated = localtime(invoice.created_at).strftime('%d-%m-%Y')
+
+    # Title
+    c.setFont("DejaVuSans", 10)
+    c.drawString(2 * cm, height - 2 * cm, "Faktura VAT")
+    c.drawString(2 * cm, height - 2.5 * cm, f"nr: {invoice.invoice_number}")
+
+    # Delivery info
+    c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {web_order_occurred}")
+    c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_generated}")
+
+    # Seller info
+    c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
+    c.drawString(2 * cm, height - 4.5 * cm, vendor.name)
+    # c.drawString(2 * cm, height - 5 * cm, f"ul. {seller['street']} {seller['streetNumber']}, {seller['postalCode']} {seller['city']}")
+    c.drawString(2 * cm, height - 5 * cm, vendor.address)
+    c.drawString(2 * cm, height - 5.5 * cm, f"NIP {vendor.nip}")
+    c.drawString(2 * cm, height - 6 * cm, f"Telefon {vendor.mobile}")
+    c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {vendor.email}")
+
+    # Buyer info
+    c.drawString(12 * cm, height - 4 * cm, "Nabywca:")
+    c.drawString(12 * cm, height - 4.5 * cm, buyer_info['name'])
+    c.drawString(12 * cm, height - 5 * cm, f"ul. {buyer_info['street']}, {buyer_info['zipCode']} {buyer_info['city']}")
+    c.drawString(12 * cm, height - 5.5 * cm, f"NIP {buyer_info['taxId']}")
+
+    # Table setup
+    data = [
+        ["Lp.", "Nazwa towaru lub usługi", "Jm", "Ilość", "Cena netto", "Wartość netto", "VAT", "Kwota VAT", "Wartość brutto"]
+    ]
+
+    total_netto = total_vat = total_brutto = 0
+
+    for i, product in enumerate(products, start=1):
+        # print(' ----------- generate_invoice_webstore product -------------', product['offer']['name'])
+        tax_rate = float(product.get('tax_rate') or 0)
+        name = Paragraph(product.get('offer', {}).get('name') or "", normal_style)
+        quantity = int(product.get('quantity') or 0)
+        price_brutto = float(product.get('price', {}).get('amount') or 0)
+        price_netto = price_brutto / (1 + tax_rate / 100)
+        vat_value = price_brutto - price_netto
+        value_netto = price_netto * quantity
+        value_brutto = price_brutto * quantity
+        value_vat = vat_value * quantity
+
+        total_netto += value_netto
+        total_vat += value_vat
+        total_brutto += value_brutto
+
+        data.append([
+            str(i), name, "szt.", str(quantity),
+            f"{price_netto:.2f} PLN", f"{value_netto:.2f} PLN",
+            f"{tax_rate}%", f"{value_vat:.2f} PLN", f"{value_brutto:.2f} PLN"
+        ])
+
+    # Transport (if not Smart)
+    delivery_cost = float(invoice.shop_order.shipping_amount or 0)
+
+    if delivery_cost > 0:
+        transport_brutto = delivery_cost
+        transport_netto = transport_brutto / (1 + tax_rate / 100)
+        transport_vat = transport_brutto - transport_netto
+
+        total_netto += transport_netto
+        total_vat += transport_vat
+        total_brutto += transport_brutto
+
+        data.append([
+            str(len(data)), "Transport", "", "",
+            f"{transport_netto:.2f} PLN", f"{transport_netto:.2f} PLN",
+            f"{tax_rate}%", f"{transport_vat:.2f} PLN", f"{transport_brutto:.2f} PLN"
+        ])
+
+
+
+    data.append(["", "", "", "", "Razem:", f"{total_netto:.2f} PLN", "", f"{total_vat:.2f} PLN", f"{total_brutto:.2f} PLN"])
+
+    table = Table(data, colWidths=[1 * cm, 6 * cm, 1 * cm, 1 * cm, 2 * cm, 2 * cm, 1.5 * cm, 2 * cm, 2 * cm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans'),
+        ('FONTSIZE', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+
+    table.wrapOn(c, width, height)
+    table.drawOn(c, 2 * cm, height - 16 * cm)
+
+    # Total
+    c.drawString(2 * cm, height - 17 * cm, f"Razem do zapłaty: {total_brutto:.2f} PLN")
+    c.drawString(2 * cm, height - 17.5 * cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
+
+    # Signatures
+    # c.drawString(2 * cm, height - 21 * cm, "_______________________________")
+    # c.drawString(2 * cm, height - 21.5 * cm, "podpis osoby upoważnionej do odbioru faktury")
+
+    # c.drawString(12 * cm, height - 21 * cm, "_______________________________")
+    # c.drawString(12 * cm, height - 21.5 * cm, "podpis osoby upoważnionej")
+    # c.drawString(12 * cm, height - 22 * cm, "do wystawienia faktury")
+
+    c.save()
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    return pdf_content

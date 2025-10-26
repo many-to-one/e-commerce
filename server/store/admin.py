@@ -520,6 +520,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         success_count = 0
         error_count = 0
 
+        # for i in invoices:
+        #     print('generate_invoice ----------- test', i)
+
         for allegro_order in invoices:
             print('Generating invoice order*buyer_email ----------------', allegro_order.buyer_email)
             try:
@@ -607,7 +610,7 @@ class InvoiceCorrectionForm(forms.Form):
 class InvoiceAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Faktura', {
-            'fields': ('invoice_number', 'allegro_order', 'created_at', 'sent_to_buyer', 'corrected')
+            'fields': ('invoice_number', 'allegro_order', 'shop_order', 'created_at', 'sent_to_buyer', 'corrected')
         }),
         ('Kupujący', {
             'fields': ('buyer_name', 'buyer_email', 'buyer_street', 'buyer_zipcode', 'buyer_city', 'buyer_nip')
@@ -619,7 +622,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         'invoice_number', 'created_at', 'formatted_generated', 'corrected',
-        'allegro_order', 'order_items_display', 'delivery_cost_display', 'order_date',
+        'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
     )
 
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
@@ -634,26 +637,70 @@ class InvoiceAdmin(admin.ModelAdmin):
     formatted_generated.short_description = "Data wygenerowania"
 
 
+    # def order_items_display(self, obj):
+    #     items = obj.allegro_order.items.all()
+    #     if not items:
+    #         return "Brak pozycji"
+    #     rows = format_html_join(
+    #         '\n',
+    #         "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+    #         (
+    #             (item.offer_name, f"{item.price_amount:.2f} {item.price_currency}", item.quantity,
+    #              f"{item.price_amount * item.quantity:.2f} {item.price_currency}")
+    #             for item in items
+    #         )
+    #     )
+    #     table = format_html(
+    #         "<table style='border-collapse: collapse;'>"
+    #         "<tr><th>Nazwa</th><th>Cena</th><th>Ilość</th><th>Suma</th></tr>{}</table>",
+    #         rows
+    #     )
+    #     return table
+    # order_items_display.short_description = "Produkty w zamówieniu:"
+
+
     def order_items_display(self, obj):
-        items = obj.allegro_order.items.all()
+        # Spróbuj pobrać pozycje z allegro_order
+        items = None
+        if getattr(obj, "allegro_order", None):
+            items = obj.allegro_order.items.all()
+
+        # Jeśli brak allegro_order albo brak pozycji → spróbuj shop_order
+        if not items:
+            if getattr(obj, "shop_order", None):
+                items = obj.shop_order.orderitem.all()
+
+        # Jeśli nadal brak → zwróć komunikat
         if not items:
             return "Brak pozycji"
+
+        # Renderuj tabelę
         rows = format_html_join(
             '\n',
             "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
             (
-                (item.offer_name, f"{item.price_amount:.2f} {item.price_currency}", item.quantity,
-                 f"{item.price_amount * item.quantity:.2f} {item.price_currency}")
+                (
+                    getattr(item, "offer_name", getattr(item.product, "title", "")),
+                    f"{getattr(item, 'price_amount', getattr(item, 'price', 0)):.2f} "
+                    f"{getattr(item, 'price_currency', 'PLN')}",
+                    getattr(item, "quantity", getattr(item, "qty", 0)),
+                    f"{(getattr(item, 'price_amount', getattr(item, 'price', 0)) * getattr(item, 'quantity', getattr(item, 'qty', 0))):.2f} "
+                    f"{getattr(item, 'price_currency', 'PLN')}"
+                )
                 for item in items
             )
         )
+
         table = format_html(
             "<table style='border-collapse: collapse;'>"
             "<tr><th>Nazwa</th><th>Cena</th><th>Ilość</th><th>Suma</th></tr>{}</table>",
             rows
         )
         return table
+
     order_items_display.short_description = "Produkty w zamówieniu:"
+
+
 
     def delivery_cost_display(self, obj):
         cost = obj.allegro_order.delivery_cost or 0
@@ -672,6 +719,121 @@ class InvoiceAdmin(admin.ModelAdmin):
         with zipfile.ZipFile(buffer, 'w') as zip_file:
             for invoice in queryset:
                 vendor = invoice.vendor
+
+                # Web store logic
+                if vendor.marketplace == 'kidnetic.pl':
+                    print('KIDNETIC-------------------', vendor.marketplace)
+                    buyer_info = {
+                        'name': invoice.buyer_name,
+                        'street': invoice.buyer_street,
+                        'zipCode': invoice.buyer_zipcode,
+                        'city': invoice.buyer_city,
+                        'taxId': invoice.buyer_nip,
+                    }
+                    # produkty z pozycji zamówienia
+                    products = []
+                    for item in invoice.shop_order.orderitem.all():
+                        products.append({
+                            'offer': {'name': item.product.title},
+                            'quantity': item.qty,
+                            'is_smart': False, # invoice.allegro_order.is_smart,
+                            'delivery_cost': invoice.shop_order.shipping_amount,
+                            'tax_rate': item.tax_fee or 23,
+                            'price': {
+                                'amount': item.price,
+                                'currency': item.sub_total,
+                            }
+                        })
+
+                    pdf_content = generate_invoice_webstore(invoice, vendor, buyer_info, products)
+                
+                else:
+                    print(f'{vendor.marketplace}-------------------')
+                    # allegro logic
+                    buyer_info = {
+                        'name': invoice.buyer_name,
+                        'street': invoice.buyer_street,
+                        'zipCode': invoice.buyer_zipcode,
+                        'city': invoice.buyer_city,
+                        'taxId': invoice.buyer_nip,
+                    }
+
+                    # produkty z pozycji zamówienia
+                    products = []
+                    for item in invoice.allegro_order.items.all():
+                        products.append({
+                            'offer': {'name': item.offer_name},
+                            'quantity': item.quantity,
+                            'is_smart': invoice.allegro_order.is_smart,
+                            'delivery_cost': invoice.allegro_order.delivery_cost,
+                            'tax_rate': item.tax_rate or 23,
+                            'price': {
+                                'amount': item.price_amount,
+                                'currency': item.price_currency,
+                            }
+                        })
+
+                    # generowanie PDF
+                    pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
+
+                # print('PDF PRODUCTS ---------------', products)
+
+                # bezpieczna nazwa pliku (zamiana / na _)
+                safe_invoice_number = invoice.invoice_number.replace("/", "_")
+                zip_file.writestr(f"invoice_{safe_invoice_number}.pdf", pdf_content)
+
+        response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+        response['Content-Disposition'] = 'attachment; filename="faktury.zip"'
+        return response        
+
+    @admin.action(description="🧾 Wyślij faktury do klienta")
+    def generate_invoice(self, request, queryset):
+        for invoice in queryset:
+            vendor = invoice.vendor
+
+            # Web store logic
+            if vendor.marketplace == 'kidnetic.pl':
+                print('KIDNETIC-------------------', vendor.marketplace)
+                buyer_info = {
+                    'name': invoice.buyer_name,
+                    'street': invoice.buyer_street,
+                    'zipCode': invoice.buyer_zipcode,
+                    'city': invoice.buyer_city,
+                    'taxId': invoice.buyer_nip,
+                }
+                # produkty z pozycji zamówienia
+                products = []
+                for item in invoice.shop_order.orderitem.all():
+                    products.append({
+                        'offer': {'name': item.product.title},
+                        'quantity': item.qty,
+                        'is_smart': False, # invoice.allegro_order.is_smart,
+                        'delivery_cost': invoice.shop_order.shipping_amount,
+                        'tax_rate': item.tax_fee or 23,
+                        'price': {
+                            'amount': item.price,
+                            'currency': item.sub_total,
+                        }
+                    })
+
+                pdf_content = generate_invoice_webstore(invoice, vendor, buyer_info, products)
+                try:
+                    # przypięcie do zamówienia sklepowego
+                    order = invoice.shop_order  # zakładam, że Invoice ma FK do CartOrder
+                    filename = f"invoice_{invoice.invoice_number}.pdf"
+                    order.invoice_pdf.save(filename, ContentFile(pdf_content), save=True)
+                    invoice.sent_to_buyer = True
+                    invoice.save(update_fields=['sent_to_buyer'])
+                    self.message_user(request, f"Faktura {resp} została poprawnie dolączona do zamówienia")
+                except Exception as e:
+                    self.message_user(
+                        request,
+                        f"❌ Błąd wysyłki faktury {invoice.invoice_number} do Allegro: {e}",
+                        level='error'
+                    )
+
+            else:
+                # dane kupującego
                 buyer_info = {
                     'name': invoice.buyer_name,
                     'street': invoice.buyer_street,
@@ -684,7 +846,9 @@ class InvoiceAdmin(admin.ModelAdmin):
                 products = []
                 for item in invoice.allegro_order.items.all():
                     products.append({
-                        'offer': {'name': item.offer_name},
+                        'offer': {
+                            'name': item.offer_name,
+                        },
                         'quantity': item.quantity,
                         'is_smart': invoice.allegro_order.is_smart,
                         'delivery_cost': invoice.allegro_order.delivery_cost,
@@ -698,94 +862,15 @@ class InvoiceAdmin(admin.ModelAdmin):
                 # generowanie PDF
                 pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
 
-                # bezpieczna nazwa pliku (zamiana / na _)
-                safe_invoice_number = invoice.invoice_number.replace("/", "_")
-                zip_file.writestr(f"invoice_{safe_invoice_number}.pdf", pdf_content)
-
-        response = HttpResponse(buffer.getvalue(), content_type="application/zip")
-        response['Content-Disposition'] = 'attachment; filename="faktury.zip"'
-        return response
-
-
-    # def print_invoice_pdf(self, request, queryset):
-    #     for invoice in queryset:
-    #         vendor = invoice.vendor
-    #         buyer_info = {
-    #             'name': invoice.buyer_name,
-    #             'street': invoice.buyer_street,
-    #             'zipCode': invoice.buyer_zipcode,
-    #             'city': invoice.buyer_city,
-    #             'taxId': invoice.buyer_nip,
-    #         }
-
-    #         # produkty z pozycji zamówienia
-    #         products = []
-    #         for item in invoice.allegro_order.items.all():
-    #             products.append({
-    #                 'offer': {
-    #                     'name': item.offer_name,
-    #                 },
-    #                 'quantity': item.quantity,
-    #                 'is_smart': invoice.allegro_order.is_smart,
-    #                 'delivery_cost': invoice.allegro_order.delivery_cost,
-    #                 'tax_rate': item.tax_rate or 23,
-    #                 'price': {
-    #                     'amount': item.price_amount,
-    #                     'currency': item.price_currency,
-    #                 }
-    #             })
-
-    #         pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
-
-    #         response = HttpResponse(pdf_content, content_type='application/pdf')
-    #         response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
-    #         return response
-    # print_invoice_pdf.short_description = "🖨️ Drukuj faktury"
-        
-
-    @admin.action(description="🧾 Wyślij faktury do klienta")
-    def generate_invoice(self, request, queryset):
-        for invoice in queryset:
-            vendor = invoice.vendor
-
-            # dane kupującego
-            buyer_info = {
-                'name': invoice.buyer_name,
-                'street': invoice.buyer_street,
-                'zipCode': invoice.buyer_zipcode,
-                'city': invoice.buyer_city,
-                'taxId': invoice.buyer_nip,
-            }
-
-            # produkty z pozycji zamówienia
-            products = []
-            for item in invoice.allegro_order.items.all():
-                products.append({
-                    'offer': {
-                        'name': item.offer_name,
-                    },
-                    'quantity': item.quantity,
-                    'is_smart': invoice.allegro_order.is_smart,
-                    'delivery_cost': invoice.allegro_order.delivery_cost,
-                    'tax_rate': item.tax_rate or 23,
-                    'price': {
-                        'amount': item.price_amount,
-                        'currency': item.price_currency,
-                    }
-                })
-
-            # generowanie PDF
-            pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
-
-            try:
-                resp = post_invoice_to_allegro(invoice, pdf_content, False)
-                self.message_user(request, f"{resp}")
-            except Exception as e:
-                self.message_user(
-                    request,
-                    f"❌ Błąd wysyłki faktury {invoice.invoice_number} do Allegro: {e}",
-                    level='error'
-                )
+                try:
+                    resp = post_invoice_to_allegro(invoice, pdf_content, False)
+                    self.message_user(request, f"{resp}")
+                except Exception as e:
+                    self.message_user(
+                        request,
+                        f"❌ Błąd wysyłki faktury {invoice.invoice_number} do Allegro: {e}",
+                        level='error'
+                    )
 
 
 
@@ -1085,7 +1170,253 @@ class CartOrderAdmin(ImportExportModelAdmin):
     list_editable = ['order_status', 'payment_status', 'delivery_status', 'shipping_label']
     list_filter = ['payment_status', 'order_status', 'delivery_status', 'delivery']
     list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'shipping_label', 'delivery_status', 'sub_total', 'shipping_amount', 'total', 'date']
-    actions = ['generate_pdf_labels']
+    actions = ['generate_pdf_labels', 'generate_invoice_webstore', 'print_invoice_pdf_webstore']
+
+    inlines = [CartOrderItemsInlineAdmin, InvoiceInline, InvoiceCorrectionInline]
+
+
+    @admin.action(description="Generuj faktury")
+    def generate_invoice_webstore(self, request, queryset):
+        invoices = queryset.filter(invoice_generated=False)
+        web_vendor = Vendor.objects.get(
+            user=request.user,
+            marketplace='kidnetic.pl'
+            )
+        success_count = 0
+        error_count = 0
+
+        for web_order in invoices:
+            print('Generating invoice order*buyer_email ----------------', web_order.email)
+            try:
+                invoice_data = {
+                    'created_at': now(),
+                    'buyer_email': web_order.email or '',
+                    'vendor': web_vendor or '',
+                    'is_generated': True,
+                    'buyer_name': web_order.full_name or '',
+                    'buyer_street': f'{web_order.street} {web_order.number}' or '',
+                    'buyer_zipcode': web_order.post_code or '',
+                    'buyer_city': web_order.city or '',
+                    'buyer_nip': web_order.buyer_nip or 'Brak',
+                }
+
+                print('generate_invoice_webstore --------------- test', invoice_data)
+
+                generated_invoice = Invoice.objects.update_or_create(
+                    shop_order=web_order,
+                    defaults=invoice_data
+                )
+
+                web_order.invoice_generated = True
+                web_order.save(update_fields=['invoice_generated'])
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                self.message_user(
+                    request,
+                    f"❌ Błąd przy generowaniu faktury dla zamówienia {web_order.order_id}: {e}",
+                    level="error"
+                )
+
+        if success_count:
+            # invoice.allegro_order.invoice_generated = True
+            self.message_user(
+                request,
+                f"Wygenerowano {success_count} faktur(ę/y).",
+                level='success'
+            )
+        if error_count:
+            self.message_user(
+                request,
+                f"⚠️ {error_count} faktur nie udało się wygenerować.",
+                level="warning"
+            )
+
+
+    @admin.action(description="🖨️ Drukuj faktury")
+    def print_invoice_pdf_webstore(self, request, queryset):
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as zip_file:
+            for invoice in queryset:
+                vendor = invoice.vendor
+                buyer_info = {
+                    'name': invoice.buyer_name,
+                    'street': invoice.buyer_street,
+                    'zipCode': invoice.buyer_zipcode,
+                    'city': invoice.buyer_city,
+                    'taxId': invoice.buyer_nip,
+                }
+
+                # produkty z pozycji zamówienia
+                products = []
+                for item in invoice.shop_order.orderitems.all():
+                    products.append({
+                        'offer': {'name': item.offer_name},
+                        'quantity': item.quantity,
+                        'is_smart': False, # invoice.allegro_order.is_smart,
+                        'delivery_cost': invoice.shop_order.shipping_amount,
+                        'tax_rate': item.tax_rate or 23,
+                        'price': {
+                            'amount': item.price,
+                            'currency': item.sub_total,
+                        }
+                    })
+
+                # generowanie PDF
+                pdf_content = generate_invoice_webstore(invoice, vendor, buyer_info, products)
+
+                # bezpieczna nazwa pliku (zamiana / na _)
+                safe_invoice_number = invoice.invoice_number.replace("/", "_")
+                zip_file.writestr(f"invoice_{safe_invoice_number}.pdf", pdf_content)
+
+        response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+        response['Content-Disposition'] = 'attachment; filename="faktury.zip"'
+        return response        
+
+    @admin.action(description="🧾 Wyślij faktury do klienta")
+    def generate_invoice(self, request, queryset):
+        for invoice in queryset:
+            vendor = invoice.vendor
+
+            # dane kupującego
+            buyer_info = {
+                'name': invoice.buyer_name,
+                'street': invoice.buyer_street,
+                'zipCode': invoice.buyer_zipcode,
+                'city': invoice.buyer_city,
+                'taxId': invoice.buyer_nip,
+            }
+
+            # produkty z pozycji zamówienia
+            products = []
+            for item in invoice.allegro_order.items.all():
+                products.append({
+                    'offer': {
+                        'name': item.offer_name,
+                    },
+                    'quantity': item.quantity,
+                    'is_smart': invoice.allegro_order.is_smart,
+                    'delivery_cost': invoice.allegro_order.delivery_cost,
+                    'tax_rate': item.tax_rate or 23,
+                    'price': {
+                        'amount': item.price_amount,
+                        'currency': item.price_currency,
+                    }
+                })
+
+            # generowanie PDF
+            pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
+
+            try:
+                resp = post_invoice_to_allegro(invoice, pdf_content, False)
+                self.message_user(request, f"{resp}")
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"❌ Błąd wysyłki faktury {invoice.invoice_number} do Allegro: {e}",
+                    level='error'
+                )
+
+
+
+    def create_correction(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, "Wybierz dokładnie jedną fakturę do korekty.", level="error")
+            return
+        invoice = queryset.first()
+        # przekierowanie do custom view
+        return redirect(f"{invoice.id}/correction/")
+
+    create_correction.short_description = "Korekcja faktury"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("<int:invoice_id>/correction/", self.admin_site.admin_view(self.correction_view), name="invoice_correction"),
+        ]
+        return custom_urls + urls
+
+    def correction_view(self, request, invoice_id):
+        invoice = Invoice.objects.get(pk=invoice_id)
+        products = invoice.allegro_order.items.all()
+        transport_cost = invoice.allegro_order.delivery_cost
+
+        # dynamiczny formularz
+        class DynamicCorrectionForm(forms.Form):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                for i, product in enumerate(products, start=1):
+                    self.fields[f"quantity_{i}"] = forms.IntegerField(
+                        label=product.offer_name,
+                        initial=product.quantity,
+                        min_value=0
+                    )
+                self.fields["transport_cost"] = forms.DecimalField(
+                    label="Koszt transportu",
+                    initial=transport_cost,
+                    min_value=0,
+                    decimal_places=2,
+                    max_digits=10,
+                )
+
+        if request.method == "POST":
+            form = DynamicCorrectionForm(request.POST)
+            if form.is_valid():
+                corrected_products = []
+                for i, product in enumerate(products, start=1):
+                    new_qty = form.cleaned_data[f"quantity_{i}"]
+                    corrected_products.append({
+                        "offer_name": product.offer_name,
+                        "quantity": new_qty,
+                        "price_amount": product.price_amount,
+                        "price_currency": product.price_currency,
+                        "tax_rate": product.tax_rate,
+                    })
+
+                # dodaj transport jako osobną pozycję
+                new_transport_cost = form.cleaned_data["transport_cost"]
+                # if new_transport_cost and new_transport_cost > 0:
+                corrected_products.append({
+                    "offer_name": "Transport",
+                    "quantity": 1,
+                    "price_amount": float(new_transport_cost),
+                    "price_currency": "PLN",
+                    "tax_rate": 23,  # lub dynamicznie, jeśli masz różne stawki
+                })
+
+                correction = InvoiceCorrection.objects.create(
+                    main_invoice=invoice,
+                    created_at=now(),
+                    vendor=invoice.vendor,
+                    buyer_name=invoice.buyer_name,
+                    buyer_email=invoice.buyer_email,
+                    buyer_street=invoice.buyer_street,
+                    buyer_zipcode=invoice.buyer_zipcode,
+                    buyer_city=invoice.buyer_city,
+                    buyer_nip=invoice.buyer_nip,
+                    is_generated=True,
+                )
+
+                correction.products = normalize_products_for_json(corrected_products)
+                correction.save()
+
+
+                invoice.corrected = True
+                invoice.save(update_fields=['corrected'])
+
+                self.message_user(request, f"Utworzono korektę faktury nr {correction.invoice_number}")
+                return redirect("..")
+        else:
+            form = DynamicCorrectionForm()
+
+        context = dict(
+            self.admin_site.each_context(request),  # <-- to dodaje sidebar i wszystkie aplikacje
+            form=form,
+            invoice=invoice,
+            title=f"Korekta faktury nr {invoice.invoice_number}",
+        )
+        return render(request, "admin/invoice_correction.html", context)
 
 
     def generate_pdf_labels(self, request, queryset):
