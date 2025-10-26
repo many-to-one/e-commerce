@@ -441,6 +441,42 @@ class InvoiceCorrection(models.Model):
 
         super().save(*args, **kwargs)
 
+
+class InvoiceFile(models.Model):
+    order = models.ForeignKey(
+        "CartOrder",
+        on_delete=models.CASCADE,
+        related_name="invoices"
+    )
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    invoice_correction = models.ForeignKey(
+        InvoiceCorrection,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    file = models.FileField(upload_to=invoice_upload_path)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # @property
+    # def invoice_number(self):
+    #     return getattr(self.order, "invoice_number", None)
+
+    @property
+    def invoice_number(self):
+        if self.invoice:
+            return self.invoice.invoice_number
+        return self.order.oid
+
+    def __str__(self):
+        return f"Invoice {self.invoice.invoice_number} for order {self.order.oid}"
+
+
 # Model for Cart Orders
 class CartOrder(models.Model):
 
@@ -499,12 +535,6 @@ class CartOrder(models.Model):
 
     # Invoice
     invoice_generated = models.BooleanField(default=False, null=True, blank=True)
-    invoice_pdf = models.FileField(
-        upload_to=invoice_upload_path,
-        null=True,
-        blank=True,
-        verbose_name="Faktura (PDF)"
-    )
     
     # Discounts
     initial_total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2, help_text="The original total before discounts")

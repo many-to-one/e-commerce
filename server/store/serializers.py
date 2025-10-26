@@ -193,11 +193,26 @@ class CartOrderItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
 
+class InvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
+        # fields = ["id", "file", "created_at"]
+        fields = '__all__'
+
+
+class InvoiceFileSerializer(serializers.ModelSerializer):
+    invoice = InvoiceSerializer(many=False, read_only=True)
+    class Meta:
+        model = InvoiceFile
+        # fields = ["id", "file", "created_at"]
+        fields = '__all__'
+
 
 # Define a serializer for the CartOrder model
 class CartOrderSerializer(serializers.ModelSerializer):
     # Serialize related CartOrderItem models
     orderitem = CartOrderItemSerializer(many=True, read_only=True)
+    invoices = InvoiceFileSerializer(many=True, read_only=True)
 
     class Meta:
         model = CartOrder
