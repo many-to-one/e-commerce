@@ -69,7 +69,8 @@ function AppContent() {
         <Route path='/upload-files' element={<UploadAllegro />} />
         <Route path='/initial-return' element={<InitialReturn />} />
         <Route path='/returns' element={<Returns />} />
-        <Route path='/allegro-auth-code' element={<AllegroAuth />} />
+        {/* <Route path='/allegro-auth-code-:vendorName' element={<AllegroAuth />} /> */}
+         <Route path='/allegro-auth-code/:vendorName' element={<AllegroAuth />} />
 
       </Routes>
     </>

@@ -32,7 +32,7 @@ const useAxios = () => {
         setAuthUser(response.access, response.refresh);
 
         // Update the request's 'Authorization' header with the new access token
-        req.headers.Authorization = `Bearer ${response.data.access}`;
+        req.headers.Authorization = `Bearer ${response.access}`;
         return req; // Return the updated request
     });
 

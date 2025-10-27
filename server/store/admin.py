@@ -13,13 +13,23 @@ from reportlab.pdfgen import canvas
 from io import BytesIO, StringIO
 import requests, json, csv
 import zipfile
+import os
+from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
 
+from store.allegro_views.views import allegro_request
 from store.utils.invoice import *
 from store.utils.decimal import *
 from store.models import *
 from store.tasks import *
+
+# Load variables from .env into environment
+load_dotenv()
+
+# Access them like normal environment variables
+ALL_GRO_API_URL = os.getenv("ALL_GRO_API_URL")
+
 
 @admin.action(description="Discount") #How to add 20% to the title/description?
 def apply_discount(modeladmin, request, queryset):
@@ -69,7 +79,7 @@ class ProductAdmin(ImportExportModelAdmin):
     list_filter = ['sku', 'status', 'in_stock', 'vendors']
     list_editable = ['image', 'title', 'ean', 'price', 'stock_qty', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
     list_display = ['sku', 'product_image', 'image', 'title', 'ean', 'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty', 'status', 'featured', 'special_offer' ,'hot_deal']
-    actions = [apply_discount, 'allegro_export', 'price_change']
+    actions = [apply_discount, 'allegro_export']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
@@ -98,8 +108,8 @@ class ProductAdmin(ImportExportModelAdmin):
                     if str(offer['external']['id']) == str(obj.sku):
                         # print('offer[id]----------------', offer['id'])
 
-                        self.allegro_price_change(access_token, offer['id'], obj.price)
-                        self.allegro_stock_change(access_token, offer['id'], obj.stock_qty)
+                        self.allegro_price_change(access_token, vendor.name, offer['id'], obj.price)
+                        self.allegro_stock_change(access_token, vendor.name, offer['id'], obj.stock_qty)
                         offers = []
                 else:
                     continue
@@ -110,37 +120,40 @@ class ProductAdmin(ImportExportModelAdmin):
     def allegro_export(self, request, queryset):
 
         print('allegro_export request.user ----------------', request.user)
-        url = "https://api.allegro.pl.allegrosandbox.pl/sale/product-offers"
+        url = f"https://{ALL_GRO_API_URL}/sale/product-offers"
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         for vendor in vendors:
             print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
             access_token = vendor.access_token
-            producer = self.responsible_producers(access_token)
+            producer = self.responsible_producers(access_token, vendor.name)
             print('allegro_export producer ----------------', producer)
             for product in queryset:
                 # print('allegro_export ----------------', product.ean)
-                self.create_offer_from_product(product, url, access_token, producer)
+                self.create_offer_from_product(product, url, access_token, vendor.name, producer)
 
 
-    def responsible_producers(self, access_token):
+    def responsible_producers(self, access_token, name):
 
-        url = "https://api.allegro.pl.allegrosandbox.pl/sale/responsible-producers" 
+        url = f"https://{ALL_GRO_API_URL}/sale/responsible-producers" 
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
             'Authorization': f'Bearer {access_token}'
         }
 
-        response = requests.request("GET", url, headers=headers)
-        print('create_offer_from_product response ----------------', response.text)
+        # response = requests.request("GET", url, headers=headers)
+
+        response = allegro_request("GET", url, name, headers=headers) # params={"limit": 10}
+        
+        # print('create_offer_from_product response ----------------', response.text)
         return response.json()
 
 
-    def create_offer_from_product(self, product, url, access_token, producer):
+    def create_offer_from_product(self, product, url, access_token, vendor_name, producer):
 
-        print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
+        # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
 
         try:
             payload = json.dumps({
@@ -179,8 +192,9 @@ class ProductAdmin(ImportExportModelAdmin):
             'Authorization': f'Bearer {access_token}'
             }
 
-            response = requests.request("POST", url, headers=headers, data=payload)
-            print('create_offer_from_product response ----------------', response)
+            # response = requests.request("POST", url, headers=headers, data=payload)
+            response = allegro_request("POST", url, vendor_name, headers=headers, data=payload)
+            # print('create_offer_from_product response ----------------', response)
             return response
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
@@ -188,14 +202,15 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def get_me(self, access_token, name):
 
-        url = "https://api.allegro.pl.allegrosandbox.pl/me"
+        url = f"https://{ALL_GRO_API_URL}/me"
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
             'Authorization': f'Bearer {access_token}'
         }
 
-        response = requests.request("GET", url, headers=headers)
+        # response = requests.request("GET", url, headers=headers)
+        response = allegro_request("POST", url, name, headers=headers)
         # print('get_me NAME ----------------', name)
         # print('get_me access_token ----------------', access_token)
         # print('get_me response ----------------', response.text)
@@ -204,44 +219,45 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def get_offers(self, access_token, name):
 
-        url = "https://api.allegro.pl.allegrosandbox.pl/sale/offers"
+        url = f"https://{ALL_GRO_API_URL}/sale/offers"
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
             'Authorization': f'Bearer {access_token}'
         }
 
-        response = requests.request("GET", url, headers=headers)
+        # response = requests.request("GET", url, headers=headers)
+        response = allegro_request("GET", url, name, headers=headers)
         # print('get_offers NAME ----------------', name)
         # print('get_offers access_token ----------------', access_token)
-        # print('get_offers response ----------------', response.text)
+        print('get_offers response ----------------', response.text)
         return response
         
 
-    def price_change(self, request, queryset):
+    # def price_change(self, request, queryset):
 
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
 
-        for product in queryset:  # Loop through selected products
-            product_price = product.price 
-            # print('product_price MATCH ----------------', product_price) 
+    #     for product in queryset:  # Loop through selected products
+    #         product_price = product.price 
+    #         # print('product_price MATCH ----------------', product_price) 
 
-            for vendor in vendors:
-                access_token = vendor.access_token
-                offers = self.get_offers(access_token, vendor.name)
+    #         for vendor in vendors:
+    #             access_token = vendor.access_token
+    #             offers = self.get_offers(access_token, vendor.name)
 
-                for offer in offers.json()['offers']:
-                    # print('price_change MATCH ----------------', offer['external'])
-                    if offer['external'] is not None:
-                        if str(offer['external']['id']) == str(product.sku):
-                            # print('offer[id]----------------', offer['id'])
-                            self.allegro_price_change(access_token, offer['id'], product_price)
+    #             for offer in offers.json()['offers']:
+    #                 # print('price_change MATCH ----------------', offer['external'])
+    #                 if offer['external'] is not None:
+    #                     if str(offer['external']['id']) == str(product.sku):
+    #                         # print('offer[id]----------------', offer['id'])
+    #                         self.allegro_price_change(access_token, vendor.name, offer['id'], product_price)
 
 
-    def allegro_price_change(self, access_token, offer_id, new_price):
+    def allegro_price_change(self, access_token, vendor_name, offer_id, new_price):
 
         try:
-            url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{offer_id}"
+            url = f"https://{ALL_GRO_API_URL}/sale/product-offers/{offer_id}"
 
             payload = {
                 "sellingMode": {
@@ -258,17 +274,18 @@ class ProductAdmin(ImportExportModelAdmin):
                 "Content-Type": "application/vnd.allegro.public.v1+json"
             }
 
-            response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            # response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            response = allegro_request("PATCH", url, vendor_name, headers=headers, data=json.dumps(payload))
             # print('allegro_price_change response ----------------', response.text)
 
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
         
 
-    def allegro_stock_change(self, access_token, offer_id, quantity):
+    def allegro_stock_change(self, access_token, vendor_name, offer_id, quantity):
 
         try:
-            url = f"https://api.allegro.pl.allegrosandbox.pl/sale/product-offers/{offer_id}"
+            url = f"https://{ALL_GRO_API_URL}/sale/product-offers/{offer_id}"
 
             payload = {
                 "stock": {
@@ -283,7 +300,8 @@ class ProductAdmin(ImportExportModelAdmin):
                 "Content-Type": "application/vnd.allegro.public.v1+json"
             }
 
-            response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            # response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            response = allegro_request("PATCH", url, vendor_name, headers=headers, data=json.dumps(payload))
             # print('allegro_price_change response ----------------', response.text)
 
         except requests.exceptions.HTTPError as err:
@@ -350,24 +368,15 @@ class InvoiceFileInline(admin.TabularInline):
                 obj.file.url,
                 obj.invoice.invoice_number
             )
+        elif obj.invoice_correction:
+            return format_html(
+                '<a href="{}" target="_blank">Pobierz korektę: {}</a>',
+                obj.file.url,
+                obj.invoice_correction.invoice_number
+            )
         return "-"
-    invoice_number_display.short_description = "Invoice number"
+    invoice_number_display.short_description = "Faktura / Korekta"
 
-
-# from django.urls import reverse
-
-# class InvoiceInline(admin.TabularInline):
-#     model = Invoice
-#     extra = 0
-#     fields = ['invoice_number', 'created_at', 'is_generated', 'sent_to_buyer', 'pdf_link']
-#     readonly_fields = ['invoice_number', 'created_at', 'is_generated', 'sent_to_buyer', 'pdf_link']
-#     can_delete = False
-
-#     def pdf_link(self, obj):
-#         if hasattr(obj, "invoice") and obj.invoice:
-#             return format_html('<a href="{}" target="_blank">Pobierz PDF</a>', obj.invoice.url)
-#         return "-"
-#     pdf_link.short_description = "Faktura (PDF)"
 
 
 class InvoiceCorrectionInline(admin.TabularInline):
@@ -376,6 +385,7 @@ class InvoiceCorrectionInline(admin.TabularInline):
     fields = ['invoice_number', 'created_at', 'is_generated', 'sent_to_buyer']
     readonly_fields = ['invoice_number', 'created_at', 'is_generated', 'sent_to_buyer']
     can_delete = False
+
 
 
 @admin.register(AllegroOrder)
@@ -391,7 +401,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
     invoice_required = None
     invoice_data = {}
     
-    def get_buyer_info(self, order_id, access_token):
+    def get_buyer_info(self, order_id, access_token, vendor_name):
 
         try:
             url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}"
@@ -399,7 +409,8 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 'Accept': 'application/vnd.allegro.public.v1+json',
                 'Authorization': f'Bearer {access_token}'
             }
-            response = requests.get(url, headers=headers)
+            # response = requests.get(url, headers=headers)
+            response = allegro_request("GET", url, vendor_name, headers=headers)
             # print('Fetching order buyer_info ----------------', response, response.text)
             return response.json()
         except Exception as e:
@@ -417,7 +428,8 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     'Accept': 'application/vnd.allegro.public.v1+json',
                     'Authorization': f'Bearer {vendor.access_token}'
                 }
-                response = requests.get(url, headers=headers)
+                # response = requests.get(url, headers=headers)
+                response = allegro_request("GET", url, vendor.name, headers=headers)
 
                 if response.status_code == 200:
                     self.message_user(request, f"✅ Pobrano zamówienia allegro dla {vendor.name}", level='success')
@@ -435,7 +447,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     if not checkout_form_id:
                         continue
 
-                    buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token) or {}
+                    buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token, vendor.name) or {}
                     buyer = buyer_info.get('buyer') or {}
                     invoice = buyer_info.get('invoice') or {}
                     address = invoice.get('address') or {}
@@ -1029,7 +1041,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                         corrected_products.append({
                             "offer_name": product.product.title,
                             "quantity": new_qty,
-                            "price_amount": float(product.price),
+                            "price_amount": float(product.product.price),
                             "price_currency": "PLN",  # or derive from shop settings
                             "tax_rate": 23,           # or derive dynamically
                         })
@@ -1046,18 +1058,34 @@ class InvoiceAdmin(admin.ModelAdmin):
                     "tax_rate": 23,  # lub dynamicznie, jeśli masz różne stawki
                 })
 
-                correction = InvoiceCorrection.objects.create(
-                    main_invoice=invoice,
-                    created_at=now(),
-                    vendor=invoice.vendor,
-                    buyer_name=invoice.buyer_name,
-                    buyer_email=invoice.buyer_email,
-                    buyer_street=invoice.buyer_street,
-                    buyer_zipcode=invoice.buyer_zipcode,
-                    buyer_city=invoice.buyer_city,
-                    buyer_nip=invoice.buyer_nip,
-                    is_generated=True,
-                )
+                if source == "allegro":
+                    correction = InvoiceCorrection.objects.create(
+                        main_invoice=invoice,
+                        created_at=now(),
+                        allegro_order=invoice.allegro_order,
+                        vendor=invoice.vendor,
+                        buyer_name=invoice.buyer_name,
+                        buyer_email=invoice.buyer_email,
+                        buyer_street=invoice.buyer_street,
+                        buyer_zipcode=invoice.buyer_zipcode,
+                        buyer_city=invoice.buyer_city,
+                        buyer_nip=invoice.buyer_nip,
+                        is_generated=True,
+                    )
+                else:
+                    correction = InvoiceCorrection.objects.create(
+                        main_invoice=invoice,
+                        created_at=now(),
+                        shop_order=invoice.shop_order,
+                        vendor=invoice.vendor,
+                        buyer_name=invoice.buyer_name,
+                        buyer_email=invoice.buyer_email,
+                        buyer_street=invoice.buyer_street,
+                        buyer_zipcode=invoice.buyer_zipcode,
+                        buyer_city=invoice.buyer_city,
+                        buyer_nip=invoice.buyer_nip,
+                        is_generated=True,
+                    )
 
                 correction.products = normalize_products_for_json(corrected_products)
                 correction.save()
@@ -1195,6 +1223,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
     @admin.action(description="🧾 Wyślij fakturę koregującą do klienta")
     def generate_correction_invoice(self, request, queryset):
         for invoice in queryset:
+            print('---- generate_correction_invoice ----', invoice.invoice_number)
             vendor = invoice.main_invoice.vendor
             main_invoice_number = invoice.main_invoice.invoice_number
 
@@ -1246,6 +1275,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                 resp = post_invoice_to_allegro(invoice, pdf_content, True)
 
             elif getattr(invoice.main_invoice, "shop_order", None):
+                print('KOREKTA WYŚLIJ WEBSTORE----------------')
                 # --- WEBSTORE / CARTORDER ---
                 main_invoice_products = invoice.main_invoice.shop_order.orderitem.all()
                 for item in main_invoice_products:
@@ -1280,7 +1310,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                 # np. zapis do FileField w InvoiceFile:
                 InvoiceFile.objects.create(
                     order=invoice.main_invoice.shop_order,
-                    invoice_correction=invoice.main_invoice,
+                    invoice_correction=invoice,
                     file=ContentFile(pdf_content, f"correction_{invoice.invoice_number}.pdf")
                 )
                 resp = "Faktura korekta dla webstore wygenerowana i zapisana"

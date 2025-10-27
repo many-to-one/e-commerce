@@ -18,7 +18,7 @@ class Vendor(models.Model):
     client_id = models.CharField(max_length=100, help_text="Client_id", null=True, blank=True)
     secret_id = models.CharField(max_length=100, help_text="Secret_id", null=True, blank=True)
     access_token  = models.CharField(max_length=3000, null=True, blank=True)
-    reset_token  = models.CharField(max_length=3000, null=True, blank=True)
+    refresh_token  = models.CharField(max_length=3000, null=True, blank=True)
     email = models.EmailField(max_length=100, help_text="Shop Email", null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     mobile = models.CharField(max_length = 150, null=True, blank=True)

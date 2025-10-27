@@ -79,7 +79,7 @@ function OrderHistory() {
                             <p className='flexRowBetween'><b>Status opłaty:</b> {item.payment_status}</p>
                             <p className='flexRowBetween'><b>Status dostawy:</b> {item.delivery_status}</p> 
                             <p className='flexRowBetween'><b>Dostawa:</b> {item.delivery}</p>
-                            <p className='flexRowBetween'><b>Numer śledzenia:</b> {item.tracking_id}</p>
+                            <p className='flexRowBetween'><b>Numer śledzenia:</b> {item.tracking_id}</p> 
                         </div>
                         {item.orderitem.map((order, index) => (
                            <div>
@@ -97,14 +97,14 @@ function OrderHistory() {
                                                     onMouseEnter={() => setIsHovered(true)}
                                                     onMouseLeave={() => setIsHovered(false)}
                                                 >
-                                                    <p>Informacja zwrotowa:</p>
+                                                    <p>Otworzyłeś zwrot:</p>
                                                     <MaterialIcon icon="info"  className="Cursor"/>
                                                 </div>
                                                 
                                                 {isHovered && (
                                                     <div 
                                                         className="return-data" 
-                                                        onMouseEnter={() => setIsHovered(true)} 
+                                                        // onMouseEnter={() => setIsHovered(true)} 
                                                         onMouseLeave={() => setIsHovered(false)}
                                                     >
                                                         {order.return_reason !== null &&
@@ -153,6 +153,24 @@ function OrderHistory() {
                                 <p className='flexRowBetween'><b>Razem:</b> {item.sub_total}$</p>
                                 <p className='flexRowBetween'><b>Koszt dostawy:</b> {item.shipping_amount}$</p>
                                 <hr />
+
+                                {item.invoices.length > 0 ? (
+                                    <div className="flexColumnStart">
+                                        <b>Faktury:</b>
+                                        {item.invoices.map(inv => (
+                                        <p key={inv.id}>
+                                            <a href={inv.file} target="_blank" rel="noopener noreferrer">
+                                            Pobierz fakturę:  {inv.invoice?.invoice_number || `Korekta: ${inv.invoice_correction?.invoice_number}`}
+                                            </a>
+                                        </p>
+                                        ))}
+                                    </div>
+                                    ) : (
+                                    <p><b>Faktury:</b> Brak</p>
+                                    )}
+
+
+
                             </div>
                         ))}
                         <div className='flexRowBetween'>

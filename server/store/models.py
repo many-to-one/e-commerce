@@ -474,7 +474,10 @@ class InvoiceFile(models.Model):
         return self.order.oid
 
     def __str__(self):
-        return f"Invoice {self.invoice.invoice_number} for order {self.order.oid}"
+        if self.invoice:
+            return f"Invoice {self.invoice.invoice_number} for order {self.order.oid}"
+        else:
+            return f"Invoice {self.invoice_correction.invoice_number} for order {self.order.oid}"
 
 
 # Model for Cart Orders

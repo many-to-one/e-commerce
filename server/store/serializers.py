@@ -199,9 +199,16 @@ class InvoiceSerializer(serializers.ModelSerializer):
         # fields = ["id", "file", "created_at"]
         fields = '__all__'
 
+class InvoiceCorrectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoiceCorrection
+        # fields = ["id", "file", "created_at"]
+        fields = '__all__'
+
 
 class InvoiceFileSerializer(serializers.ModelSerializer):
     invoice = InvoiceSerializer(many=False, read_only=True)
+    invoice_correction = InvoiceCorrectionSerializer(many=False, read_only=True)
     class Meta:
         model = InvoiceFile
         # fields = ["id", "file", "created_at"]

@@ -1,3 +1,15 @@
+type InvoiceType = {
+  invoice_number?: string; // optional, if you expose it in serializer
+};
+
+type InvoiceFileType = {
+  id: number;
+  file: string;        // URL to the PDF
+  created_at: string;  // ISO date string
+  invoice: InvoiceType | null; // optional, if you expose it in serializer
+  invoice_correction: InvoiceType | null;
+};
+
 type OrderItemType = {
     city: string;
     date: string;
@@ -11,6 +23,8 @@ type OrderItemType = {
     delivery_courier: string;
     tracking_id: string;
     delivery: string;
+    invoices: InvoiceFileType[];
+    invoice_correction: InvoiceFileType[];
     orderitem: {
         product: {
             image: string;
