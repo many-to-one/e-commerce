@@ -28,7 +28,7 @@ from store.tasks import *
 load_dotenv()
 
 # Access them like normal environment variables
-ALL_GRO_API_URL = os.getenv("ALL_GRO_API_URL")
+ALLEGRO_API_URL = os.getenv("ALLEGRO_API_URL")
 
 
 @admin.action(description="Discount") #How to add 20% to the title/description?
@@ -120,7 +120,7 @@ class ProductAdmin(ImportExportModelAdmin):
     def allegro_export(self, request, queryset):
 
         print('allegro_export request.user ----------------', request.user)
-        url = f"https://{ALL_GRO_API_URL}/sale/product-offers"
+        url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         for vendor in vendors:
             print('allegro_export vendors ----------------', vendors)
@@ -136,7 +136,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def responsible_producers(self, access_token, name):
 
-        url = f"https://{ALL_GRO_API_URL}/sale/responsible-producers" 
+        url = f"https://{ALLEGRO_API_URL}/sale/responsible-producers" 
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
@@ -202,7 +202,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def get_me(self, access_token, name):
 
-        url = f"https://{ALL_GRO_API_URL}/me"
+        url = f"https://{ALLEGRO_API_URL}/me"
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
@@ -219,7 +219,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def get_offers(self, access_token, name):
 
-        url = f"https://{ALL_GRO_API_URL}/sale/offers"
+        url = f"https://{ALLEGRO_API_URL}/sale/offers"
 
         headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
@@ -230,7 +230,7 @@ class ProductAdmin(ImportExportModelAdmin):
         response = allegro_request("GET", url, name, headers=headers)
         # print('get_offers NAME ----------------', name)
         # print('get_offers access_token ----------------', access_token)
-        print('get_offers response ----------------', response.text)
+        # print('get_offers response ----------------', response.text)
         return response
         
 
@@ -257,7 +257,7 @@ class ProductAdmin(ImportExportModelAdmin):
     def allegro_price_change(self, access_token, vendor_name, offer_id, new_price):
 
         try:
-            url = f"https://{ALL_GRO_API_URL}/sale/product-offers/{offer_id}"
+            url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
 
             payload = {
                 "sellingMode": {
@@ -285,7 +285,7 @@ class ProductAdmin(ImportExportModelAdmin):
     def allegro_stock_change(self, access_token, vendor_name, offer_id, quantity):
 
         try:
-            url = f"https://{ALL_GRO_API_URL}/sale/product-offers/{offer_id}"
+            url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
 
             payload = {
                 "stock": {
