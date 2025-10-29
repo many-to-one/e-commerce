@@ -16,7 +16,7 @@
 ## CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 # Stage 2: Production stage
-FROM python:3.13-slim
+FROM python:3.13-slim AS builder
  
 RUN useradd -m -r appuser && \
    mkdir /app && \
