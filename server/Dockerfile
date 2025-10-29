@@ -39,6 +39,6 @@ ENV PYTHONUNBUFFERED=1
 # Switch to non-root user
 USER appuser
  
-EXPOSE 8006
+# EXPOSE 8006
 
 # CMD ["gunicorn", "--bind", "0.0.0.0:8006", "--workers", "3", "backend.backend.wsgi:application"]
