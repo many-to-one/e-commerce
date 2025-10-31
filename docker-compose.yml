@@ -161,13 +161,13 @@ services:
 
   #Production frontend service
   frontend:
-  build:
-    context: ./frontend
-    dockerfile: Dockerfile
-  container_name: react_shop
-  ports:
-    - "${REACT_PORT}:${REACT_PORT}"
-  restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react_shop
+    ports:
+      - "${REACT_PORT}:${REACT_PORT}"
+    restart: unless-stopped
 
 
   redis:
