@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import '../../types/ProductType';
-import MaterialIcon from '@material/react-material-icon';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import useAxios from '../../utils/useAxios';
 import { useAuthStore } from '../../store/auth';
 import { API_BASE_URL } from '../../utils/constants';
@@ -140,7 +140,7 @@ const Order: React.FC<OrderProps> = () => {
                         <div className='flexRowBetween'>
                             <p>Price: {order.price}$</p>
                             <div className='Cursor' onClick={() => deleteItem(order.id)}>
-                                <MaterialIcon icon="delete" />
+                                <DeleteRoundedIcon />
                             </div>
                         </div>
                         <div className='flexRowBetween'>

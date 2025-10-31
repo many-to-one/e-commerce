@@ -59,6 +59,7 @@ server/static/
 
 # Local environment variables
 server/.env
+.env
 
 # Ignore Celery logs
 celerybeat-schedule

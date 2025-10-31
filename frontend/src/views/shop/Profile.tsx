@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import MaterialIcon from '@material/react-material-icon';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import { useAuthStore } from '../../store/auth';
 import { useNavigate } from 'react-router-dom';
 import OrderHistory from './OrderHistory';
@@ -42,7 +42,7 @@ function Profile() {
         <p>Adres e-mail: {user['email']}</p>
         <p>Imię i nazwisko: {user['first_name']} {user['last_name']}</p>
 
-        {user['username'] === 'admin' &&
+        {user['user_id'] === 1 &&
             <button className='Cursor fileUpload' onClick={()=> navigate('/upload-files')}>Importuj oferty allegro</button>
             // <button className='Cursor fileUpload' onClick={()=> navigate('/allegro-auth')}>Zaloguj się do allegro</button>
         }
@@ -53,7 +53,8 @@ function Profile() {
                 <p>Twoje sklepy:</p>
                 {vendors.map((vendor, index) => (
                     <div key={index} className='flexRowCenter gap10px border1px p5px m5px Cursor'>
-                        <MaterialIcon icon="store" onClick={()=> loginAllegro(vendor.client_id, vendor.name)} />
+                        {/* <MaterialIcon icon="store" onClick={()=> loginAllegro(vendor.client_id, vendor.name)} /> */}
+                        <StorefrontRoundedIcon onClick={()=> loginAllegro(vendor.client_id, vendor.name)} />
                         <p>{vendor.marketplace} - {vendor.name}</p>
                     </div>
                 ))}

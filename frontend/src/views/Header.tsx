@@ -5,9 +5,12 @@ import { useAuthStore } from '../store/auth';
 import { useNavigate } from 'react-router-dom';
 import Category from '../components/category/Category';
 import Profile from './shop/Profile';
-import MaterialIcon from '@material/react-material-icon';
+// import MaterialIcon from '@material/react-material-icon';
 import { __userId, logout } from '../utils/auth';
 import '../types/SortCategory';
+
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 
 type CatCatalog = {
   title: string;
@@ -129,9 +132,11 @@ function Header() {
           <>
             <div className='Cursor loginSt flexRowBetween gap-15'>
               <p>Witaj, {user['username']}</p>
-              <MaterialIcon icon="person" onClick={() => navigate('/profile')}/>
+              {/* <MaterialIcon icon="person" onClick={() => navigate('/profile')}/> */}
+              <AccountCircleRoundedIcon onClick={() => navigate('/profile')} className='ml-5'/>
               <Cart />
-              <MaterialIcon icon="logout" onClick={logout} className='ml-30'/>
+              {/* <MaterialIcon icon="logout" onClick={logout} className='ml-30'/> */}
+              <LogoutRoundedIcon onClick={logout} className='ml-15'/>
             </div>
           </>
         ): (

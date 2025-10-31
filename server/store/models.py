@@ -206,6 +206,7 @@ class Product(models.Model):
         # super(Product, self).save(*args, **kwargs) 
 
 
+
 class Tag(models.Model):
 
     title = models.CharField(max_length=30)

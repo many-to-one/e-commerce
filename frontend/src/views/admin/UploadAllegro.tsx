@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/auth';
 import DotsLoader from '../../components/DotsLoader';
 import Cookies from 'js-cookie';
 import { __userId } from '../../utils/auth';
+import { responsiveFontSizes } from '@mui/material/styles';
 
 const UploadAllegro: React.FC = () => {
 
@@ -34,6 +35,7 @@ const UploadAllegro: React.FC = () => {
     setIsLoading(false);
 
     try {
+      // const resp = await axios_.post("api/store/upload-csv", myData, {
       const resp = await axios_.post("api/store/upload-csv", myData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -41,7 +43,13 @@ const UploadAllegro: React.FC = () => {
       console.log("sendFile", resp);
       showToast("success", "Plik przesłany pomyślnie!");
     } catch (error) {
-      showToast("error", "Coś poszło nie tak...");
+      console.log("error - upload", error);
+      // Axios errors often have response data here:
+      if (error.response && error.response.data) {
+        showToast("error", error.response.data.Błąd || "Upload failed");
+      } else {
+        showToast("error", "Unexpected error");
+      }
     }
 
     // try {

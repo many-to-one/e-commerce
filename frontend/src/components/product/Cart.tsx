@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import MaterialIcon from '@material/react-material-icon';
+// import MaterialIcon from '@material/react-material-icon';
 import useAxios from '../../utils/useAxios';
 import { useAuthStore } from '../../store/auth';
 import { useNavigate } from 'react-router-dom';
 import { __userId } from '../../utils/auth';
+
+import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
 
 function Cart () {
 
@@ -39,7 +41,8 @@ function Cart () {
 
   return (
     <div className="cart-container Cursor" onClick={goToCart}>
-      <MaterialIcon icon="shopping_cart" />
+      {/* <MaterialIcon icon="shopping_cart" /> */}
+      <ShoppingCartRoundedIcon />
         { count !== null ? (
           <span className="cart-badge">{count}</span>
         ):(

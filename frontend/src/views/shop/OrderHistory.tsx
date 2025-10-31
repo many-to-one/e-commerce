@@ -5,7 +5,7 @@ import '../../types/OrderItemType';
 import { showToast } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 import '../../types/OrderItemType';
-import MaterialIcon from '@material/react-material-icon';
+import InfoOutlineRoundedIcon from '@mui/icons-material/InfoOutlineRounded';
 
 function OrderHistory() {
 
@@ -98,7 +98,8 @@ function OrderHistory() {
                                                     onMouseLeave={() => setIsHovered(false)}
                                                 >
                                                     <p>Otworzyłeś zwrot:</p>
-                                                    <MaterialIcon icon="info"  className="Cursor"/>
+                                                    {/* <MaterialIcon icon="info"  className="Cursor"/> */}
+                                                    <InfoOutlineRoundedIcon className="Cursor"/>
                                                 </div>
                                                 
                                                 {isHovered && (

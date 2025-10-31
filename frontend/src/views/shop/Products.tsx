@@ -8,7 +8,8 @@ import '../../types/ProductType';
 import '../../types/CategoryType';
 import Category from '../../components/category/Category';
 import Swal from 'sweetalert2';
-import MaterialIcon from '@material/react-material-icon';
+import KeyboardArrowLeftRoundedIcon from '@mui/icons-material/KeyboardArrowLeftRounded';
+import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRightRounded';
 
 
 const Products: React.FC = () => {
@@ -71,7 +72,7 @@ const Products: React.FC = () => {
                     }}
                     disabled={!prevPage}
                 >
-                    <MaterialIcon icon="arrow_back_ios"/>
+                    <KeyboardArrowLeftRoundedIcon />
                 </button>
 
                 <span>{currentPage}</span>
@@ -89,7 +90,7 @@ const Products: React.FC = () => {
                     }}
                     disabled={!nextPage}
                 >
-                    <MaterialIcon icon="arrow_forward_ios"/>
+                    <KeyboardArrowRightRoundedIcon />
                 </button>
             </div>
         </div>

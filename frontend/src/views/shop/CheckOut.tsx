@@ -7,7 +7,7 @@ import { showToast } from '../../utils/toast';
 import { useAuthStore } from '../../store/auth';
 import '../../types/CourierType';
 import { __userId } from '../../utils/auth';
-import MaterialIcon from '@material/react-material-icon';
+import InfoOutlineRoundedIcon from '@mui/icons-material/InfoOutlineRounded';
 
 const CheckOut: React.FC = () => {
 
@@ -223,7 +223,7 @@ const CheckOut: React.FC = () => {
                         onMouseEnter={() => setIsHovered(true)} 
                         onMouseLeave={() => setIsHovered(false)}
                     >
-                        <MaterialIcon icon="info"  className="Cursor" />
+                        <InfoOutlineRoundedIcon />
                         {isHovered && (
                             <div
                                 className="free-shipping" 

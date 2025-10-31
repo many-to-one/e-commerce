@@ -1,11 +1,10 @@
 import React from 'react'
-import MaterialIcon from '@material/react-material-icon';
-import '@material/react-material-icon/dist/material-icon.css';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 
 const DoLike: React.FC = () => {
   return (
     <div>
-        <MaterialIcon icon="favorite" />
+        <FavoriteRoundedIcon />
     </div>
   )
 }
