@@ -25,5 +25,14 @@ git pull origin main
 git log -1 --pretty=%B
 -----------------------------------------------------------
 
-# Create db logic
-CREATE DATABASE shop_db;
+# Create db logic inside initdb/init.sql:
+CREATE DATABASE my_db;
+
+CREATE DATABASE my_db;
+CREATE USER my_user WITH ENCRYPTED PASSWORD 'my_psw';
+GRANT ALL PRIVILEGES ON DATABASE my_db TO my_user;  
+
+# Than inside db container:
+\c mydb
+GRANT ALL PRIVILEGES ON SCHEMA public TO my_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO my_user;

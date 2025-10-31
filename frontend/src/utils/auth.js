@@ -82,7 +82,7 @@ export const isAccessTokenExpired = (accessToken) => {
 export const __userId = () => {
     try {
         const decodedToken = jwtDecode(Cookies.get('access_token'));
-        // console.log('__userId', decodedToken);
+        console.log('__userId', decodedToken);
         return decodedToken;
     } catch (error) {
         console.log('__userId--error', error);

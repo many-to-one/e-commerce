@@ -44,6 +44,7 @@ server/*.pgdata
 
 # If you are using SQLite:
 server/*.sqlite3
+initdb/*.sql
 
 # Django migrations
 server/**/migrations/

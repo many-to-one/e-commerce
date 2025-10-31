@@ -10,7 +10,8 @@ function Profile() {
 
     // const user = useAuthStore((state) => state.allUserData);
     const user = __userId(); 
-    console.log('user', user['username']);
+    // console.log('user', user['username']);
+    console.log('user', user);
     const navigate = useNavigate();
     const axios_ = useAxios();
 
@@ -59,7 +60,7 @@ function Profile() {
             </div>
         }
 
-        <button className='Cursor' onClick={()=> navigate('/profile-edit')}>Edytuj profil</button>
+        {/* <button className='Cursor' onClick={()=> navigate('/profile-edit')}>Edytuj profil</button> */}
         <button className='Cursor' onClick={()=> navigate('/returns')}>Zwroty</button>
         <p>Historia zamówień:</p>
         <OrderHistory />
