@@ -1,0 +1,3 @@
+CREATE DATABASE shopdb;
+CREATE USER shop_admin WITH ENCRYPTED PASSWORD 'shop_psw_1@F';
+GRANT ALL PRIVILEGES ON DATABASE shopdb TO shop_admin;    
