@@ -13,11 +13,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from datetime import timedelta
 import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -29,32 +30,41 @@ SITE_URL = os.environ.get('SITE_URL')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "45.141.3.185", "https://checkout.stripe.com", "host.docker.internal", "localhost", "https://allegro.pl.allegrosandbox.pl",]
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "http://45.141.3.185",
-    "http://host.docker.internal",]
-CORS_ALLOWED_ORIGINS = [
-    "http://45.141.3.185:8100",
-    "http://45.141.3.185:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-    "http://127.0.0.1:8100",
-    "http://0.0.0.0:8100",
-    "http://localhost:8100",
-    "http://host.docker.internal:8100",
-    'http://web:8100',
-    'http://master:8089',
-    "https://api-preprod.dpsin.dpdgroup.com:8443",
-    "https://allegro.pl",
-    "https://allegro.pl.allegrosandbox.pl",
+#ALLOWED_HOSTS = ["127.0.0.1", "api.kidnetic.pl", "https://kidnetic.pl", "https://api.kidnetic.pl", "https://checkout.stripe.com", "host.docker.internal", "localhost", "https://allegro.pl.allegrosandbox.pl",]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+    if h.strip()
 ]
 
-CORS_ALLOW_HEADERS = [
-    "content-type",
-    "authorization",
-    "x-dpd-login",
-    "x-dpd-password",
-    "x-dpd-bucode",
-]
+#CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "https://kidnetic.pl", "https://api.kidnetic.pl", "http://host.docker.internal",]
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+
+#CORS_ALLOWED_ORIGINS = [
+#    "https://kidnetic.pl",
+#   # "http://45.141.3.185:5173",
+#   # "http://127.0.0.1:5173",
+#   # "http://localhost:5173",
+#   # "http://127.0.0.1:8100",
+#   # "http://0.0.0.0:8100",
+#   # "http://localhost:8100",
+#    "http://host.docker.internal:8100",
+#    'http://web:8100',
+#    'http://master:8089',
+#    "https://api-preprod.dpsin.dpdgroup.com:8443",
+#    "https://allegro.pl",
+#    "https://allegro.pl.allegrosandbox.pl",
+#]
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+
+#CORS_ALLOW_HEADERS = [
+#    "content-type",
+#    "authorization",
+#    "x-dpd-login",
+#    "x-dpd-password",
+#    "x-dpd-bucode",
+#]
+CORS_ALLOW_HEADERS = os.environ.get("CORS_ALLOW_HEADERS", "").split(",")
 # CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOW_CREDENTIALS = True
 # SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups

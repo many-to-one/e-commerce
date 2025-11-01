@@ -48,10 +48,10 @@ const ProductDetails: React.FC = () => {
             const response = await axios.get(endpoint);
             console.log(`${endpoint}`, response.data, response.data.gallery.length)
             setProduct(response.data.product);
-            if ( response.data.product.image === "http://127.0.0.1:8100/media/default.jpg") {
+            if ( response.data.product.image === `${API_BASE_URL}/media/default.jpg`) {
                 setMainImg(response.data.product.img_links[0])
-            } else {
-                setMainImg(response.data.product.image)
+            } else if (response.data.product.image.startsWith(`${API_BASE_URL}/media/`) ) {
+                setMainImg(response.data.product.img_links[0])
             }
             setGallery(response.data.gallery);
         } catch (error) {

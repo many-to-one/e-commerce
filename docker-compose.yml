@@ -166,7 +166,7 @@ services:
       dockerfile: Dockerfile
     container_name: react_shop
     ports:
-      - "${REACT_PORT}:${REACT_PORT}"
+      - "${REACT_PORT}:${REACT_CONTAINER_PORT}"
     restart: unless-stopped
 
 
