@@ -28,11 +28,13 @@ const Products: React.FC = () => {
 
     const fetchProducts = async (url) => {
 
-        console.log(`url`, url);
+        // const timestampedUrl = `${url}&t=${Date.now()}`
+        // console.log(`timestampedUrl`, timestampedUrl);
         console.log(`currentPage`, currentPage);
 
         try {
             const response = await axios.get(url);
+
             console.log(`${url}`, response.data)
             setProducts(response.data.results);
             setNextPage(response.data.next);

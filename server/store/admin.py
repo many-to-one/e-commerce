@@ -96,24 +96,26 @@ class ProductAdmin(ImportExportModelAdmin):
         # print("---- selected_vendors main ----", selected_vendors)
         for vendor in selected_vendors:
             # print("---- selected_vendors ----", vendor.name)
-            access_token = vendor.access_token
+            try:
+                access_token = vendor.access_token
 
-            offers = self.get_offers(access_token, vendor.name)
-            # self.get_me(access_token, vendor.name) # To verify access token is valid
-            # print("---- selected_offers ----", offers.text)
+                offers = self.get_offers(access_token, vendor.name)
+                # self.get_me(access_token, vendor.name) # To verify access token is valid
+                # print("---- selected_offers ----", offers.text)
 
-            for offer in offers.json()['offers']:
-                # print('price_change MATCH ----------------', offer['external']['id'])
-                if offer['external'] is not None:
-                    if str(offer['external']['id']) == str(obj.sku):
-                        # print('offer[id]----------------', offer['id'])
+                for offer in offers.json()['offers']:
+                    # print('price_change MATCH ----------------', offer['external']['id'])
+                    if offer['external'] is not None:
+                        if str(offer['external']['id']) == str(obj.sku):
+                            # print('offer[id]----------------', offer['id'])
 
-                        self.allegro_price_change(access_token, vendor.name, offer['id'], obj.price)
-                        self.allegro_stock_change(access_token, vendor.name, offer['id'], obj.stock_qty)
-                        offers = []
-                else:
-                    continue
-
+                            self.allegro_price_change(access_token, vendor.name, offer['id'], obj.price)
+                            self.allegro_stock_change(access_token, vendor.name, offer['id'], obj.stock_qty)
+                            offers = []
+                    else:
+                        continue
+            except:
+                continue
 
 
 

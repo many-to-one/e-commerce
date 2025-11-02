@@ -234,19 +234,21 @@ CACHES = {
     }
 }
 
+CACHE_VERSION = 1
+
 
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Desphixs",
-    "site_header": "Desphixs",
-    "site_brand": "Modern Marketplace ",
+    "site_title": "Kidnetic",
+    "site_header": "Kidnetic",
+    "site_brand": "Kidnetic Store",
     "site_icon": "images/favicon.ico",
     "site_logo": "images/logos/logo.jpg",
-    "welcome_sign": "Welcome To Desphixs",
-    "copyright": "All right reserved to Desphixs",
+    "welcome_sign": "Welcome To Kidnetic",
+    "copyright": "All right reserved to Kidnetic",
     "user_avatar": "images/photos/logo.jpg",
     "topmenu_links": [
-        {"name": "Dashboard", "url": "home",
+        {"name": "Admin", "url": "home",
             "permissions": ["auth.view_user"]},
         {"model": "auth.User"},
     ],

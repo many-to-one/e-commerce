@@ -1,2 +1,6 @@
 # stop all active container:
 docker stop $(docker ps -q)
+
+# Clear build cache and rebuild:
+docker builder prune -af # will delete containers cash
+docker-compose build --no-cache

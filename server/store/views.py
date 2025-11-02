@@ -38,6 +38,10 @@ import asyncio
 
 
 stripe.api_key = os.environ.get("STRIPE_API_KEY")
+PAYU_CLIENT_ID = os.environ.get("PAYU_CLIENT_ID")
+PAYU_CLIENT_SECRET = os.environ.get("PAYU_CLIENT_SECRET")
+PAYU_OAUTH_URL = os.environ.get("PAYU_OAUTH_URL")
+PAYU_API_URL = os.environ.get("PAYU_API_URL")
 
 class CategoriesView(generics.ListAPIView):
 
@@ -46,24 +50,22 @@ class CategoriesView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
 
-# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
-class ProductsView(generics.ListAPIView):
-
-    serializer_class = IconProductSerializer
-    queryset = Product.objects.all()
-    pagination_class = StorePagination
-    permission_classes = (AllowAny, )
-
+# # @method_decorator(cache_page(60 * 60 * 2, key_prefix="products_list", cache="default"), name="dispatch")
 # class ProductsView(generics.ListAPIView):
+
 #     serializer_class = IconProductSerializer
+#     queryset = Product.objects.all()
 #     pagination_class = StorePagination
 #     permission_classes = (AllowAny, )
 
-#     def get_queryset(self):
-#         qs = Product.objects.all()
-#         for q in qs:
-#             print("********** ProductsView - queryset **********", q.image.url)
-#         return qs
+
+class ProductsView(generics.ListAPIView):
+    serializer_class = IconProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        return Product.objects.all()
 
 
 
@@ -285,6 +287,71 @@ class DeliveryCouriersView(APIView):
         return Response({
             "couriers": couriers_serializer.data
         })
+    
+
+class PayUView(APIView):
+
+    permission_classes = (AllowAny, )
+
+    def post(self, request, *args, **kwargs):
+        print('*****settings.SITE_URL**********', settings.SITE_URL)
+        order_oid = request.data['order_oid']
+        order = get_object_or_404(CartOrder, oid=order_oid)
+        print('*****PayUView**********', order.sub_total, order.total)
+        print('*****PayUView Order Items**********', order.get_order_items())
+        
+
+        payload = {
+            "customerIp": "127.0.0.1",
+            "merchantPosId": "496785",
+            "description": "RTV market",
+            "currencyCode": "PLN",
+            "totalAmount": f"{order.total}",
+            "products": [
+            {
+                "name": "Wireless Mouse for Laptop",
+                "unitPrice": "21000",
+                "quantity": "1"
+                }
+            ]
+        }
+
+        # Step 1: Get OAuth token from PayU
+        auth_url = PAYU_OAUTH_URL
+        auth_data = {
+            "grant_type": "client_credentials",
+            "client_id": PAYU_CLIENT_ID,  # Replace with your actual client_id
+            "client_secret": PAYU_CLIENT_SECRET  # Replace with your actual client_secret
+        }
+
+        try:
+            auth_response = requests.post(auth_url, data=auth_data)
+            # auth_response.raise_for_status()
+            token_data = auth_response.json()
+            print('*****PayUView Token Data**********', token_data)
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return Response({"error": "Failed to retrieve access token"}, status=status.HTTP_502_BAD_GATEWAY)
+        except requests.RequestException as e:
+            return Response({"error": f"Token request failed: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Step 2: Forward order to PayU
+        # payu_url = f"{PAYU_API_URL}/orders"
+        # headers = {
+        #     "Content-Type": "application/json",
+        #     "Authorization": f"Bearer {access_token}"
+        # }
+
+        # try:
+        #     response = requests.post(payu_url, json=payload, headers=headers)
+        #     return Response(response.json(), status=response.status_code)
+        # except requests.RequestException as e:
+        #     return Response({"error": f"Order request failed: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+        # order.payment_status = "pending"
+        # order.order_status = "Pending"
+        # order.save()
     
 
 class StripeView(APIView):

@@ -47,17 +47,19 @@ const ProductDetails: React.FC = () => {
         try {
             const response = await axios.get(endpoint);
             console.log(`${endpoint}`, response.data, response.data.gallery.length)
+            console.log('---- Image Link -----', `${API_BASE_URL}media/default.jpg`)
             setProduct(response.data.product);
-            if ( response.data.product.image === `${API_BASE_URL}/media/default.jpg`) {
-                setMainImg(response.data.product.img_links[0])
-            } else if (response.data.product.image.startsWith(`${API_BASE_URL}/media/`) ) {
-                setMainImg(response.data.product.img_links[0])
-            }
+            // if ( response.data.product.image === `${API_BASE_URL}media/default.jpg`) {
+            //     setMainImg(response.data.product.img_links[0])
+            // } else if (response.data.product.image.startsWith(`${API_BASE_URL}media/`) ) {
+            //     setMainImg(response.data.product.img_links[0])
+            // }
+            setMainImg(response.data.product.img_links[0])
             setGallery(response.data.gallery);
+            console.log(' --****-- mainImg -----****---- ', mainImg)
         } catch (error) {
             console.log('Products error', error)
         }
-
     };
 
     useEffect(() => {
