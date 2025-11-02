@@ -76,9 +76,9 @@ class ProductAdmin(ImportExportModelAdmin):
 
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean',]
-    list_filter = ['sku', 'status', 'in_stock', 'vendors']
-    list_editable = ['image', 'title', 'ean', 'price', 'stock_qty', 'featured', 'status',  'shipping_amount', 'hot_deal', 'special_offer']
-    list_display = ['sku', 'product_image', 'image', 'title', 'ean', 'price', 'featured', 'shipping_amount', 'in_stock' ,'stock_qty', 'status', 'featured', 'special_offer' ,'hot_deal']
+    list_filter = ['sku', 'vendors', 'stock_qty']
+    list_editable = ['title', 'ean', 'price', 'stock_qty']
+    list_display = ['sku', 'product_image', 'title', 'ean', 'price', 'stock_qty']
     actions = [apply_discount, 'allegro_export']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
