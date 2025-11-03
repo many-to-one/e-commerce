@@ -91,7 +91,8 @@ const CheckOut: React.FC = () => {
                     console.log('payment', payment)
                     if ( payment.status === 200 ) {
                         await finishOrder(resp.data.order.oid)
-                        window.location.href = payment.data.checkout_session
+                        window.location.href = payment.data.redirect_url;
+                        // window.location.href = payment.data.checkout_session
                     } else {
                         showToast("error", 'Problems with payment')
                     }

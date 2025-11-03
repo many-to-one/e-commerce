@@ -57,6 +57,7 @@ function InitialReturn() {
                 orderId: oid,
                 prodId: product.id,
                 qty: qty,
+                price: item.price,
                 returnReason: returnReason,
             }
             try {

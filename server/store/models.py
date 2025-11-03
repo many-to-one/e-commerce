@@ -29,7 +29,8 @@ class Category(models.Model):
     slug = models.SlugField(null=True, blank=True)
 
     class Meta:
-        verbose_name_plural = "Categories"
+        verbose_name = "Kategoria"
+        verbose_name_plural = "Kategorie"
         ordering = ["title"]
 
     def thumbnail(self):
@@ -126,7 +127,8 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-id']
-        verbose_name_plural = "Products"
+        verbose_name = "Produkt"
+        verbose_name_plural = "Produkty"
 
 
     # def get_vendors(self):
@@ -218,7 +220,8 @@ class Tag(models.Model):
         return self.title
 
     class Meta:
-        verbose_name_plural = "Tags"
+        verbose_name = "Tag"
+        verbose_name_plural = "Tagi"
         ordering = ('title',)
 
 
@@ -287,6 +290,9 @@ class Color(models.Model):
     
 
 class Cart(models.Model):
+
+
+    
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     qty = models.PositiveIntegerField(default=0, null=True, blank=True)
@@ -305,6 +311,10 @@ class Cart(models.Model):
 
     def __str__(self):
         return f'{self.cart_id} - {self.product.title}'
+    
+    class Meta:
+        verbose_name = "Koszyk"
+        verbose_name_plural = "Koszyki"
     
 
 class AllegroOrder(models.Model):
@@ -561,16 +571,19 @@ class CartOrder(models.Model):
     stripe_session_id = models.CharField(max_length=200,null=True, blank=True)
     # oid = ShortUUIDField(length=10, max_length=25, alphabet="abcdefghijklmnopqrstuvxyz")
     oid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    payu_order_id = models.CharField(max_length=500, null=True, blank=True)
     date = models.DateTimeField(default=timezone.now)
     
     class Meta:
         ordering = ["-date"]
-        verbose_name_plural = "Cart Order"
+        verbose_name = "Zamówienie"
+        verbose_name_plural = "Zamówienia"
 
     def __str__(self):
         return str(self.oid)
 
     def get_order_items(self):
+        # return CartOrderItem.objects.filter(order=self)
         return CartOrderItem.objects.filter(order=self)
     
     def get_payment_status_display(self):
@@ -644,6 +657,9 @@ class ReturnItem(models.Model):
     def product_image(self):
         return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.product.image.url))
 
+    class Meta:
+            verbose_name = "Zwrot"
+            verbose_name_plural = "Zwroty"
 
 class CartOrderItem(models.Model):
 
@@ -726,7 +742,9 @@ class CartOrderItem(models.Model):
     def product_image(self):
         return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.product.image.url))
 
-
+    class Meta:
+        verbose_name = "Zwrotowyj przedmiot"
+        verbose_name_plural = "Zwrotowe przedmioty"
 
     # Model for Product FAQs
 class ProductFaq(models.Model):
@@ -955,7 +973,8 @@ class DeliveryCouriers(models.Model):
     
     class Meta:
         ordering = ["name"]
-        verbose_name_plural = "Delivery Couriers"
+        verbose_name = "Przewoźnik dostaw"
+        verbose_name_plural = "Przewoźnicy dostaw"
     
     def __str__(self):
         return self.name

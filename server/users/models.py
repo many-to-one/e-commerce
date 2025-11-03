@@ -54,9 +54,6 @@ class Profile(models.Model):
     date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     pid = ShortUUIDField(length=10, max_length=50, alphabet="abcdefghijklmnopqrstuvxyz", default=uuid.uuid4)
 
-    class Meta:
-        ordering = ["-date"]
-
     def __str__(self):
         if self.full_name:
             return str(self.full_name)
@@ -71,6 +68,11 @@ class Profile(models.Model):
 
     def thumbnail(self):
         return mark_safe('<img src="/media/%s" width="50" height="50" object-fit:"cover" style="border-radius: 30px; object-fit: cover;" />' % (self.image))
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name = "Profil użytkownika"
+        verbose_name_plural = "Profile użytkowników"
 
 
 

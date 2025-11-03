@@ -29,6 +29,7 @@ load_dotenv()
 
 # Access them like normal environment variables
 ALLEGRO_API_URL = os.getenv("ALLEGRO_API_URL")
+PAYU_API_URL = os.getenv("PAYU_API_URL")
 
 
 @admin.action(description="Discount") #How to add 20% to the title/description?
@@ -649,7 +650,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 #     inlines = [InvoiceInline]
 
 
-@admin.register(InvoiceFile)
+# @admin.register(InvoiceFile)
 class InvoiceFileAdmin(admin.ModelAdmin):
     fieldsets = (
         (
@@ -1663,7 +1664,36 @@ class ReturnItemAdmin(ImportExportModelAdmin):
     search_fields = ['order__oid', 'order__full_name', 'order__email', 'order__mobile', 'return_status', 'return_decision', 'product__title', 'product__sku']
     list_editable = ['return_status', 'return_decision']
     list_filter = ['return_status', 'return_decision']
-    list_display = ['order', 'product__sku', 'product_image', 'product', 'qty', 'return_reason', 'return_status', 'return_decision', 'return_delivery_courier']
+    list_display = ['order', 'product__sku', 'product_image', 'product', 'qty', 'product__price', 'return_reason', 'return_status', 'return_decision', 'return_delivery_courier']
+
+
+    from decimal import Decimal
+    def to_grosze(self, value):
+        if isinstance(value, Decimal):
+            return int(value * 100)
+        return int(float(value) * 100)
+
+    def payu_return(self, payu_order_id, amount):
+    
+        payu_url = f"{PAYU_API_URL}/orders/{payu_order_id}/refunds"
+        access_token = 'c86d4ab6-3628-4329-9894-02e4d05e9aa5'
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        }
+
+        payload = {
+            "refund": {
+                "description": "Refund",
+                "amount": self.to_grosze(amount),
+            }
+        }
+
+        response = requests.post(payu_url, json=payload, headers=headers, allow_redirects=False)
+        print('*****payu_return Response**********', response.status_code, response.text)
+        print('*****payu_return json********', response.json())
+
+        return response.json()
 
     def save_model(self, request, obj, form, change):
         """
@@ -1677,6 +1707,17 @@ class ReturnItemAdmin(ImportExportModelAdmin):
             obj.order_item.return_tracking_id = obj.return_tracking_id
             obj.order_item.save() 
 
+            amount = obj.product.price * obj.qty
+            response = self.payu_return(obj.order.payu_order_id, amount)
+
+            if response.get('status', {}).get('statusCode') == 'SUCCESS':
+                message = f"Zwrot środków w wysokości {amount} PLN został pomyślnie przetworzony w PayU."
+                self.message_user(request, message, level='success')
+            else:
+                error_message = response.get('status', {}).get('statusDesc', 'Nieznany błąd podczas przetwarzania zwrotu w PayU.')
+                message = f"Nie udało się przetworzyć zwrotu środków w PayU: {error_message}"
+                self.message_user(request, message, level='error')
+
 class CouponAdmin(ImportExportModelAdmin):
     # inlines = [CouponUsersInlineAdmin]
     list_editable = ['code', 'active', ]
@@ -1684,18 +1725,18 @@ class CouponAdmin(ImportExportModelAdmin):
 
 
 admin.site.register(Product, ProductAdmin)
-admin.site.register(Review, ProductReviewAdmin)
+# admin.site.register(Review, ProductReviewAdmin)
 admin.site.register(Category)
-admin.site.register(Gallery)
-admin.site.register(Tag, TagAdmin)
+# admin.site.register(Gallery)
+# admin.site.register(Tag, TagAdmin)
 admin.site.register(CartOrder, CartOrderAdmin)
 admin.site.register(Cart, CartAdmin)
 admin.site.register(CartOrderItem, CartOrderItemsAdmin)
 admin.site.register(ReturnItem, ReturnItemAdmin)
-admin.site.register(Address, AddressAdmin)
-admin.site.register(Brand, BrandAdmin)
-admin.site.register(ProductFaq, ProductFaqAdmin)
-admin.site.register(Coupon, CouponAdmin)
-admin.site.register(Wishlist)
-admin.site.register(Notification, NotificationAdmin)
+# admin.site.register(Address, AddressAdmin)
+# admin.site.register(Brand, BrandAdmin)
+# admin.site.register(ProductFaq, ProductFaqAdmin)
+# admin.site.register(Coupon, CouponAdmin)
+# admin.site.register(Wishlist)
+# admin.site.register(Notification, NotificationAdmin)
 admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)

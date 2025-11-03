@@ -9,27 +9,6 @@ import { __userId } from '../../utils/auth';
 function SuccessPayment() {
     
   const navigate = useNavigate();  
-  const axios = useAxios();
-  const user = __userId()
-
-  const [searchParams] = useSearchParams();
-  const orderId = searchParams.get("order_id");
-  const userId = searchParams.get("buyer");
-  const sessionId = searchParams.get("session_id");
-
-  const finishOrder = async () => {
-    console.log("SuccessPayment finishOrder", orderId)
-    const res = await axios.post('api/store/finish-order', {
-        oid: orderId,
-        user_id: user?.['user_id'],
-    })
-
-    console.log("SuccessPayment res", res)
-  }
-
-  useEffect(() => {
-    finishOrder();
-  }, [])
 
   useEffect(() => {
     showToast("success", "Gratulacje!")

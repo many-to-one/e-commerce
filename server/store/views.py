@@ -42,6 +42,8 @@ PAYU_CLIENT_ID = os.environ.get("PAYU_CLIENT_ID")
 PAYU_CLIENT_SECRET = os.environ.get("PAYU_CLIENT_SECRET")
 PAYU_OAUTH_URL = os.environ.get("PAYU_OAUTH_URL")
 PAYU_API_URL = os.environ.get("PAYU_API_URL")
+SITE_URL = os.environ.get("SITE_URL")
+continueUrl = os.environ.get("continueUrl")
 
 class CategoriesView(generics.ListAPIView):
 
@@ -287,71 +289,131 @@ class DeliveryCouriersView(APIView):
         return Response({
             "couriers": couriers_serializer.data
         })
-    
+
+
+def payu_authenticate():
+    auth_url = PAYU_OAUTH_URL
+    auth_data = {
+        "grant_type": "client_credentials",
+        "client_id": PAYU_CLIENT_ID,  # Replace with your actual client_id
+        "client_secret": PAYU_CLIENT_SECRET  # Replace with your actual client_secret
+    }
+
+    try:
+        auth_response = requests.post(auth_url, data=auth_data)
+        # auth_response.raise_for_status()
+        token_data = auth_response.json()
+        print('*****payu_authenticate Token Data**********', token_data)
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return None
+        return access_token
+    except requests.RequestException as e:
+        return None
+
+from decimal import Decimal
+def to_grosze(value):
+    if isinstance(value, Decimal):
+        return int(value * 100)
+    return int(float(value) * 100)
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]  # First IP in list
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 
 class PayUView(APIView):
 
     permission_classes = (AllowAny, )
 
     def post(self, request, *args, **kwargs):
-        print('*****settings.SITE_URL**********', settings.SITE_URL)
+        # print('****************** PAYU_CLIENT_ID *************************', PAYU_CLIENT_ID)
+        vendor = Vendor.objects.get(marketplace='kidnetic.pl')
         order_oid = request.data['order_oid']
         order = get_object_or_404(CartOrder, oid=order_oid)
-        print('*****PayUView**********', order.sub_total, order.total)
-        print('*****PayUView Order Items**********', order.get_order_items())
+        cart = Cart.objects.filter(user=order.buyer)
+        for item in cart:
+            CartOrderItem.objects.create(
+                order=order,
+                product=item.product,
+                qty=item.qty,
+                price=item.price,
+                )
+        # print('*****PayUView**********', order.sub_total, order.total)
+        # print('*****PayUView Order Items**********', order.get_order_items())
+        
+        products = order.get_order_items()
+        products_arr = []
+        for product in products:
+            # print('*****product**********', product)
+            # print('*****product-title**********', product.product.title)
+            # print('*****product-price**********', product.price)
+            # print('*****product-qty**********', product.qty)
+            products_arr.append({
+                "name": product.product.title,
+                "unitPrice": to_grosze(product.price),
+                "quantity": product.qty,
+            })
         
 
         payload = {
-            "customerIp": "127.0.0.1",
-            "merchantPosId": "496785",
-            "description": "RTV market",
+            
+            "continueUrl": continueUrl,
+            "customerIp": get_client_ip(request), #"127.0.0.1",
+            "merchantPosId": PAYU_CLIENT_ID,
+            "description": "Zabawki dla dzieci",
             "currencyCode": "PLN",
-            "totalAmount": f"{order.total}",
-            "products": [
-            {
-                "name": "Wireless Mouse for Laptop",
-                "unitPrice": "21000",
-                "quantity": "1"
-                }
-            ]
+            "totalAmount": f"{to_grosze(order.total)}",
+            "products": products_arr
         }
 
-        # Step 1: Get OAuth token from PayU
-        auth_url = PAYU_OAUTH_URL
-        auth_data = {
-            "grant_type": "client_credentials",
-            "client_id": PAYU_CLIENT_ID,  # Replace with your actual client_id
-            "client_secret": PAYU_CLIENT_SECRET  # Replace with your actual client_secret
-        }
-
-        try:
-            auth_response = requests.post(auth_url, data=auth_data)
-            # auth_response.raise_for_status()
-            token_data = auth_response.json()
-            print('*****PayUView Token Data**********', token_data)
-            access_token = token_data.get("access_token")
-            if not access_token:
-                return Response({"error": "Failed to retrieve access token"}, status=status.HTTP_502_BAD_GATEWAY)
-        except requests.RequestException as e:
-            return Response({"error": f"Token request failed: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+        # print('*****payload**********', payload)
 
         # Step 2: Forward order to PayU
+        payu_url = f"{PAYU_API_URL}/orders"
+        access_token = 'try payu from .env for test'
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        }
+
+        # # Step 2: Forward order to PayU
         # payu_url = f"{PAYU_API_URL}/orders"
         # headers = {
         #     "Content-Type": "application/json",
-        #     "Authorization": f"Bearer {access_token}"
+        #     "Authorization": f"Bearer {vendor.access_token}"
         # }
 
-        # try:
-        #     response = requests.post(payu_url, json=payload, headers=headers)
-        #     return Response(response.json(), status=response.status_code)
-        # except requests.RequestException as e:
-        #     return Response({"error": f"Order request failed: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+        response = requests.post(payu_url, json=payload, headers=headers, allow_redirects=False)
+        print('*****PayUView Order Response**********', response.status_code, response.text)
 
+        payu_response = response.json()
+        redirect_url = payu_response.get("redirectUri")
+        order_id = payu_response.get("orderId")
+        print('*****PayUView Redirect URL**********', redirect_url)
 
-        # order.payment_status = "pending"
-        # order.order_status = "Pending"
-        # order.save()
+        if response.status_code == 302 or response.status_code == 201:
+            order.payu_order_id = order_id
+            order.save()
+            return Response({
+                "status": 200,
+                "redirect_url": redirect_url
+                })
+        if response.status_code == 401:
+            new_access_token = payu_authenticate()
+            if new_access_token:
+                vendor.access_token = new_access_token
+                vendor.save()
+                headers["Authorization"] = f"Bearer {new_access_token}"
+                response = requests.post(payu_url, json=payload, headers=headers)
+            else:
+                return Response({"error": "Re-authentication failed"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({ 'status': 'test' })
     
 
 class StripeView(APIView):
@@ -359,7 +421,7 @@ class StripeView(APIView):
     permission_classes = (AllowAny, )
 
     def post(self, request, *args, **kwargs):
-        print('*****settings.SITE_URL**********', settings.SITE_URL)
+        
         order_oid = request.data['order_oid']
         order = get_object_or_404(CartOrder, oid=order_oid)
         order.payment_status = "pending"
@@ -417,15 +479,7 @@ class FinishedCartOrderView(APIView):
         order.order_status = "Czeka na Etykietę"
         order.save()
 
-        cart = Cart.objects.filter(user=user)
-        for item in cart:
-            CartOrderItem.objects.create(
-                order=order,
-                product=item.product,
-                qty=item.qty,
-                price=item.price,
-                )
-            
+        cart = Cart.objects.filter(user=user)           
         cart.delete()
 
         return Response({
@@ -456,11 +510,12 @@ class ReturnProductView(APIView):
         oid = request.data['orderId']
         prod_id = request.data['prodId']
         qty = request.data['qty']
+        price = request.data['price']
         return_reason = request.data['returnReason']
         # print('******************ReturnProductView orderId', oid)
         # print('******************ReturnProductView prod_id', prod_id)
         # print('******************ReturnProductView qty', qty)
-
+ 
         user = get_object_or_404(User, id=user_id)
         order = get_object_or_404(CartOrder, oid=oid)
         product = get_object_or_404(Product, id=prod_id)

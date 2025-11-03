@@ -17,7 +17,7 @@ class Vendor(models.Model):
     marketplace = models.CharField(max_length=100, help_text="Marketplace", null=True, blank=True)
     client_id = models.CharField(max_length=100, help_text="Client_id", null=True, blank=True)
     secret_id = models.CharField(max_length=100, help_text="Secret_id", null=True, blank=True)
-    access_token  = models.CharField(max_length=3000, null=True, blank=True)
+    access_token  = models.CharField(max_length=3000, help_text="For PayU", null=True, blank=True)
     refresh_token  = models.CharField(max_length=3000, null=True, blank=True)
     email = models.EmailField(max_length=100, help_text="Shop Email", null=True, blank=True)
     description = models.TextField(null=True, blank=True)
@@ -29,7 +29,8 @@ class Vendor(models.Model):
     slug = models.SlugField(blank=True, null=True)
 
     class Meta:
-        verbose_name_plural = "Vendors"
+        verbose_name = "Konto"
+        verbose_name_plural = "Konta"
 
     def vendor_image(self):
         return mark_safe('  <img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.shop_image.url))

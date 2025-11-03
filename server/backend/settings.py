@@ -241,9 +241,9 @@ CACHE_VERSION = 1
 JAZZMIN_SETTINGS = {
     "site_title": "Kidnetic",
     "site_header": "Kidnetic",
-    "site_brand": "Kidnetic Store",
-    "site_icon": "images/favicon.ico",
-    "site_logo": "images/logos/logo.jpg",
+    "site_brand": "Kidnetic Panel Menedzerski",
+    # "site_icon": "images/favicon.ico",
+    # "site_logo": "images/logos/logo.jpg",
     "welcome_sign": "Welcome To Kidnetic",
     "copyright": "All right reserved to Kidnetic",
     "user_avatar": "images/photos/logo.jpg",
