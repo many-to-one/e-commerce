@@ -416,6 +416,13 @@ class PayUView(APIView):
                 redirect_url = payu_response.get("redirectUri")
                 order_id = payu_response.get("orderId")
                 print('*****RE-PayUView Redirect URL**********', redirect_url)
+                if response.status_code == 302 or response.status_code == 201:
+                    order.payu_order_id = order_id
+                    order.save()
+                    return Response({
+                        "status": 200,
+                        "redirect_url": redirect_url
+                        })
             else:
                 return Response({"error": "Re-authentication failed"}, status=status.HTTP_502_BAD_GATEWAY)
 
