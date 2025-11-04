@@ -607,6 +607,8 @@ class ReturnItem(models.Model):
         ("Wróciło", "Wróciło"),
         ("W drodze", 'W drodze'),
         ("Anulacja", 'Anulacja'),
+        ("Koszty zwrócone Payu", 'Koszty zwrócone Payu'),
+        ("Koszty zwrócone Email", 'Koszty zwrócone Email'),
     )
 
     RETURN_REASONS = (
@@ -647,6 +649,7 @@ class ReturnItem(models.Model):
     return_costs = models.CharField(max_length=100, choices=RETURN_COSTS, default="Decyzja rozpatrywana")
     return_delivery_courier = models.CharField(max_length=100, null=True, blank=True)
     return_tracking_id = models.CharField(max_length=100000, null=True, blank=True)
+    refund_processed = models.BooleanField(default=False)
 
     def order_oid(self):
         return self.order.oid

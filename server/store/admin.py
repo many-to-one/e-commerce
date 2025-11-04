@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
 
+from .utils.payu import payu_authenticate, to_grosze
 from store.allegro_views.views import allegro_request
 from store.utils.invoice import *
 from store.utils.decimal import *
@@ -563,7 +564,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 )
 
 
-    @admin.action(description="Generuj faktury")
+    @admin.action(description="🧾 Generuj faktury")
     def generate_invoice(self, request, queryset):
         invoices = queryset.filter(invoice_generated=False)
         success_count = 0
@@ -692,7 +693,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     )
 
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
-    search_fields = ['invoice_number', 'buyer_name', 'buyer_email']
+    search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
     actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction']
     inlines = [InvoiceCorrectionInline]
@@ -852,7 +853,7 @@ class InvoiceAdmin(admin.ModelAdmin):
         response['Content-Disposition'] = 'attachment; filename="faktury.zip"'
         return response        
 
-    @admin.action(description="🧾 Wyślij faktury do klienta")
+    @admin.action(description="📧 Wyślij faktury do klienta")
     def generate_invoice(self, request, queryset):
         for invoice in queryset:
             vendor = invoice.vendor
@@ -1223,8 +1224,12 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
     actions = ['print_invoice_correction_pdf', 'generate_correction_invoice', ] 
 
-    @admin.action(description="🧾 Wyślij fakturę koregującą do klienta")
+    @admin.action(description="📧 Wyślij fakturę koregującą do klienta")
     def generate_correction_invoice(self, request, queryset):
+
+        """ W przypadku faktury korygującej sprawdzamy, czy główna faktura jest powiązana z Allegro czy Webstore
+            i na tej podstawie NAJPIERW generujemy odpowiedni PDF i wysyłamy go do Allegro lub zapisujemy w systemie Webstore.,
+            """
         for invoice in queryset:
             print('---- generate_correction_invoice ----', invoice.invoice_number)
             vendor = invoice.main_invoice.vendor
@@ -1277,6 +1282,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                 )
                 resp = post_invoice_to_allegro(invoice, pdf_content, True)
 
+            # SEND FV TO CUSTOMER FOR WEBSTORE
             elif getattr(invoice.main_invoice, "shop_order", None):
                 print('KOREKTA WYŚLIJ WEBSTORE----------------')
                 # --- WEBSTORE / CARTORDER ---
@@ -1316,6 +1322,8 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                     invoice_correction=invoice,
                     file=ContentFile(pdf_content, f"correction_{invoice.invoice_number}.pdf")
                 )
+                invoice.sent_to_buyer = True
+                invoice.save(update_fields=['sent_to_buyer'])
                 resp = "Faktura korekta dla webstore wygenerowana i zapisana"
 
             else:
@@ -1525,7 +1533,7 @@ class CartOrderAdmin(ImportExportModelAdmin):
     inlines = [CartOrderItemsInlineAdmin, InvoiceInline, InvoiceCorrectionInline, InvoiceFileInline]
 
 
-    @admin.action(description="Generuj faktury")
+    @admin.action(description="🧾Generuj faktury")
     def generate_invoice_webstore(self, request, queryset):
         invoices = queryset.filter(invoice_generated=False)
         web_vendor = Vendor.objects.get(
@@ -1663,29 +1671,28 @@ class CartAdmin(ImportExportModelAdmin):
 class ReturnItemAdmin(ImportExportModelAdmin):
     search_fields = ['order__oid', 'order__full_name', 'order__email', 'order__mobile', 'return_status', 'return_decision', 'product__title', 'product__sku']
     list_editable = ['return_status', 'return_decision']
-    list_filter = ['return_status', 'return_decision']
-    list_display = ['order', 'product__sku', 'product_image', 'product', 'qty', 'product__price', 'return_reason', 'return_status', 'return_decision', 'return_delivery_courier']
+    list_filter = ['return_status', 'return_decision', 'return_reason', 'order__oid', 'date']
+    list_display = ['order', 'refund_processed', 'product__sku', 'product_image', 'product', 'qty', 'product__price', 'return_reason', 'return_status', 'return_decision']
+    actions = ['payu_return']
 
+    @admin.action(description="💸 Zwrot kosztów")
+    def payu_return(self, request, queryset):
 
-    from decimal import Decimal
-    def to_grosze(self, value):
-        if isinstance(value, Decimal):
-            return int(value * 100)
-        return int(float(value) * 100)
-
-    def payu_return(self, payu_order_id, amount):
+        vendor = Vendor.objects.get(marketplace='kidnetic.pl')
+        payu_order_id = queryset.first().order.payu_order_id
+        amount = queryset.first().product.price * queryset.first().qty
     
         payu_url = f"{PAYU_API_URL}/orders/{payu_order_id}/refunds"
-        access_token = 'c86d4ab6-3628-4329-9894-02e4d05e9aa5'
+        # access_token = 'c86d4ab6-3628-4329-9894-02e4d05e9aa5'
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}"
+            "Authorization": f"Bearer {vendor.access_token}"
         }
 
         payload = {
             "refund": {
                 "description": "Refund",
-                "amount": self.to_grosze(amount),
+                "amount": to_grosze(amount),
             }
         }
 
@@ -1693,6 +1700,58 @@ class ReturnItemAdmin(ImportExportModelAdmin):
         print('*****payu_return Response**********', response.status_code, response.text)
         print('*****payu_return json********', response.json())
 
+        if response.status_code == 200:
+            for item in queryset:
+                item.refund_processed = True
+                item.return_status = 'Koszty zwrócone Payu'
+                item.save(update_fields=['refund_processed', 'return_status'])
+            self.message_user(
+                request,
+                f"Zwrot środków w wysokości {amount} PLN został pomyślnie przetworzony w PayU.",
+                level='success'
+            )
+        elif response.status_code == 401:
+            new_access_token = payu_authenticate()
+            if new_access_token:
+                vendor.access_token = new_access_token
+                vendor.save(update_fields=['access_token'])
+                headers["Authorization"] = f"Bearer {new_access_token}"
+                response = requests.post(payu_url, json=payload, headers=headers, allow_redirects=False)
+                if response.status_code == 200:
+                    print('*****RE-payu_return Response**********', response.status_code, response.text)
+                    print('*****RE-payu_return json********', response.json())
+                    for item in queryset:
+                        item.refund_processed = True
+                        item.return_status = 'Koszty zwrócone Payu'
+                        item.save(update_fields=['refund_processed', 'return_status'])
+                    self.message_user(
+                        request,
+                        f"Zwrot środków w wysokości {amount} PLN został pomyślnie przetworzony w PayU.",
+                        level='success'
+                    )
+                else:
+                    error_message = response.json().get('status', {}).get('statusDesc', 'Nieznany błąd podczas przetwarzania zwrotu w PayU.')
+                    self.message_user(
+                        request,
+                        f"Nie udało się przetworzyć zwrotu środków w PayU: {error_message}",
+                        level='error'
+                    )
+            
+            else:
+                self.message_user(
+                    request,
+                    "Nie udało się odświeżyć tokena dostępu PayU.",
+                    level='error'
+                )
+        else:
+            error_message = response.json().get('status', {}).get('statusDesc', 'Nieznany błąd podczas przetwarzania zwrotu w PayU.')
+            self.message_user(
+                request,
+                f"Nie udało się przetworzyć zwrotu środków w PayU: {error_message}",
+                level='error'
+            )
+
+            
         return response.json()
 
     def save_model(self, request, obj, form, change):
@@ -1706,17 +1765,7 @@ class ReturnItemAdmin(ImportExportModelAdmin):
             obj.order_item.return_delivery_courier = obj.return_delivery_courier
             obj.order_item.return_tracking_id = obj.return_tracking_id
             obj.order_item.save() 
-
-            amount = obj.product.price * obj.qty
-            response = self.payu_return(obj.order.payu_order_id, amount)
-
-            if response.get('status', {}).get('statusCode') == 'SUCCESS':
-                message = f"Zwrot środków w wysokości {amount} PLN został pomyślnie przetworzony w PayU."
-                self.message_user(request, message, level='success')
-            else:
-                error_message = response.get('status', {}).get('statusDesc', 'Nieznany błąd podczas przetwarzania zwrotu w PayU.')
-                message = f"Nie udało się przetworzyć zwrotu środków w PayU: {error_message}"
-                self.message_user(request, message, level='error')
+            
 
 class CouponAdmin(ImportExportModelAdmin):
     # inlines = [CouponUsersInlineAdmin]
