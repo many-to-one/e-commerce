@@ -411,7 +411,7 @@ class PayUView(APIView):
                 vendor.access_token = new_access_token
                 vendor.save()
                 headers["Authorization"] = f"Bearer {new_access_token}"
-                response = requests.post(payu_url, json=payload, headers=headers)
+                response = requests.post(payu_url, json=payload, headers=headers, allow_redirects=False)
                 payu_response = response.json()
                 redirect_url = payu_response.get("redirectUri")
                 order_id = payu_response.get("orderId")
