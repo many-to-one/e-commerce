@@ -45,6 +45,7 @@ PAYU_OAUTH_URL = os.environ.get("PAYU_OAUTH_URL")
 PAYU_API_URL = os.environ.get("PAYU_API_URL")
 SITE_URL = os.environ.get("SITE_URL")
 continueUrl = os.environ.get("continueUrl")
+_marketplace = os.environ.get("marketplace")
 
 class CategoriesView(generics.ListAPIView):
 
@@ -333,7 +334,7 @@ class PayUView(APIView):
 
     def post(self, request, *args, **kwargs):
         # print('****************** PAYU_CLIENT_ID *************************', PAYU_CLIENT_ID)
-        vendor = Vendor.objects.get(marketplace='kidnetic.pl')
+        vendor = Vendor.objects.get(marketplace=_marketplace)
         order_oid = request.data['order_oid']
         order = get_object_or_404(CartOrder, oid=order_oid)
         cart = Cart.objects.filter(user=order.buyer)
@@ -411,6 +412,10 @@ class PayUView(APIView):
                 vendor.save()
                 headers["Authorization"] = f"Bearer {new_access_token}"
                 response = requests.post(payu_url, json=payload, headers=headers)
+                payu_response = response.json()
+                redirect_url = payu_response.get("redirectUri")
+                order_id = payu_response.get("orderId")
+                print('*****RE-PayUView Redirect URL**********', redirect_url)
             else:
                 return Response({"error": "Re-authentication failed"}, status=status.HTTP_502_BAD_GATEWAY)
 
