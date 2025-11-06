@@ -910,3 +910,26 @@ class LinksToGallery(APIView):
         except Exception as e:
             return Response({"message": f"Error: {e}"})
 
+
+
+# class ContactView(APIView):
+
+#     permission_classes = (AllowAny, )
+
+#     def post(self, request, *args, **kwargs):
+#         full_name = request.data['full_name']
+#         email = request.data['email']
+#         subject = request.data['subject']
+#         message = request.data['message']
+
+#         contact = Contact(
+#             full_name=full_name,
+#             email=email,
+#             subject=subject,
+#             message=message,
+#         )
+#         contact.save()
+
+#         return Response({
+#             "message": "Your message has been sent. We will contact you soon!"
+#         })

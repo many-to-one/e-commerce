@@ -9,6 +9,24 @@
     height: 500px;
     display: block;
     cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.productCard p {
+    margin: 5px;
+    font-size: 18px;
+    font-weight: 500;
+    
+}
+
+.productCard:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
+    background: linear-gradient(135deg, #c8def6, #f3f4f6);
+    transform: scale(0.9);
+}
+
+.productCard p:hover {
+    color:rgb(226, 165, 43)
 }
 
 .productImageCont {

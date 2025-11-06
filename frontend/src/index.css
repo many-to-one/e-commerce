@@ -9,6 +9,7 @@
   --body-bg-color: #e5e9d5;
   --p-card-bg-color: #ffffff;
   --btn-color: greenyellow;
+  --border-color: #444444;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -34,7 +35,7 @@ body {
   min-width: 320px;
   /* max-width: 1000px; */
   min-height: 100vh;
-  background-color: var(--body-bg-color);
+  /* background-color: var(--body-bg-color); */
 }
 
 h1 {

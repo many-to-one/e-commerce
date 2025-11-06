@@ -6,14 +6,43 @@
 }
 
 .Header {
-  position: absolute;
+  position: sticky;
   left: 0;
-  top: 0;
+  top: 5px;
   margin: 20px;
   margin-left: 35px;
+  margin-top: -8%;
   padding: 20px;
   background-color: var(--p-card-bg-color);
-  width: 91.5vw !important;
+  /* width: 91.5vw !important; */
+  /* border: 1px solid var(--border-color); */
+  background: linear-gradient(135deg, #ffffff, #f3f4f6);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease-in-out;
+}
+
+.SearchInput {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.25s;
+}
+
+.flexRowStartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+}
+
+.flexRowCenterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 50px;
 }
 
 .flexColumnCenter {
@@ -47,7 +76,7 @@
 .loginSt {
   position: absolute;
   right: 0;
-  margin-right: 80px;
+  margin-right: 120px;
 }
 
 .w-400 {
@@ -82,6 +111,10 @@
   margin-left: 30px;
 }
 
+.mr-30 {
+  margin-right: 30px;
+}
+
 .mainBtn {
   background-color: var(--btn-color);
 }
@@ -111,4 +144,64 @@
   background-color: var(--btn-color);
   color: #000000;
   border-radius: 5px;
+}
+
+.menuButton {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: var(--p-card-bg-color);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 100;
+  cursor: pointer;
+}
+
+
+/* ✅ Mobile responsiveness */
+@media (max-width: 768px) {
+  .Header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 10px;
+    margin-top: 45px;
+    padding: 15px;
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  .Header div {
+    margin-bottom: 20px;
+  }
+
+  .Header div  span{
+    margin-left: 30px;
+    font-size: 25px;
+  }
+
+  .categoryTitles {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .loginSt {
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .Cursor {
+    font-size: 16px;
+    padding: 8px 0;
+  }
+
+  .productCont {
+    margin-top: 0px;
+    /* margin-left: -17%; */
+    background-color: var(--p-card-bg-color);
+    padding: 5px;
+    width: 96vw;
+  }
 }

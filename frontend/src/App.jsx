@@ -27,6 +27,8 @@ import Returns from './views/shop/Returns';
 import InitialReturn from './views/shop/InitialReturn';
 import ProductsBySubCat from './views/shop/ProductsBySubCat';
 import AllegroAuth from './views/admin/AllegroAuth';
+import Contact from './views/shop/Contact';
+import ContactInfo from './views/shop/ContactInfo';
 
 
 function App() {
@@ -62,6 +64,7 @@ function AppContent() {
         <Route path='/checkout' element={<CheckOut />} />
         {/* <Route path='/payment-success/:oid' element={<SuccessPayment />} /> */}
         <Route path="/payment-success" element={<SuccessPayment />} />
+        <Route path='/contact' element={<ContactInfo />} />
 
         {/* ADMIN */}
         <Route path='/profile' element={<Profile />} />

@@ -11,6 +11,17 @@ import '../types/SortCategory';
 
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import ContactMailRoundedIcon from '@mui/icons-material/ContactMailRounded';
+import MenuIcon from '@mui/icons-material/Menu';
+
+import CategoryType from '../types/CategoryType';
+import { useProductStore } from '../store/products';
+
+type SortCategory = {
+  title: string;
+  category_hierarchy: string[];
+}
 
 type CatCatalog = {
   title: string;
@@ -25,12 +36,36 @@ function Header() {
   const [categories, setCategories] = useState<CategoryType[]>([]) 
   const [showCategories, setShowCategories] = useState(false);
   const [sortCat, setSortCat] = useState<SortCategory[]>([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showHeader, setShowHeader] = useState(false);
 
   // console.log('Header-user', user);
 
   type Category_ = {
     title: string;
-};
+  };
+
+  const {
+    allProducts,
+    filteredProducts,
+    setProducts,
+    setLoading,
+    searchTerm,
+    setSearchTerm,
+    searchProducts,
+  } = useProductStore();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const closeMenuAndNavigate = (path: string, action?: () => void) => {
+    navigate(path);
+    setShowHeader(false);
+    if (action) action();
+  };
 
   const fetchData = async (endpoint, state) => {
 
@@ -101,49 +136,93 @@ function Header() {
 
 
   return (
-    <div className='Header flexRowStart gap-15'>
-        <p className='Cursor' onClick={() => navigate('/')}>Główna</p>
-        <p 
-          className='Cursor showCat'
-          onMouseEnter={() => {
-            setShowCategories(true);
-            // setShowSubCategories(true);
-          }}
-          onMouseLeave={() => {
-            setShowCategories(false);
-            // setShowSubCategories(false);
-          }}
-        
-        >
-          Kategorie
-          { showCategories && 
-            <div className='categoryTitles'>
-              {categories?.map((category, index) => (
-                  <Category  
-                    key={index} 
-                    category={category} 
-                    // showCategories={showCategories}
-                  /> 
-              ))}
-            </div>
-          }
-        </p>
-        {user ? (
-          <>
-            <div className='Cursor loginSt flexRowBetween gap-15'>
-              <p>Witaj, {user['username']}</p>
-              {/* <MaterialIcon icon="person" onClick={() => navigate('/profile')}/> */}
-              <AccountCircleRoundedIcon onClick={() => navigate('/profile')} className='ml-5'/>
-              <Cart />
-              {/* <MaterialIcon icon="logout" onClick={logout} className='ml-30'/> */}
-              <LogoutRoundedIcon onClick={logout} className='ml-15'/>
-            </div>
-          </>
-        ): (
-          <p className='Cursor loginSt' onClick={() => navigate('/login')}>Zaloguj</p>
-        )}
-    </div>
-  )
+    <>
+      {isMobile && (
+        <button onClick={() => setShowHeader(prev => !prev)} className="menuButton">
+          <MenuIcon />
+        </button>
+      )}
+
+      {(!isMobile || showHeader) && (
+        <div className="Header flexColumn gap-15">
+          {isMobile ? (
+            <>
+              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/')}>
+                <HomeRoundedIcon />
+                <span className="ml-10">Głowna</span>
+              </div>
+              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/contact')}>
+                <ContactMailRoundedIcon className="ml-5" />
+                <span className="ml-10">Kontakt</span>
+              </div>
+              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/profile')}>
+                <AccountCircleRoundedIcon className="ml-5" />
+                <span className="ml-10">Profil</span>
+              </div>
+              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/cart')}>
+                <Cart />
+                {/* <span className="ml-10">Koszyk</span> */}
+              </div>
+              {user && (
+                <LogoutRoundedIcon
+                  onClick={() => {
+                    logout();
+                    setShowHeader(false);
+                  }}
+                  className="ml-15 Cursor"
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <div className='flexRowStartHeader'>
+
+                <div className="Cursor flexRowStart" onClick={() => navigate('/')}>
+                  <HomeRoundedIcon />
+                  <span>Kidnetic</span>
+                </div>
+
+                <div className="flexRowCenterHeader mr-30 ">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      searchProducts();
+                    }}
+                    placeholder="Szukaj produktów..."
+                    className="SearchInput w-400"
+                  />
+                </div>
+
+                <div className='flexRowCenterHeader'>
+                  <div className="Cursor " onClick={() => navigate('/contact')}>
+                    <ContactMailRoundedIcon className="ml-5" />
+                  </div>
+                  <div className="Cursor " onClick={() => navigate('/profile')}>
+                    <AccountCircleRoundedIcon className="ml-5" />
+                  </div>
+                  <div className="Cursor " onClick={() => navigate('/cart')}>
+                    <Cart />
+                  </div>
+                  {user && (
+                    <LogoutRoundedIcon
+                      onClick={() => {
+                        logout();
+                        setShowHeader(false);
+                      }}
+                      className="ml-15 Cursor"
+                    />
+                  )}
+                </div>
+
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
 }
 
 export default Header
