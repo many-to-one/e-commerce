@@ -176,14 +176,14 @@ const CheckOut: React.FC = () => {
                 <div>
                     <div className='flexRowCenter'>
                         <img src={order.product.image} alt="" width={100}/>
-                        <p>Product: {order.product.title}</p>
+                        <p>Produkt: {order.product.title}</p>
                     </div>
                     <div className='flexRowBetween'>
-                        <p>Price: {order.price}$</p>
+                        <p>Cena: {order.price} PLN</p>
                     </div>
                     <div className='flexRowBetween'>
-                        <p>Quantity: {order.qty} pcs.</p>
-                        <p>{order.total}</p>
+                        <p>Ilość: {order.qty} szt.</p>
+                        <p>{order.total} PLN</p>
                     </div>
                     <hr />
                 </div>
@@ -193,7 +193,7 @@ const CheckOut: React.FC = () => {
 
         <div className='flexRowBetween'>
             <button onClick={() => navigate('/order')}>
-                Edit Cart
+                Edytuj Koszyk
             </button>
 
             <div 
@@ -208,7 +208,7 @@ const CheckOut: React.FC = () => {
                     // value={selectedCourier || ""}
                     onChange={(e) => handleCourierChange(e.target.value)}
                 >
-                    <option value="">Courier:</option>
+                    <option value="">Dostawa:</option>
                     <option value="Darmowa">Darmowa</option>
                     {couriers?.map((courier, index) => (
                         <option key={index} value={JSON.stringify({ price: courier.price, name: courier.name })}>
@@ -244,16 +244,16 @@ const CheckOut: React.FC = () => {
 
         <br />
         <div className='flexRowBetween cartItem'>
-            <p><b>TOTAL:</b></p>
-            <p>{orderPay}$</p>
+            <p><b>RAZEM DO ZAPŁATY:</b></p>
+            <p>{orderPay} PLN</p>
         </div>
         <div className='flexRowBetween cartItem'>
-            <p><b>TOTAL + DELIVERY:</b></p>
-            <p><b>{totalOrderPrice}$</b></p>
+            <p><b>RAZEM DO ZAPŁATY + DOSTAWA:</b></p>
+            <p><b>{totalOrderPrice} PLN</b></p>
         </div>
 
         <div className='flexColumnCenter'>
-            <h3>Delivery Information:</h3>
+            <h3>Informacje o dostawie:</h3>
             <input type="text" placeholder='Full Name' className='fullNameInput w-535' onChange={(e) => setFullName(e.target.value)} />
             <div className='flexRowCenter'>
                 <input type="email" placeholder='Email' className='authInput' onChange={(e) => setEmail(e.target.value)}/>

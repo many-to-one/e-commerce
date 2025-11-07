@@ -138,21 +138,21 @@ const Order: React.FC<OrderProps> = () => {
                             <p>{order.product.title}</p>
                         </div>
                         <div className='flexRowBetween'>
-                            <p>Price: {order.price}$</p>
+                            <p>Cena: {order.price} PLN</p>
                             <div className='Cursor' onClick={() => deleteItem(order.id)}>
                                 <DeleteRoundedIcon />
                             </div>
                         </div>
                         <div className='flexRowBetween'>
-                            <p>Quantity: 
+                            <p>Ilość: 
                                 <input 
                                     type="number" 
                                     value={inputQty[order.id] ?? order.qty} 
                                     onChange={(e) => handleInputChange(order.id, e.target.value)} 
                                     onBlur={() => updateQty(order.id)}
-                                /> pcs.   
+                                /> szt.   
                             </p>
-                            <p>{order.total}</p>
+                            <p>{order.total} PLN</p>
                         </div>
                         <hr />
                     </div>
@@ -161,15 +161,15 @@ const Order: React.FC<OrderProps> = () => {
         ))}
         <br />
         <div className='flexRowBetween cartItem'>
-            <p><b>TOTAL:</b></p>
-            <p><b>{orderPay}$</b></p>
+            <p><b>RAZEM DO ZAPŁATY:</b></p>
+            <p><b>{orderPay} PLN</b></p>
         </div>
         <div className='flexRowBetween mt-20'>
             <button onClick={() => navigate('/')}>
-                Go back
+                Wrócz
             </button>
             <button onClick={() => navigate('/checkout', {state:{ cart: cart, orderPay: orderPay }})}>
-                Checkout
+                Przejdź do płatności
             </button>
         </div>
     </div>

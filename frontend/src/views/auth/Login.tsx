@@ -53,21 +53,21 @@ const Login: React.FC = () => {
             />
             <input 
                 className='authInput'
-                placeholder='Password...'
+                placeholder='Hasło...'
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
             />
 
-            <button type='submit'>Login</button>
+            <button type='submit'>Zaloguj</button>
             <br />
             <p>
                 Don't have an account? 
-                <Link to={'/register'}>Register</Link>
+                <Link to={'/register'}>Rejestracja</Link>
             </p>
             <br />
             <p>
-                <Link to={'/forgot-password'}>Forgot Password</Link>
+                <Link to={'/forgot-password'}>Niepamiętasz hasła?</Link>
             </p>
         </form>
     </div>

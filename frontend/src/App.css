@@ -13,6 +13,7 @@
   margin-left: 35px;
   margin-top: -8%;
   padding: 20px;
+  z-index: 99;
   background-color: var(--p-card-bg-color);
   /* width: 91.5vw !important; */
   /* border: 1px solid var(--border-color); */
@@ -36,6 +37,7 @@
   display: flex;
   align-items: center;
   justify-content: start;
+  gap: 30px;
 }
 
 .flexRowCenterHeader {
@@ -203,5 +205,16 @@
     background-color: var(--p-card-bg-color);
     padding: 5px;
     width: 96vw;
+  }
+
+  .flexColumnCenter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90vw;
+  }
+
+  .mainGalleryImage {
+    max-width: 80vw;
   }
 }

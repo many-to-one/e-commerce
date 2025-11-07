@@ -78,7 +78,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
                   <Link to={'/login'}>login</Link>
                 </div>
       } */}
-      <button className='mainBtn' onClick={sendToCard}>Add to Card</button>
+      <button className='mainBtn' onClick={sendToCard}>Do koszyka</button>
     </div>
   )
 }

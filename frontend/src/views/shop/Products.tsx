@@ -70,6 +70,7 @@ const Products: React.FC = () => {
         try {
         const response = await axios.get(url);
         const products = response.data.results;
+        console.log('fetchProducts', products)
         setProducts(products);
         setNextPage(response.data.next);
         setPrevPage(response.data.previous);

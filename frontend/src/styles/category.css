@@ -1,3 +1,7 @@
+.Cat {
+    /* margin-right: 200px; */
+}
+
 .categoryCont {
     background-color: var(--p-card-bg-color);
 }
@@ -14,17 +18,20 @@
     background-color: var(--p-card-bg-color);
     z-index: 10;
     padding: 10px;
+    margin-left: -100px;
   }
   
   .categoryCard {
     display: flex;
     justify-content: flex-start;
+    /* margin-left: -100px; */
   }
 
   .CatTitIn {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
+    /* margin-left: -100px; */
   }
 
   .catTitle {

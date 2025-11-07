@@ -1,7 +1,10 @@
+import os
 import random
 import uuid
 
 from django.shortcuts import render
+from django.core.mail import send_mail
+from django.conf import settings
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, status
@@ -11,6 +14,8 @@ from rest_framework.views import APIView
 
 from users.models import User, Profile
 from users.serializer import MyTokenObtainPairSerializer, PasswordChangeSerializer, RegisterSerializer, UserSerializer, EmailSerializer
+
+PRO_SITE_URL = os.getenv('PRO_SITE_URL')
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -42,15 +47,15 @@ class PasswordEmailVerifyView(generics.RetrieveAPIView):
             user.otp = generate_otp()
             user.save()
 
-            reset_token = '123'
+            reset_token = str(uuid.uuid4())  # Generate a unique reset token
+            link = f"{PRO_SITE_URL}/create-new-password?otp={user.otp}&uidb64={user.pk}&reset_token={reset_token}"
 
-            link = f"create-new-password?otp={user.otp}&uidb64={user.pk}&reset_token={reset_token}"
-
-            return Response(
-                {"link": link},
-                status=status.HTTP_200_OK,
-            )
-            # return user
+            # Send email
+            subject = "Zresetuj swoje hasło"
+            message = f"Kliknij w link by zresetować swoje hasło :\n\n{link}"
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
+            
+            return Response({"message": "Reset link sent to email"}, status=status.HTTP_200_OK)
         else:
             return Response( {"message": "An Error Occured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         

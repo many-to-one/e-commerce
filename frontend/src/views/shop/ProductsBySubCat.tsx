@@ -12,7 +12,10 @@ const ProductsBySubCat: React.FC = () => {
   const [category, setCategory] = useState<CategoryType | null>(null);
   const { slug } = useParams();
   const location = useLocation();
-  const subCat = location.state.subCat;
+  // const subCat = location.state.subCat;
+  const subCat = location.state?.subCat || slug;
+
+
 
   const fetchData = async (endpoint) => {
 

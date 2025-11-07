@@ -34,7 +34,7 @@ body {
   place-items: center;
   min-width: 320px;
   /* max-width: 1000px; */
-  min-height: 100vh;
+  /* min-height: 100vh; */
   /* background-color: var(--body-bg-color); */
 }
 

@@ -6,11 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import Category from '../components/category/Category';
 import Profile from './shop/Profile';
 // import MaterialIcon from '@material/react-material-icon';
-import { __userId, logout } from '../utils/auth';
+import { __userId, login, logout } from '../utils/auth';
 import '../types/SortCategory';
 
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import ContactMailRoundedIcon from '@mui/icons-material/ContactMailRounded';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -134,6 +135,9 @@ function Header() {
         fetchData('/api/store/categories', setCategories)
     }, [])
 
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    console.log('Header-isLoggedIn', isLoggedIn);
+
 
   return (
     <>
@@ -150,6 +154,21 @@ function Header() {
               <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/')}>
                 <HomeRoundedIcon />
                 <span className="ml-10">Głowna</span>
+
+                <div className="Cursor showCat" 
+                    onMouseEnter={() => setShowCategories(true)} 
+                    onMouseLeave={() => setShowCategories(false)} 
+                  > 
+                    Kategorie 
+                    {showCategories && (
+                      <div className="categoryTitles"> 
+                        {categories?.map((category, index) => ( 
+                          <Category key={index} category={category} /> 
+                        ))} 
+                      </div> 
+                      )} 
+                  </div>
+
               </div>
               <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/contact')}>
                 <ContactMailRoundedIcon className="ml-5" />
@@ -159,7 +178,7 @@ function Header() {
                 <AccountCircleRoundedIcon className="ml-5" />
                 <span className="ml-10">Profil</span>
               </div>
-              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/cart')}>
+              <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/order')}>
                 <Cart />
                 {/* <span className="ml-10">Koszyk</span> */}
               </div>
@@ -168,6 +187,15 @@ function Header() {
                   onClick={() => {
                     logout();
                     setShowHeader(false);
+                  }}
+                  className="ml-15 Cursor"
+                />
+              )}
+              {!user && (
+                <LoginRoundedIcon
+                  onClick={() => {
+                    navigate('/login');
+                    setShowHeader(true);
                   }}
                   className="ml-15 Cursor"
                 />
@@ -181,6 +209,20 @@ function Header() {
                   <HomeRoundedIcon />
                   <span>Kidnetic</span>
                 </div>
+
+                <div className="Cursor Cat showCat" 
+                    onMouseEnter={() => setShowCategories(true)} 
+                    onMouseLeave={() => setShowCategories(false)} 
+                  > 
+                    Kategorie 
+                    {showCategories && (
+                      <div className="categoryTitles"> 
+                        {categories?.map((category, index) => ( 
+                          <Category key={index} category={category} /> 
+                        ))} 
+                      </div> 
+                      )} 
+                  </div>
 
                 <div className="flexRowCenterHeader mr-30 ">
                   <input
@@ -202,7 +244,7 @@ function Header() {
                   <div className="Cursor " onClick={() => navigate('/profile')}>
                     <AccountCircleRoundedIcon className="ml-5" />
                   </div>
-                  <div className="Cursor " onClick={() => navigate('/cart')}>
+                  <div className="Cursor " onClick={() => navigate('/order')}>
                     <Cart />
                   </div>
                   {user && (
@@ -210,6 +252,15 @@ function Header() {
                       onClick={() => {
                         logout();
                         setShowHeader(false);
+                      }}
+                      className="ml-15 Cursor"
+                    />
+                  )}
+                  {!user && (
+                    <LoginRoundedIcon
+                      onClick={() => {
+                        navigate('/login');
+                        setShowHeader(true);
                       }}
                       className="ml-15 Cursor"
                     />

@@ -19,11 +19,6 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     parseCateg()
   }, [])
 
-    // const parseCateg = () => {
-    //   category.category_hierarchy.forEach((title) => {
-    //     console.log('CAT TITLE', title)
-    //   })
-    // }
 
     const parseCateg = () => {
       // console.log('category +++', category)
@@ -32,20 +27,6 @@ const Category: React.FC<CategoryProps> = ({category}) => {
         return;
       }
       category.category_hierarchy.forEach((title) => {
-
-        // console.log('TITLE', title)
-        // const structuredCategories = {};
-        // let currentLevel = structuredCategories;
-
-        // category.category_hierarchy.forEach((item) => {
-        //     const cleanItem = item.split('(')[0].trim(); // Clean up the category name
-        //     if (!currentLevel[cleanItem]) {
-        //         currentLevel[cleanItem] = {}; // Create nested structure
-        //     }
-        //     currentLevel = currentLevel[cleanItem];
-        // });
-
-        // console.log('Structured Categories:', structuredCategories);
 
       });
     };
@@ -57,24 +38,14 @@ const Category: React.FC<CategoryProps> = ({category}) => {
 
     const goToProducts = () => {
       navigate(`category-products/${category.slug}`, {state: {catId: category.id}});
-      window.location.reload();
+      window.location.reload(); // Ważne do odświeżenia widoku po nawigacji !!
     }
 
     const goToSubProducts = (subCat) => {
+      console.log('subCat', subCat)
       navigate(`sub-category-products/${category.slug}`, {state: {subCat: subCat}});
-      window.location.reload();
+      window.location.reload(); // Ważne do odświeżenia widoku po nawigacji !!
     }
-
-    // const upOn = () => {
-    //   setShowCategories(false);
-    //   // setInterval(() => {
-    //   //   setShowCategories(true);
-    //   // }, 2000)
-    // }
-
-    // const upDown = () => {
-    //   setShowSubCategories(null);
-    // }
 
   return (
     <div className='CatTitIn'>
@@ -110,6 +81,7 @@ const Category: React.FC<CategoryProps> = ({category}) => {
                 ))}
             </div>
           )}
+
         </div>
       </div>
   )

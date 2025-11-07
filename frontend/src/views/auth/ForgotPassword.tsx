@@ -18,11 +18,12 @@ const ForgotPassword: React.FC = () => {
             await axios.get(`api/users/password-reset/${email}`)
             .then((res) => {
                 console.log('response', res)
-                alert('Email has been sent to you');
-                navigate(`/${res.data.link}`);
+                alert('Sprawdź swoją skrzynkę email w celu zresetowania hasła.');
+                // navigate(`/${res.data.link}`);
             });
         } catch (error) {
             console.log('error-handleEmailReset', error)
+            alert('Wystąpił błąd podczas próby zresetowania hasła. Spróbuj ponownie.');
         }
     }
 
@@ -36,9 +37,9 @@ const ForgotPassword: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
         />
-        <button type='submit'>Reset</button>
+        <button type='submit'>Zresetuj</button>
         <p>
-          <Link to={'/login'}>Back to Login page</Link>
+          <Link to={'/login'}>Wrócz do logowania</Link>
         </p>
     </form>
 

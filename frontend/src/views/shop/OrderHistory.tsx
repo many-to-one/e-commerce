@@ -149,10 +149,10 @@ function OrderHistory() {
                                         )
                                     }
                                 </div>
-                                <p className='flexRowBetween'><b>Cena:</b> {order.price}$</p>
+                                <p className='flexRowBetween'><b>Cena:</b> {order.price}PLN</p>
                                 <p className='flexRowBetween'><b>Ilość:</b> {order.qty} szt.</p>
-                                <p className='flexRowBetween'><b>Razem:</b> {item.sub_total}$</p>
-                                <p className='flexRowBetween'><b>Koszt dostawy:</b> {item.shipping_amount}$</p>
+                                <p className='flexRowBetween'><b>Razem:</b> {item.sub_total}PLN</p>
+                                <p className='flexRowBetween'><b>Koszt dostawy:</b> {item.shipping_amount}PLN</p>
                                 <hr />
 
                                 {item.invoices.length > 0 ? (

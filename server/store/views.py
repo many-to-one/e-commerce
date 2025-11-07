@@ -135,10 +135,11 @@ class ProductsBySubCat(APIView):
 
     def get(self, request, sub_cat):
         # sc = eval(f"[{sub_cat}]")
-        # print('************************ ProductsBySubCat *****************************', sc)
+        print('************************ ProductsBySubCat *****************************', sub_cat)
         from django.db.models import Q
 
         products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
+        print('************************ ProductsBySubCat products*****************************', products)
         # products = Product.objects.filter(sub_cat=)      
         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response({

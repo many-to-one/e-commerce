@@ -49,8 +49,8 @@ const Product: React.FC<ProductProps> = ({product}) => {
         </div>
         <p>{product.title}</p>
           <div className='flexRowStart gap-15'>
-            {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price}$</p>}
-            <p>{product.price}$</p>
+            {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price} PLN</p>}
+            <p>{product.price} PLN</p>
           </div>
         {product.hot_deal  && <HotSail />}  
         {product.product_rating !== null ? (

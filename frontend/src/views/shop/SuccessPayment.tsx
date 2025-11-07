@@ -17,7 +17,7 @@ function SuccessPayment() {
   return (
     <div className='flexColumnCenter gap-15'>
         <img src="/success_payment.jpg" alt="" className='alertImg'/>
-        <button onClick={() => (navigate('/'))}>Kontynuuj Zajupy</button>
+        <button onClick={() => (navigate('/'))}>Kontynuuj Zakupy</button>
     </div>
   )
 }

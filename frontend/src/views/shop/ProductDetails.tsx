@@ -166,10 +166,10 @@ const ProductDetails: React.FC = () => {
                 </div>
                 <div className='w-50'>
                     <h2>{product?.title}</h2>
-                    <p>Brand: {product?.brand}</p>
-                    <div className='flexRowCenter'>Price: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price}$</p> } {product?.price}$</div>
-                    <p>Shipping: {product?.shipping_amount}$</p>
-                    <p>Stock: {product?.stock_qty} pcs.</p>
+                    {/* <p>Brand: {product?.brand}</p> */}
+                    <div className='flexRowCenter'>Cena: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
+                    <p>Dostawa: {product?.shipping_amount} PLN</p>
+                    <p>Ilość: {product?.stock_qty} szt.</p>
                     {product?.product_rating !== null ? (
                         <Likes rating={String(product?.product_rating)}/>
                         ) : (

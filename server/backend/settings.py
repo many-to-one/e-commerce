@@ -24,46 +24,24 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY ='django-insecure-qm$3!6ic29&j@eil_b6-!f#fwv+0&sv5pyo!hta=7@es$t#$8k'
+# SECRET_KEY ='django-insecure-qm$3!6ic29&j@eil_b6-!f#fwv+0&sv5pyo!hta=7@es$t#$8k'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 SITE_URL = os.environ.get('SITE_URL')
+_EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+_EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEBUG = os.environ.get('DEBUG')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = DEBUG
 
-#ALLOWED_HOSTS = ["127.0.0.1", "api.kidnetic.pl", "https://kidnetic.pl", "https://api.kidnetic.pl", "https://checkout.stripe.com", "host.docker.internal", "localhost", "https://allegro.pl.allegrosandbox.pl",]
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
     if h.strip()
 ]
 
-#CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "https://kidnetic.pl", "https://api.kidnetic.pl", "http://host.docker.internal",]
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
-
-#CORS_ALLOWED_ORIGINS = [
-#    "https://kidnetic.pl",
-#   # "http://45.141.3.185:5173",
-#   # "http://127.0.0.1:5173",
-#   # "http://localhost:5173",
-#   # "http://127.0.0.1:8100",
-#   # "http://0.0.0.0:8100",
-#   # "http://localhost:8100",
-#    "http://host.docker.internal:8100",
-#    'http://web:8100',
-#    'http://master:8089',
-#    "https://api-preprod.dpsin.dpdgroup.com:8443",
-#    "https://allegro.pl",
-#    "https://allegro.pl.allegrosandbox.pl",
-#]
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
-
-#CORS_ALLOW_HEADERS = [
-#    "content-type",
-#    "authorization",
-#    "x-dpd-login",
-#    "x-dpd-password",
-#    "x-dpd-bucode",
-#]
 CORS_ALLOW_HEADERS = os.environ.get("CORS_ALLOW_HEADERS", "").split(",")
 # CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOW_CREDENTIALS = True
@@ -235,6 +213,15 @@ CACHES = {
 }
 
 CACHE_VERSION = 1
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = _EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = _EMAIL_HOST_PASSWORD  # Use App Password, not your Gmail password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 

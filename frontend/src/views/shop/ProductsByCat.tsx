@@ -16,6 +16,8 @@ const ProductsByCat: React.FC = () => {
 
   const fetchData = async (endpoint) => {
 
+    // console.log('catId----------------', catId)
+
     try {
         const response = await axios.get(endpoint);
         console.log(`${endpoint}`, response.data)

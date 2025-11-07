@@ -95,7 +95,7 @@ function InitialReturn() {
                                         <p>{item.product.title}</p>
                                     </div>
                                 </div>
-                                <p className='flexRowBetween'><b>Cena:</b> {item.price} zł</p>
+                                <p className='flexRowBetween'><b>Cena:</b> {item.price} PLN</p>
                                 <p className='flexRowBetween'><b>Ilość:</b> 
                                     <input 
                                         type="number" 
@@ -103,7 +103,7 @@ function InitialReturn() {
                                         onChange={handleQtyChange}
                                     /> szt.
                                 </p>
-                                <p className='flexRowBetween'><b>Razem:</b> {total} zł</p>
+                                <p className='flexRowBetween'><b>Razem:</b> {total} PLN</p>
                                 <select name="" id="Select" onChange={handleReason}>
                                     <option selected>Powód zwrotu</option>
                                     {return_reasons?.map((reason, index) => (
