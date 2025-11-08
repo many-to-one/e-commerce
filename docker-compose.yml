@@ -143,31 +143,31 @@ services:
 
   
   # Development frontend service
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: react_shop
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    command: npm run dev -- --host 0.0.0.0
-    depends_on:
-      - web
-
-  #Production frontend service
   # frontend:
   #   build:
   #     context: ./frontend
   #     dockerfile: Dockerfile
   #   container_name: react_shop
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
   #   ports:
-  #     - "${REACT_PORT}:${REACT_CONTAINER_PORT}"
-  #   restart: unless-stopped
+  #     - "5173:5173"
+  #   environment:
+  #     - CHOKIDAR_USEPOLLING=true
+  #   command: npm run dev -- --host 0.0.0.0
+  #   depends_on:
+  #     - web
+
+  #Production frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react_shop
+    ports:
+      - "${REACT_PORT}:${REACT_CONTAINER_PORT}"
+    restart: unless-stopped
 
 
   redis:
