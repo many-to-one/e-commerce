@@ -104,7 +104,7 @@
 
 services:
   db:
-    image: postgres:latest
+    image: postgres:17.6
     container_name: shopdb
     restart: always
     volumes:
