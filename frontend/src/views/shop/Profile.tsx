@@ -25,6 +25,7 @@ function Profile() {
         })
         .catch(error => {
           console.error('DRF vendors Axios error ----------:', error);
+          navigate('/login');
         });
       }, []);
     

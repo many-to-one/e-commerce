@@ -652,8 +652,8 @@ class ProductCSVView(APIView):
             else:
                 return Response({"error": "Unsupported file format"}, status=400)
 
-            for index, row in df.head(150).iterrows():  # Use .head(5) to get the first 5 rows
-            # for index, row in df.iterrows()[5]:
+            # for index, row in df.head(150).iterrows():  # Use .head(5) to get the first 5 rows
+            for index, row in df.iterrows():
                 # print('***PANDAS-ROW-SKU***', row[7])
                 if row.iloc[7] == 'Aktywna':
                     # print('***PANDAS-ROW-SKU***', row.to_dict())
@@ -729,7 +729,7 @@ class ProductCSVView(APIView):
 
                     product, created_product = Product.objects.get_or_create(
                         title=row.iloc[21],
-                        image = img_links[0].replace(',', ''),
+                        # image = img_links[0].replace(',', ''),
                         img_links=img_links,
                         description=descr,
                         price=safe_decimal(row.iloc[14]),
