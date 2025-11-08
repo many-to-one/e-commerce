@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import Cart from '../components/product/Cart'
 import useAxios from '../utils/useAxios';
+import axios from 'axios';
 import { useAuthStore } from '../store/auth';
 import { useNavigate } from 'react-router-dom';
 import Category from '../components/category/Category';
@@ -18,6 +19,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 
 import CategoryType from '../types/CategoryType';
 import { useProductStore } from '../store/products';
+import { API_BASE_URL } from '../utils/constants';
 
 type SortCategory = {
   title: string;
@@ -33,7 +35,7 @@ function Header() {
 
   const user = __userId() //useAuthStore((state) => state.allUserData);
   const navigate = useNavigate()
-  const axios = useAxios();
+  const _axios = useAxios();
   const [categories, setCategories] = useState<CategoryType[]>([]) 
   const [showCategories, setShowCategories] = useState(false);
   const [sortCat, setSortCat] = useState<SortCategory[]>([]);
@@ -68,75 +70,84 @@ function Header() {
     if (action) action();
   };
 
-  const fetchData = async (endpoint, state) => {
+    // const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    // console.log('Header-isLoggedIn', isLoggedIn);
 
+  const fetchDataAuth = async (endpoint: string, state: (data: any) => void) => {
     try {
-
-        const response = await axios.get(endpoint);
-        // console.log(`${endpoint}`, response.data);
-        // state(response.data.results);
-        console.log(`CATEGORIES`, response.data.results);
-        const allCats: Category_[] = response.data.results; // Explicitly type `allCats`
-
-        const uniqueTitles = Array.from(
-            new Set(allCats.map((cat) => cat.title)) // Ensure `cat.title` is a string
-        );
-
-        let arr_: { 
-          id: number | 0;
-          title: string;
-          category_hierarchy: string[];
-          allegro_cat_id: string;
-          slug: string;
-          image: string;
-        }[] = [];
-
-        uniqueTitles.forEach((cat) => {
-          arr_.push({
-            id: 0,
-            title: cat,
-            category_hierarchy: [],
-            allegro_cat_id: '',
-            slug: '',
-            image: '',
-          });
-        })
-
-        // console.log(`uniqueTitles`, uniqueTitles);
-
-        uniqueTitles.forEach((cat) => {
-          for (let i = 0; i < allCats.length; i++) {
-              if (cat === allCats[i]['title']) {
-                // console.log('/////////////////', arr_[cat])
-                const obj = arr_.find((item) => item.title === cat);
-                if (obj) {
-                  // console.log('allCats[category_hierarchy]', allCats[i]['category_hierarchy']);
-                    obj.category_hierarchy.push(allCats[i]['category_hierarchy']); // Update category_hierarchy
-                    obj.slug = allCats[i]['slug'];
-                    obj.id = allCats[i]['id'];
-                    obj.allegro_cat_id = allCats[i]['allegro_cat_id'];
-                    obj.image = allCats[i]['image'];
-                }
-              }
-          }
-        });
-
-      setCategories(arr_)
-
-      console.log('arr_', arr_)
-        
+      const response = await _axios.get(endpoint);
+      // console.log(`CATEGORIES (auth)`, response.data.results);
+      processCategories(response.data.results, state);
     } catch (error) {
-        console.log('Products error', error)
+      console.log('Products error (auth)', error);
     }
+  };
 
-};
+
+  const fetchDataPublic = async (endpoint: string, state: (data: any) => void) => {
+    try {
+      const response = await axios.get(endpoint);
+      // console.log(`CATEGORIES (public)`, response.data.results);
+      processCategories(response.data.results, state);
+    } catch (error) {
+      console.log('Products error (public)', error);
+    }
+  };
+
+
+  const processCategories = (allCats: Category_[], state: (data: any) => void) => {
+    const uniqueTitles = Array.from(new Set(allCats.map((cat) => cat.title)));
+
+    let arr_: {
+      id: number | 0;
+      title: string;
+      category_hierarchy: string[];
+      allegro_cat_id: string;
+      slug: string;
+      image: string;
+    }[] = [];
+
+    uniqueTitles.forEach((cat) => {
+      arr_.push({
+        id: 0,
+        title: cat,
+        category_hierarchy: [],
+        allegro_cat_id: '',
+        slug: '',
+        image: '',
+      });
+    });
+
+    uniqueTitles.forEach((cat) => {
+      for (let i = 0; i < allCats.length; i++) {
+        if (cat === allCats[i]['title']) {
+          const obj = arr_.find((item) => item.title === cat);
+          if (obj) {
+            obj.category_hierarchy.push(allCats[i]['category_hierarchy']);
+            obj.slug = allCats[i]['slug'];
+            obj.id = allCats[i]['id'];
+            obj.allegro_cat_id = allCats[i]['allegro_cat_id'];
+            obj.image = allCats[i]['image'];
+          }
+        }
+      }
+    });
+
+    state(arr_);
+    console.log('arr_', arr_);
+  };
+
 
   useEffect(() => {
-        fetchData('/api/store/categories', setCategories)
-    }, [])
+    const endpoint = '/api/store/categories';
+    const publicEndpoint = `${API_BASE_URL}api/store/categories`;
+    if (user) {
+      fetchDataAuth(endpoint, setCategories);
+    } else {
+      fetchDataPublic(publicEndpoint, setCategories);
+    }
+  }, [user]);
 
-    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-    console.log('Header-isLoggedIn', isLoggedIn);
 
 
   return (

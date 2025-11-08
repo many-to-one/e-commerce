@@ -37,10 +37,11 @@ const Products: React.FC = () => {
     } = useProductStore();
 
 
-    // const fetchProducts = async (url) => {
+    // const fetchProducts = async ( url ) => {
 
     //     // const timestampedUrl = `${url}&t=${Date.now()}`
     //     // console.log(`timestampedUrl`, timestampedUrl);
+    //     console.log(`fetchProducts url --------`, url);
     //     console.log(`currentPage`, currentPage);
 
     //     try {
