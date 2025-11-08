@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Cart from '../components/product/Cart'
 import useAxios from '../utils/useAxios';
 import axios from 'axios';
+import { debounce } from 'lodash';
 import { useAuthStore } from '../store/auth';
 import { useNavigate } from 'react-router-dom';
 import Category from '../components/category/Category';
@@ -16,6 +17,7 @@ import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import ContactMailRoundedIcon from '@mui/icons-material/ContactMailRounded';
 import MenuIcon from '@mui/icons-material/Menu';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 
 import CategoryType from '../types/CategoryType';
 import { useProductStore } from '../store/products';
@@ -41,6 +43,7 @@ function Header() {
   const [sortCat, setSortCat] = useState<SortCategory[]>([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showHeader, setShowHeader] = useState(false);
+  const [searchItem, setSearchItem] = useState('');
 
   // console.log('Header-user', user);
 
@@ -48,15 +51,6 @@ function Header() {
     title: string;
   };
 
-  const {
-    allProducts,
-    filteredProducts,
-    setProducts,
-    setLoading,
-    searchTerm,
-    setSearchTerm,
-    searchProducts,
-  } = useProductStore();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -146,9 +140,17 @@ function Header() {
     } else {
       fetchDataPublic(publicEndpoint, setCategories);
     }
-  }, [user]);
+  }, []);
 
 
+
+const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      navigate(`/?search=${encodeURIComponent(value)}`);
+      window.location.reload(); // optional, but usually avoid this
+    }, 300),
+    []
+  );
 
   return (
     <>
@@ -165,22 +167,21 @@ function Header() {
               <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/')}>
                 <HomeRoundedIcon />
                 <span className="ml-10">Głowna</span>
-
-                <div className="Cursor showCat" 
-                    onMouseEnter={() => setShowCategories(true)} 
-                    onMouseLeave={() => setShowCategories(false)} 
-                  > 
-                    Kategorie 
-                    {showCategories && (
-                      <div className="categoryTitles"> 
-                        {categories?.map((category, index) => ( 
-                          <Category key={index} category={category} /> 
-                        ))} 
-                      </div> 
-                      )} 
-                  </div>
-
               </div>
+
+              <div className="Cursor showCat" onClick={() => setShowCategories((prev) => !prev)}>
+                <ArticleRoundedIcon />
+                <span className="ml-10">Kategorie</span>
+                {showCategories && (
+                  <div className="categoryTitlesMobile">
+                    {categories?.map((category, index) => (
+                      <Category key={index} category={category} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
               <div className="Cursor flexRowStart" onClick={() => closeMenuAndNavigate('/contact')}>
                 <ContactMailRoundedIcon className="ml-5" />
                 <span className="ml-10">Kontakt</span>
@@ -238,11 +239,7 @@ function Header() {
                 <div className="flexRowCenterHeader mr-30 ">
                   <input
                     type="text"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      searchProducts();
-                    }}
+                    onChange={(e) => debouncedSearch(e.target.value)}
                     placeholder="Szukaj produktów..."
                     className="SearchInput w-400"
                   />

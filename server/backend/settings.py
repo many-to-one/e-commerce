@@ -27,8 +27,8 @@ load_dotenv(BASE_DIR / ".env")
 # SECRET_KEY ='django-insecure-qm$3!6ic29&j@eil_b6-!f#fwv+0&sv5pyo!hta=7@es$t#$8k'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 SITE_URL = os.environ.get('SITE_URL')
-_EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-_EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+_EMAIL_HOST_USER = os.environ.get('_EMAIL_HOST_USER')
+_EMAIL_HOST_PASSWORD = os.environ.get('_EMAIL_HOST_PASSWORD')
 DEBUG = os.environ.get('DEBUG')
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -89,6 +89,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'store.middleware.client_logger.ClientLoggerMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -219,8 +220,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = _EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = _EMAIL_HOST_PASSWORD  # Use App Password, not your Gmail password
+EMAIL_HOST_USER = _EMAIL_HOST_USER 
+EMAIL_HOST_PASSWORD = _EMAIL_HOST_PASSWORD  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 

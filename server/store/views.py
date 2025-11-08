@@ -12,6 +12,7 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+# from .utils.statistic import get_client_ip_and_device
 # from store.tasks import store_product_images
 
 from .utils.payu import get_client_ip, payu_authenticate, to_grosze
@@ -63,13 +64,24 @@ class CategoriesView(generics.ListAPIView):
 #     permission_classes = (AllowAny, )
 
 
+
 class ProductsView(generics.ListAPIView):
     serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny, )
 
+    # def get_queryset(self):
+    #     return Product.objects.all()
+
     def get_queryset(self):
-        return Product.objects.all()
+        queryset = Product.objects.all()
+        search = self.request.query_params.get('search')
+        print(' ***************** get queryset ++++++++++++++', search)
+        if search:
+            queryset = queryset.filter(title__icontains=search)  # or other fields
+        return queryset
+
+
 
 
 

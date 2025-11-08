@@ -3,7 +3,7 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
 from celery import shared_task
-from .models import Product, Gallery
+from .models import ClientAccessLog, Product, Gallery
 
 def compress_image(image: Image.Image, max_size_kb=200):
     """
@@ -56,3 +56,80 @@ def store_product_images(product_id, img_links):
     #     return f"Product {product_id} does not exist"
     # except Exception as e:
     #     return f"Error: {str(e)}"
+
+from django.utils.timezone import now
+from datetime import timedelta
+
+@shared_task
+def enrich_and_log_client_info(data):
+    ip = data['ip']
+    user_agent = data['user_agent'].lower()
+    user = data.get('user', None)
+    print('Celery user++++++++++++++++++++', user)
+
+    # Geo lookup
+    geo_location = get_geo_from_ip(ip)
+
+    # Device type
+    if 'mobile' in user_agent or 'android' in user_agent or 'iphone' in user_agent:
+        device_type = 'Mobile'
+    elif 'ipad' in user_agent or 'tablet' in user_agent:
+        device_type = 'Tablet'
+    else:
+        device_type = 'Desktop'
+
+    # OS detection
+    os = 'Unknown'
+    if 'windows' in user_agent:
+        os = 'Windows'
+    elif 'mac os' in user_agent or 'macintosh' in user_agent:
+        os = 'macOS'
+    elif 'linux' in user_agent:
+        os = 'Linux'
+    elif 'android' in user_agent:
+        os = 'Android'
+    elif 'iphone' in user_agent or 'ios' in user_agent:
+        os = 'iOS'
+
+    recent = ClientAccessLog.objects.filter(
+        ip_address=ip,
+        device_type=device_type,
+        accessed_at__gte=now() - timedelta(hours=1)
+    )
+
+
+    if recent.exists():
+        return
+
+    # Final log
+    ClientAccessLog.objects.create(
+        ip_address=ip,
+        device_type=device_type,
+        operating_system=os,
+        user_agent=data['user_agent'],
+        geo_location=geo_location,
+        language=data['language'],
+        referer=data['referer'],
+        cookies=data['cookies'],
+    )
+
+def get_geo_from_ip(ip):
+    try:
+        res = requests.get(f'https://ipinfo.io/{ip}/json', timeout=2)
+        data = res.json()
+        print('############################ get_geo_from_ip ############################', data)
+        # Clean up empty or malformed fields
+        location = {
+            'ip': data.get('ip', ''),
+            'city': data.get('city', ''),
+            'region': data.get('region', ''),
+            'country': data.get('country', ''),
+            'loc': data.get('loc', ''),  # lat,long
+            'org': data.get('org', ''),
+        }
+        # Remove empty strings
+        return {k: v for k, v in location.items() if v}
+    except Exception as e:
+        print(f'Geo lookup failed for IP {ip}: {e}')
+        return {}
+

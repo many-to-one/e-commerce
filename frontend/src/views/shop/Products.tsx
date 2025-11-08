@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import axios from '../../utils/axios';
 import { useAuthStore } from "../../store/auth";
 import HotSail from '../../components/product/HotSail';
@@ -11,6 +11,8 @@ import Swal from 'sweetalert2';
 import KeyboardArrowLeftRoundedIcon from '@mui/icons-material/KeyboardArrowLeftRounded';
 import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRightRounded';
 import { useProductStore } from '../../store/products';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { debounce } from 'lodash';
 
 
 const Products: React.FC = () => {
@@ -18,103 +20,88 @@ const Products: React.FC = () => {
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     // console.log('isLoggedIn', isLoggedIn)
     // console.log('user', user)
+    const [searchParams] = useSearchParams();
+    const search = searchParams.get('search') || '';
 
-    // const [products, setProducts] = useState<ProductType[]>([]);
-    // const [categories, setCategories] = useState<CategoryType[]>([]);
+    const [products, setProducts] = useState<ProductType[]>([]);
+    const [categories, setCategories] = useState<CategoryType[]>([]);
     const [nextPage, setNextPage] = useState(null);
     const [prevPage, setPrevPage] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const {
-        allProducts,
-        filteredProducts,
-        setProducts,
-        setLoading,
-        searchTerm,
-        setSearchTerm,
-        searchProducts,
-    } = useProductStore();
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    const navigate = useNavigate()
 
 
-    // const fetchProducts = async ( url ) => {
+    const fetchProducts = async ( url ) => {
 
-    //     // const timestampedUrl = `${url}&t=${Date.now()}`
-    //     // console.log(`timestampedUrl`, timestampedUrl);
-    //     console.log(`fetchProducts url --------`, url);
-    //     console.log(`currentPage`, currentPage);
+        console.log(`currentPage`, currentPage);
 
-    //     try {
-    //         const response = await axios.get(url);
-
-    //         console.log(`${url}`, response.data)
-    //         setProducts(response.data.results);
-    //         setNextPage(response.data.next);
-    //         setPrevPage(response.data.previous);
-    //         console.log(`nextPage`, nextPage);
-    //         console.log(`prevPage`, prevPage);
-
-    //         // Calculate total pages
-    //         const total = Math.ceil(response.data.count / 50);  // Since page_size = 50
-    //         setTotalPages(total);
-    //     } catch (error) {
-    //         console.log('Products error', error)
-    //     }
-
-    // };
-
-
-    // -------------------- Zustang logic for search -------------------- //
-    const fetchProducts = async (url: string) => {
-        console.log('allProducts', allProducts)
-        setLoading(true);
         try {
-        const response = await axios.get(url);
-        const products = response.data.results;
-        console.log('fetchProducts', products)
-        setProducts(products);
-        setNextPage(response.data.next);
-        setPrevPage(response.data.previous);
-        setTotalPages(Math.ceil(response.data.count / 50));
+            const _url = search ? `/api/store/products?search=${encodeURIComponent(search)}` : '/api/store/products';
+            console.log(`fetchProducts url --------`, url);
+            const response = await axios.get(_url);
+            console.log(`fetchProducts response --------`, response);
+
+            // console.log(`${url}`, response.data)
+            setProducts(response.data.results);
+            setNextPage(response.data.next);
+            setPrevPage(response.data.previous);
+            console.log(`nextPage`, nextPage);
+            console.log(`prevPage`, prevPage);
+
+            // Calculate total pages
+            const total = Math.ceil(response.data.count / 50);  // Since page_size = 50
+            setTotalPages(total);
         } catch (error) {
-        console.error('Products error', error);
-        } finally {
-        setLoading(false);
+            console.log('Products error', error)
         }
+
     };
-
-    useEffect(() => {
-    if (allProducts) {
-        // console.log('✅ Products loaded:', allProducts.length);
-        searchProducts(); // optional: trigger initial search
-    }
-    }, [allProducts]);
-
-    useEffect(() => {
-    if (allProducts) {
-        searchProducts();
-    }
-    }, [allProducts]);
-
- // -------------------- End of Zustang logic for search -------------------- //
 
 
     useEffect(() => {
         fetchProducts('/api/store/products?page=1')
     }, [])
+
+
+    const debouncedSearch = useCallback(
+        debounce((value: string) => {
+          navigate(`/?search=${encodeURIComponent(value)}`);
+          window.location.reload(); // optional, but usually avoid this
+        }, 300),
+        []
+      );
     
+    
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     
 
     return (
         <div>
+
+        {isMobile && (
+            <div className="flexRowCenterHeader mr-30 ">
+                <input
+                type="text"
+                onChange={(e) => debouncedSearch(e.target.value)}
+                placeholder="Szukaj produktów..."
+                className="SearchInput ml-30"
+                />
+            </div>
+        )}
+
             <div className='flexRowCenter productCont'>
 
-                {/* {products?.map((product, index) => (
+                {products?.map((product, index) => (
                      <Product key={index} product={product} />
-                ))} */}
-                {filteredProducts.map(product => (
-                    <Product key={product.id} product={product} />
-                    ))}
+                ))}
             </div>
             <div className='flexRowCenter gap-15 mt-20'>
                 <button

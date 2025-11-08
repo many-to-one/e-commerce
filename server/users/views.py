@@ -16,6 +16,7 @@ from users.models import User, Profile
 from users.serializer import MyTokenObtainPairSerializer, PasswordChangeSerializer, RegisterSerializer, UserSerializer, EmailSerializer
 
 PRO_SITE_URL = os.getenv('PRO_SITE_URL')
+SITE_URL = os.getenv('SITE_URL')
 
 
 class MyTokenObtainPairView(TokenObtainPairView):

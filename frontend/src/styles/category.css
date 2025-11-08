@@ -4,13 +4,14 @@
 
 .categoryCont {
     background-color: var(--p-card-bg-color);
+    /* margin-left: -100px; */
 }
 
 .categoryTitles {
     position: absolute;
     top: 50;
-    left: 50;
-    width: 90%;
+    left: 15px;
+    width: 87vw;
     display: flex;
     flex-direction: column;
     justify-items: flex-start;
@@ -18,7 +19,7 @@
     background-color: var(--p-card-bg-color);
     z-index: 10;
     padding: 10px;
-    margin-left: -100px;
+    /* margin-left: -5vw; */
   }
   
   .categoryCard {

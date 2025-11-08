@@ -55,6 +55,18 @@ class CartOrderItemsInlineAdmin(admin.TabularInline):
 # class CouponUsersInlineAdmin(admin.TabularInline):
 #     model = CouponUsers
 
+class ClientAccessLogInline(admin.TabularInline):
+    model = ClientAccessLog
+    readonly_fields = ('ip_address', 'user_agent', 'device_type', 'operating_system', 'geo_location', 'language', 'referer', 'cookies', 'accessed_at')
+    can_delete = False
+    extra = 0
+
+class ClientAccessLogAdmin(ImportExportModelAdmin):
+    list_display = ('ip_address', 'device_type', 'operating_system', 'geo_location', 'accessed_at', 'referer')
+    list_filter = ('device_type', 'operating_system', 'accessed_at')
+    search_fields = ('ip_address', 'user_agent', 'geo_location', 'referer', 'cookies')
+    readonly_fields = ('ip_address', 'user_agent', 'device_type', 'operating_system', 'geo_location', 'language', 'referer', 'cookies', 'accessed_at')
+
 
 class ProductAdminForm(forms.ModelForm):
 
@@ -1789,3 +1801,4 @@ admin.site.register(ReturnItem, ReturnItemAdmin)
 # admin.site.register(Wishlist)
 # admin.site.register(Notification, NotificationAdmin)
 admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)
+admin.site.register(ClientAccessLog, ClientAccessLogAdmin)

@@ -83,6 +83,7 @@
 
 .oldPrice {
     text-decoration: line-through;
+    color: red;
 }
 
 /* STOK LOGIC */

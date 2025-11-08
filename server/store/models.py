@@ -981,3 +981,23 @@ class DeliveryCouriers(models.Model):
     
     def __str__(self):
         return self.name
+    
+
+class ClientAccessLog(models.Model):
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    device_type = models.CharField(max_length=20, blank=True, null=True)
+    operating_system = models.CharField(max_length=20, blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    geo_location = models.JSONField(blank=True, null=True)
+    language = models.CharField(max_length=50, blank=True, null=True)
+    referer = models.URLField(blank=True, null=True)
+    cookies = models.TextField(blank=True, null=True)
+    accessed_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Informacje o użytkownikach"
+        ordering = ['-accessed_at']
+
+    def __str__(self):
+        return f"{self.ip_address} ({self.device_type}) at {self.accessed_at} in {self.geo_location}"
