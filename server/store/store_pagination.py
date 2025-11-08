@@ -1,7 +1,7 @@
-# from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import PageNumberPagination
 
-# class StorePagination(PageNumberPagination):
-#     page_size = 50
+class StorePagination(PageNumberPagination):
+    page_size = 50
 
 
 # from rest_framework.pagination import PageNumberPagination
@@ -22,8 +22,8 @@
 #         url = replace_query_param(self.request.build_absolute_uri(), self.page_query_param, self.page.previous_page_number())
 #         return url.replace('http://', 'https://')
 
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.utils.urls import replace_query_param
+# from rest_framework.pagination import PageNumberPagination
+# from rest_framework.utils.urls import replace_query_param
 
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.utils.urls import replace_query_param
