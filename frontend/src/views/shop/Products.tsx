@@ -40,7 +40,12 @@ const Products: React.FC = () => {
         console.log(`currentPage`, currentPage);
 
         try {
-            const _url = search ? `${url}?search=${encodeURIComponent(search)}` : url;
+           // const _url = search ? `${url}?search=${encodeURIComponent(search)}` : url;
+            const hasQuery = url.includes('?');
+            const _url = search
+            ? `${url}${hasQuery ? '&' : '?'}search=${encodeURIComponent(search)}`
+            : url;
+
             console.log(`fetchProducts url --------`, _url);
             const response = await axios.get(_url);
             console.log(`fetchProducts response --------`, response);
