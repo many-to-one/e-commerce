@@ -20,11 +20,14 @@ import AddToCard from '../../components/product/AddToCard';
 import DoLike from '../../components/product/DoLike';
 import ProductsByCat from './ProductsByCat';
 import Product from '../../components/product/Product';
+import DotsLoader from '../../components/DotsLoader';
 
 
 const ProductDetails: React.FC = () => {
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [product, setProduct] = useState<ProductType | null>(null);
     const [products, setProducts] = useState<ProductType[]>([]);
@@ -44,6 +47,8 @@ const ProductDetails: React.FC = () => {
 
     const fetchData = async (endpoint) => {
 
+        setIsLoading(false);
+
         try {
             const response = await axios.get(endpoint);
             console.log(`${endpoint}`, response.data, response.data.gallery.length)
@@ -56,6 +61,7 @@ const ProductDetails: React.FC = () => {
             // }
             setMainImg(response.data.product.img_links[0])
             setGallery(response.data.gallery);
+            setIsLoading(true);
             console.log(' --****-- mainImg -----****---- ', mainImg)
         } catch (error) {
             console.log('Products error', error)
@@ -68,10 +74,13 @@ const ProductDetails: React.FC = () => {
 
     const catProducts = async () => {
 
+        setIsLoading(false);
+
         try {
             const response = await axios.get(`/api/store/category-products/${catId}`);
             console.log(`catProducts`, response.data)
             setProducts(response.data.products)
+            setIsLoading(true);
         } catch (error) {
             console.log('Products error', error)
         }
@@ -114,120 +123,176 @@ const ProductDetails: React.FC = () => {
 
 
   return (
-    <div className='flexColumnCenter'>
+    <>
+    
+    {isLoading === true ? (
 
-        <div className='productDetailCont'>
-            <div className='flexRowStart gap-50'>
-                <div className='flexColumnCenter'>
-                    <div className='miGallCont'>
-                        <img 
-                            src={mainImg} 
-                            alt="" 
-                            className="mainGalleryImage" 
-                            ref={imageRef}
-                            onMouseMove={scaleImg} 
-                            onMouseOut={resetImg} 
-                        />
+        <div className='flexColumnCenter'>
+
+            <div className='productDetailCont'>
+                <div className='flexRowStart gap-50'>
+                    <div className='flexColumnCenter'>
+                        <div className='miGallCont'>
+                            {/* <img 
+                                src={mainImg} 
+                                alt="" 
+                                className="mainGalleryImage" 
+                                ref={imageRef}
+                                onMouseMove={scaleImg} 
+                                onMouseOut={resetImg} 
+                            /> */}
+                            <picture>
+                                <source
+                                    srcSet={`${mainImg}.webp`}
+                                    type="image/webp"
+                                />
+                                <img
+                                    src={mainImg}
+                                    alt="ProductDetail"
+                                    className="mainGalleryImage" 
+                                    ref={imageRef}
+                                    onMouseMove={scaleImg} 
+                                    onMouseOut={resetImg}
+                                    loading="lazy"
+                                />
+                            </picture>
+                        </div>
+
+                        <div className='flexRowCenter w-400'>
+                            <Swiper
+                                grabCursor={true}
+                                spaceBetween={10}
+                                // modules={[Navigation]}
+                                slidesPerView={6}
+                                navigation//</div>={true}
+                                pagination={true}
+                                className="gallerySwiper"
+                            >
+                                {gallery?.length === 1 ? (
+                                    product?.img_links.map((image, index) => (
+                                        <SwiperSlide key={index}>
+                                            {/* <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} /> */}
+                                            <picture>
+                                                <source
+                                                    srcSet={`${image}.webp`}
+                                                    type="image/webp"
+                                                />
+                                                <img
+                                                    src={image}
+                                                    alt="ProductImgGallery"
+                                                    className="galleryImage" 
+                                                    key={index}
+                                                    onMouseOver={() => updateMainImg(image)}
+                                                    loading="lazy"
+                                                />
+                                            </picture>
+                                        </SwiperSlide>
+                                    ))
+                                ) : (
+                                    gallery.map((gall, index) => (
+                                        <SwiperSlide key={index}>
+                                            {/* <img 
+                                                src={gall.image} alt="" 
+                                                className="galleryImage" 
+                                                key={index} 
+                                                onMouseOver={() => updateMainImg(gall.image)} 
+                                                loading="lazy" 
+                                            /> */}
+                                            <picture>
+                                                <source
+                                                    srcSet={`${gall.image}.webp`}
+                                                    type="image/webp"
+                                                />
+                                                <img
+                                                    src={gall.image}
+                                                    alt="ProductImgGallery"
+                                                    className="galleryImage" 
+                                                    key={index}
+                                                    onMouseOver={() => updateMainImg(gall.image)}
+                                                    loading="lazy"
+                                                />
+                                            </picture>
+                                        </SwiperSlide>
+                                    ))
+                                )}
+
+                            </Swiper>
+                        </div>
+
                     </div>
-
-                    <div className='flexRowCenter w-400'>
-                        <Swiper
-                            grabCursor={true}
-                            spaceBetween={10}
-                            // modules={[Navigation]}
-                            slidesPerView={6}
-                            navigation//</div>={true}
-                            pagination={true}
-                            className="gallerySwiper"
-                        >
-                            {gallery?.length === 1 ? (
-                                product?.img_links.map((image, index) => (
-                                    <SwiperSlide key={index}>
-                                        <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} />
-                                    </SwiperSlide>
-                                ))
+                    <div className='w-50'>
+                        <h2>{product?.title}</h2>
+                        {/* <p>Brand: {product?.brand}</p> */}
+                        <div className='flexRowCenter'>Cena: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
+                        <p>Dostawa: {product?.shipping_amount} PLN</p>
+                        <p>Ilość: {product?.stock_qty} szt.</p>
+                        {product?.product_rating !== null ? (
+                            <Likes rating={String(product?.product_rating)}/>
                             ) : (
-                                gallery.map((gall, index) => (
-                                    <SwiperSlide key={index}>
-                                        <img 
-                                            src={gall.image} alt="" 
-                                            className="galleryImage" 
-                                            key={index} 
-                                            onMouseOver={() => updateMainImg(gall.image)} 
-                                            loading="lazy" 
-                                        />
-                                    </SwiperSlide>
-                                ))
-                            )}
+                            <Likes rating={String(0)}/>
+                        )}
 
-                        </Swiper>
+                        <StockCounter initialQty={orderQuantity} onQuantityChange={handleQuantityChange}/>
+                        <br />
+
+                        {product?.id && 
+                            <AddToCard id={product.id} quantity={orderQuantity} />
+                        }
+                        <br />
+
+                        <DoLike />
+
                     </div>
-
-                </div>
-                <div className='w-50'>
-                    <h2>{product?.title}</h2>
-                    {/* <p>Brand: {product?.brand}</p> */}
-                    <div className='flexRowCenter'>Cena: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
-                    <p>Dostawa: {product?.shipping_amount} PLN</p>
-                    <p>Ilość: {product?.stock_qty} szt.</p>
-                    {product?.product_rating !== null ? (
-                        <Likes rating={String(product?.product_rating)}/>
-                        ) : (
-                        <Likes rating={String(0)}/>
-                    )}
-
-                    <StockCounter initialQty={orderQuantity} onQuantityChange={handleQuantityChange}/>
-                    <br />
-
-                    {product?.id && 
-                        <AddToCard id={product.id} quantity={orderQuantity} />
-                    }
-                    <br />
-
-                    <DoLike />
-
                 </div>
             </div>
+            <br />
+
+            {/* <div> */}
+                <h3>Inne z tej kategorii:</h3>
+                <div className='flexRowStart productCont'>
+
+                    <Swiper
+                        grabCursor={true}
+                        spaceBetween={30}
+                        modules={[Navigation]}
+                        slidesPerView={3}
+                        navigation={true}
+                        pagination={true}
+                        className="mySwiper"
+                    >
+                        {products.map((product, index) => {
+                        return (
+                            <SwiperSlide key={index}>
+                            <Product product={product} />
+                            </SwiperSlide>
+                        );
+                        })}
+                    </Swiper>
+
+                </div>
+            {/* </div> */}
+            <br />
+
+            {product?.description ? (
+                <div 
+                    className='productDetailCont' 
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product?.description.slice(2, product.description.length-2)).replace(/[',]/g, '') }} 
+                />
+            ):(
+                <p></p>
+            )}
+
+            <br />
         </div>
-        <br />
 
-        {/* <div> */}
-            <h3>Inne z tej kategorii:</h3>
-            <div className='flexRowStart productCont'>
-
-                <Swiper
-                    grabCursor={true}
-                    spaceBetween={30}
-                    modules={[Navigation]}
-                    slidesPerView={3}
-                    navigation={true}
-                    pagination={true}
-                    className="mySwiper"
-                >
-                    {products.map((product, index) => {
-                    return (
-                        <SwiperSlide key={index}>
-                        <Product product={product} />
-                        </SwiperSlide>
-                    );
-                    })}
-                </Swiper>
-
-            </div>
-        {/* </div> */}
-        <br />
-
-        {product?.description ? (
-            <div 
-                className='productDetailCont' 
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product?.description.slice(2, product.description.length-2)).replace(/[',]/g, '') }} 
-            />
-        ):(
-            <p></p>
-        )}
-
-        <br />
-    </div>
+    ) : (
+        <div className='flexColumnCenter gap-15'>
+            <DotsLoader />
+        </div>
+    ) }
+    
+    </>
+    
   )
 }
 

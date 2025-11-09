@@ -84,6 +84,7 @@ class Product(models.Model):
     title = models.CharField(max_length=100)
     ean = models.CharField(max_length=100, null=True, blank=True)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
+    thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")

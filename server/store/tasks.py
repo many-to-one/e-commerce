@@ -63,6 +63,7 @@ from datetime import timedelta
 @shared_task
 def enrich_and_log_client_info(data):
     ip = data['ip']
+    username = data.get('username', 'Anonymous')
     user_agent = data['user_agent'].lower()
     user = data.get('user', None)
     print('Celery user++++++++++++++++++++', user)
@@ -103,6 +104,7 @@ def enrich_and_log_client_info(data):
 
     # Final log
     ClientAccessLog.objects.create(
+        user=username,
         ip_address=ip,
         device_type=device_type,
         operating_system=os,
@@ -133,3 +135,29 @@ def get_geo_from_ip(ip):
         print(f'Geo lookup failed for IP {ip}: {e}')
         return {}
 
+@shared_task
+def test(x, y):
+    print('Test celery task running.../////////////////////////////////', x + y)
+    return x + y
+
+@shared_task
+def generate_thumbnail(product_id, image_url, width=200, height=200):
+    print('Generating thumbnail for////////////////////////////////////////////', product_id, image_url)
+    # try:
+    #     response = requests.get(image_url, timeout=10)
+    #     response.raise_for_status()
+
+    #     img = Image.open(BytesIO(response.content)).convert('RGB')
+    #     img.thumbnail((width, height), Image.LANCZOS)
+
+    #     buffer = BytesIO()
+    #     img.save(buffer, format='WEBP', quality=80)
+    #     buffer.seek(0)
+
+    #     product = Product.objects.get(id=product_id)
+    #     product.thumbnail.save(f'{product.sku}_thumb.webp', ContentFile(buffer.read()), save=True)
+
+    # except Exception as e:
+    #     # pass
+    #     # Log or handle error
+    #     print(f"Thumbnail generation failed: {e}")

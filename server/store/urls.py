@@ -23,6 +23,7 @@ urlpatterns = [
     path('upload-csv', ProductCSVView.as_view(), name='upload-csv'), 
     path('delete-all-products', DeleteProductsView.as_view(), name='delete-all-products'),
     path('convert-links-to-imgs', LinksToGallery.as_view(), name='convert-links-to-imgs'),
+    path('resize', ResizeImageView.as_view(), name='resize'),
 
     path('allegro-token/<str:code>/<str:vendor_name>/', exchange_token_view, name='allegro-token'),
     path('vendors/<str:email>', user_vendors, name='vendors'),

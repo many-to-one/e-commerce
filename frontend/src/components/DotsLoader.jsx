@@ -3,6 +3,10 @@ const DotsLoader = () => (
       <span></span>
       <span></span>
       <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
   );
   

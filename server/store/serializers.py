@@ -78,7 +78,7 @@ class IconProductSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
-            "image",
+            "thumbnail",
             "img_links",
             "slug",
             "category",

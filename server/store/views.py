@@ -12,8 +12,9 @@ from rest_framework import mixins
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-# from .utils.statistic import get_client_ip_and_device
-# from store.tasks import store_product_images
+
+from .tasks import generate_thumbnail, test
+from django.http import HttpResponse
 
 from .utils.payu import get_client_ip, payu_authenticate, to_grosze
 from vendor.models import Vendor
@@ -64,19 +65,16 @@ class CategoriesView(generics.ListAPIView):
 #     permission_classes = (AllowAny, )
 
 
-
+# @method_decorator(cache_page(60 * 5), name='dispatch') # 5 min cache
 class ProductsView(generics.ListAPIView):
     serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny, )
 
-    # def get_queryset(self):
-    #     return Product.objects.all()
-
     def get_queryset(self):
         queryset = Product.objects.all()
         search = self.request.query_params.get('search')
-        print(' ***************** get queryset ++++++++++++++', search)
+        # print(' ***************** get queryset ++++++++++++++', search)
         if search:
             queryset = queryset.filter(title__icontains=search)  # or other fields
         return queryset
@@ -946,3 +944,38 @@ class LinksToGallery(APIView):
 #         return Response({
 #             "message": "Your message has been sent. We will contact you soon!"
 #         })
+
+
+
+
+class ResizeImageView(APIView):
+    def get(self, request):
+        image_url = request.query_params.get('url')
+        width = int(request.query_params.get('w', 200))
+        height = int(request.query_params.get('h', 200))
+
+        print('********** ResizeImageView **********', image_url, width, height)
+
+        if not image_url:
+            return Response({'error': 'Missing image URL'}, status=400)
+
+        product = Product.objects.filter(img_links__contains=[image_url]).first()
+        if not product:
+            return Response({'error': 'Product not found'}, status=404)
+
+        # generate_thumbnail(product.id, image_url, width, height)
+        test.delay(2, 2)
+
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+
+        img = Image.open(BytesIO(response.content)).convert('RGB')
+        img.thumbnail((width, height), Image.LANCZOS)
+
+        buffer = BytesIO()
+        img.save(buffer, format="WEBP", quality=80)
+        buffer.seek(0)
+
+        return HttpResponse(buffer.getvalue(), content_type="image/webp")
+        # return Response({'status': 'Thumbnail task queued'}, status=202)
+    

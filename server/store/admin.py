@@ -101,6 +101,16 @@ class ProductAdmin(ImportExportModelAdmin):
 
     offers = []
 
+    def product_image(self, obj):
+        if obj.thumbnail:
+            return format_html(
+                '<img src="{}" width="60" height="60" style="object-fit:cover;border-radius:4px;" />',
+                obj.thumbnail.url
+            )
+        return "No image"
+
+    product_image.short_description = "Zdjęcie"
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 

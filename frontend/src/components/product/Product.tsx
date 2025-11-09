@@ -5,6 +5,7 @@ import Likes from './Likes';
 import '../../styles/product.css';
 import { useNavigate } from 'react-router-dom';
 import '../../types/ProductType';
+import { API_BASE_URL } from '../../utils/constants';
 
 interface ProductProps {
     product: ProductType;
@@ -29,22 +30,38 @@ const Product: React.FC<ProductProps> = ({product}) => {
      >
         <div className='productImageCont'>
 
-          {/* { product.gallery.length === 0 ? (
-            <img src={product.img_links[0]} alt="" className='productImage'/>
-          ):(
-            <img src={product.image} alt="" className='productImage'/>
-          )} */}
-
-{ product.gallery?.length === 0 ? (
-    product.img_links?.length > 0 ? (
-        <img src={product.img_links[0]} alt="" className='productImage'/>
-    ) : (
-        <p>No image available</p>
-    )
-) : (
-    <img src={product.image} alt="" className='productImage'/>
-)}
-
+         {product.thumbnail ? (
+            <picture>
+              <source srcSet={product.thumbnail} type="image/webp" />
+              <img
+                src={product.thumbnail}
+                alt="Product"
+                width={200}
+                height={200}
+                loading="lazy"
+                style={{ objectFit: 'cover' }}
+              />
+            </picture>
+          ) : (
+            <picture>
+              {/* <source
+                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200`}
+                type="image/webp"
+              />
+              <source
+                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200&format=jpg`}
+                type="image/jpeg"
+              /> */}
+              <img
+                src={product.img_links[0]}
+                alt="Product"
+                width={200}
+                height={200}
+                loading="lazy"
+                style={{ objectFit: 'cover' }}
+              />
+            </picture>
+          )}
     
         </div>
         <p>{product.title}</p>

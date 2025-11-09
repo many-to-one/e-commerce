@@ -13,6 +13,7 @@ import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRigh
 import { useProductStore } from '../../store/products';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { debounce } from 'lodash';
+import DotsLoader from '../../components/DotsLoader';
 
 
 const Products: React.FC = () => {
@@ -31,6 +32,7 @@ const Products: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
 
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const navigate = useNavigate()
 
@@ -38,6 +40,7 @@ const Products: React.FC = () => {
     const fetchProducts = async ( url ) => {
 
         console.log(`currentPage`, currentPage);
+        setIsLoading(false);
 
         try {
            // const _url = search ? `${url}?search=${encodeURIComponent(search)}` : url;
@@ -54,11 +57,12 @@ const Products: React.FC = () => {
             setProducts(response.data.results);
             setNextPage(response.data.next);
             setPrevPage(response.data.previous);
+            setIsLoading(true);
             console.log(`nextPage`, nextPage);
             console.log(`prevPage`, prevPage);
 
             // Calculate total pages
-            const total = Math.ceil(response.data.count / 50);  // Since page_size = 50
+            const total = Math.ceil(response.data.count / 20);  // Since page_size = 50
             setTotalPages(total);
         } catch (error) {
             console.log('Products error', error)
@@ -74,8 +78,10 @@ const Products: React.FC = () => {
 
     const debouncedSearch = useCallback(
         debounce((value: string) => {
+        setIsLoading(false);
           navigate(`/?search=${encodeURIComponent(value)}`);
           window.location.reload(); // optional, but usually avoid this
+          setIsLoading(true);
         }, 300),
         []
       );
@@ -89,18 +95,23 @@ const Products: React.FC = () => {
     
 
     return (
-        <div>
 
-        {isMobile && (
-            <div className="flexRowCenterHeader mr-30 ">
-                <input
-                type="text"
-                onChange={(e) => debouncedSearch(e.target.value)}
-                placeholder="Szukaj produktów..."
-                className="SearchInput ml-30"
-                />
-            </div>
-        )}
+        <>
+
+        {isLoading === true ? (
+
+            <div>
+
+            {isMobile && (
+                <div className="flexRowCenterHeader mr-30 ">
+                    <input
+                    type="text"
+                    onChange={(e) => debouncedSearch(e.target.value)}
+                    placeholder="Szukaj produktów..."
+                    className="SearchInput ml-30"
+                    />
+                </div>
+            )}
 
             <div className='flexRowCenter productCont'>
 
@@ -140,6 +151,16 @@ const Products: React.FC = () => {
                 </button>
             </div>
         </div>
+
+        ):(
+
+            <div className='flexColumnCenter gap-15'>
+                <DotsLoader />
+            </div>
+
+        )} 
+
+    </>
     )
 }
 

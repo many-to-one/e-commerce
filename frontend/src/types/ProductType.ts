@@ -2,6 +2,7 @@ type ProductType = {
     id: number,
     gallery: string[],
     image: string,
+    thumbnail?: string,
     img_links: string[],
     title: string,
     brand: string,

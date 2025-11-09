@@ -29,7 +29,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.utils.urls import replace_query_param
 
 class StorePagination(PageNumberPagination):
-    page_size = 50  # default for desktop
+    page_size = 20  # default for desktop
 
     def get_page_size(self, request):
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
