@@ -3,6 +3,7 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
 from celery import shared_task
+from users.models import User
 from .models import ClientAccessLog, Product, Gallery
 
 def compress_image(image: Image.Image, max_size_kb=200):
@@ -63,9 +64,15 @@ from datetime import timedelta
 @shared_task
 def enrich_and_log_client_info(data):
     ip = data['ip']
-    username = data.get('username', 'Anonymous')
     user_agent = data['user_agent'].lower()
-    user = data.get('user', None)
+    username = data.get('username')
+    if username:
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            user = None
+    else:
+        user = None
     print('Celery user++++++++++++++++++++', user)
 
     # Geo lookup
@@ -104,7 +111,7 @@ def enrich_and_log_client_info(data):
 
     # Final log
     ClientAccessLog.objects.create(
-        user=username,
+        user=user,
         ip_address=ip,
         device_type=device_type,
         operating_system=os,
