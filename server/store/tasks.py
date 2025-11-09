@@ -73,7 +73,7 @@ def enrich_and_log_client_info(data):
             user = None
     else:
         user = None
-    print('Celery user++++++++++++++++++++', user)
+    # print('Celery user++++++++++++++++++++', user)
 
     # Geo lookup
     geo_location = get_geo_from_ip(ip)
@@ -126,7 +126,7 @@ def get_geo_from_ip(ip):
     try:
         res = requests.get(f'https://ipinfo.io/{ip}/json', timeout=2)
         data = res.json()
-        print('############################ get_geo_from_ip ############################', data)
+        # print('############################ get_geo_from_ip ############################', data)
         # Clean up empty or malformed fields
         location = {
             'ip': data.get('ip', ''),
@@ -144,27 +144,27 @@ def get_geo_from_ip(ip):
 
 @shared_task
 def test(x, y):
-    print('Test celery task running.../////////////////////////////////', x + y)
+    # print('Test celery task running.../////////////////////////////////', x + y)
     return x + y
 
 @shared_task
 def generate_thumbnail(product_id, image_url, width=200, height=200):
-    print('Generating thumbnail for////////////////////////////////////////////', product_id, image_url)
-    # try:
-    #     response = requests.get(image_url, timeout=10)
-    #     response.raise_for_status()
+    # print('Generating thumbnail for////////////////////////////////////////////', product_id, image_url)
+    try:
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
 
-    #     img = Image.open(BytesIO(response.content)).convert('RGB')
-    #     img.thumbnail((width, height), Image.LANCZOS)
+        img = Image.open(BytesIO(response.content)).convert('RGB')
+        img.thumbnail((width, height), Image.LANCZOS)
 
-    #     buffer = BytesIO()
-    #     img.save(buffer, format='WEBP', quality=80)
-    #     buffer.seek(0)
+        buffer = BytesIO()
+        img.save(buffer, format='WEBP', quality=80)
+        buffer.seek(0)
 
-    #     product = Product.objects.get(id=product_id)
-    #     product.thumbnail.save(f'{product.sku}_thumb.webp', ContentFile(buffer.read()), save=True)
+        product = Product.objects.get(id=product_id)
+        product.thumbnail.save(f'{product.sku}_thumb.webp', ContentFile(buffer.read()), save=True)
 
-    # except Exception as e:
-    #     # pass
-    #     # Log or handle error
-    #     print(f"Thumbnail generation failed: {e}")
+    except Exception as e:
+        # pass
+        # Log or handle error
+        print(f"Thumbnail generation failed: {e}")

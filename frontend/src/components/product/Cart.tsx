@@ -19,7 +19,7 @@ function Cart () {
     const fetchData = async () => {
       try {
         const resp = await axios_.get(`api/store/cart_count/${user['user_id']}`)
-        console.log("CountData:", resp.data["cart_count "]);
+        // console.log("CountData:", resp.data["cart_count "]);
         setCountData(resp.data["cart_count "])
         useAuthStore.getState().updateCartCount(resp.data["cart_count "]); 
       } catch (error) {
@@ -32,7 +32,7 @@ function Cart () {
     }, [user])
 
     useEffect(() => {
-        console.log("Updated countData:", countData);
+        // console.log("Updated countData:", countData);
     }, [countData]);
 
     const goToCart = () => {

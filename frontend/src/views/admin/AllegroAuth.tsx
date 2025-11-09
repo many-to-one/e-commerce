@@ -12,8 +12,8 @@ function AllegroAuth() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
-        console.log('codeL-------------:', code);
-        console.log('Vendor Name from URL-------------:', vendorName);
+        // console.log('codeL-------------:', code);
+        // console.log('Vendor Name from URL-------------:', vendorName);
         if (code) {
             setAuthCode(code);
             getAccessToken(code) 
@@ -24,7 +24,7 @@ function AllegroAuth() {
 
         axios_.post(`api/store/allegro-token/${code}/${vendorName}/`)
             .then(response => {
-            console.log('DRF allegro-token responce', response.data);
+            // console.log('DRF allegro-token responce', response.data);
             })
             .catch(error => {
             console.error('DRF allegro-token Axios error:', error);

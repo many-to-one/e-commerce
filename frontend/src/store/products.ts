@@ -26,7 +26,7 @@ const useProductStore = create<ProductStore>((set, get) => ({
 
   // setProducts: (products) => set({ allProducts: products, filteredProducts: products }),
   setProducts: (products: ProductType[]) => {
-    console.log('Setting products:', products.length);
+    // console.log('Setting products:', products.length);
     set({ allProducts: products, filteredProducts: products });
   },
   setLoading: (loading) => set({ loading }),

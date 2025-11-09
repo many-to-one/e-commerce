@@ -39,7 +39,7 @@ const ProductDetails: React.FC = () => {
     const location = useLocation();
     const prodId = location.state.id;
     const catId = location.state.catId;
-    console.log('catId', catId)
+    // console.log('catId', catId)
 
     useEffect(() => {
         window.scrollTo(0, 0); // Scroll to top
@@ -51,18 +51,13 @@ const ProductDetails: React.FC = () => {
 
         try {
             const response = await axios.get(endpoint);
-            console.log(`${endpoint}`, response.data, response.data.gallery.length)
-            console.log('---- Image Link -----', `${API_BASE_URL}media/default.jpg`)
+            // console.log(`${endpoint}`, response.data, response.data.gallery.length)
+            // console.log('---- Image Link -----', `${API_BASE_URL}media/default.jpg`)
             setProduct(response.data.product);
-            // if ( response.data.product.image === `${API_BASE_URL}media/default.jpg`) {
-            //     setMainImg(response.data.product.img_links[0])
-            // } else if (response.data.product.image.startsWith(`${API_BASE_URL}media/`) ) {
-            //     setMainImg(response.data.product.img_links[0])
-            // }
             setMainImg(response.data.product.img_links[0])
             setGallery(response.data.gallery);
             setIsLoading(true);
-            console.log(' --****-- mainImg -----****---- ', mainImg)
+            // console.log(' --****-- mainImg -----****---- ', mainImg)
         } catch (error) {
             console.log('Products error', error)
         }
@@ -78,7 +73,7 @@ const ProductDetails: React.FC = () => {
 
         try {
             const response = await axios.get(`/api/store/category-products/${catId}`);
-            console.log(`catProducts`, response.data)
+            // console.log(`catProducts`, response.data)
             setProducts(response.data.products)
             setIsLoading(true);
         } catch (error) {
@@ -95,7 +90,7 @@ const ProductDetails: React.FC = () => {
     const handleQuantityChange = (newQuantity) => {
         setOrderQuantity(newQuantity);
         // You can also perform additional actions here, such as updating the total price
-        console.log('handleQuantityChange', newQuantity)
+        // console.log('handleQuantityChange', newQuantity)
       };
 
     const updateMainImg = (image) => {
@@ -173,10 +168,10 @@ const ProductDetails: React.FC = () => {
                                         <SwiperSlide key={index}>
                                             {/* <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} /> */}
                                             <picture>
-                                                <source
-                                                    srcSet={`${image}.webp`}
+                                                {/* <source
+                                                    srcSet={`${image}.jpeg`}
                                                     type="image/webp"
-                                                />
+                                                /> */}
                                                 <img
                                                     src={image}
                                                     alt="ProductImgGallery"
@@ -191,14 +186,14 @@ const ProductDetails: React.FC = () => {
                                 ) : (
                                     gallery.map((gall, index) => (
                                         <SwiperSlide key={index}>
-                                            {/* <img 
+                                            <img 
                                                 src={gall.image} alt="" 
                                                 className="galleryImage" 
                                                 key={index} 
                                                 onMouseOver={() => updateMainImg(gall.image)} 
                                                 loading="lazy" 
-                                            /> */}
-                                            <picture>
+                                            />
+                                            {/* <picture>
                                                 <source
                                                     srcSet={`${gall.image}.webp`}
                                                     type="image/webp"
@@ -211,7 +206,7 @@ const ProductDetails: React.FC = () => {
                                                     onMouseOver={() => updateMainImg(gall.image)}
                                                     loading="lazy"
                                                 />
-                                            </picture>
+                                            </picture> */}
                                         </SwiperSlide>
                                     ))
                                 )}

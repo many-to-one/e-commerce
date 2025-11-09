@@ -11,7 +11,7 @@ const Login: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-    console.log('Login', isLoggedIn)
+    // console.log('Login', isLoggedIn)
     const navigate = useNavigate();
 
     useEffect(() => {

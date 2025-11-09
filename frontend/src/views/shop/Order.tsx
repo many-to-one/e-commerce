@@ -33,7 +33,7 @@ const Order: React.FC<OrderProps> = () => {
     const fetchCartData = async () => {
         try {
           const resp = await axios_.get(`api/store/cart/${user['user_id']}`);
-          console.log('Cart', resp.data.cart);
+        //   console.log('Cart', resp.data.cart);
           setCart(resp.data.cart);
           useAuthStore.getState().updateCartCount(resp.data.cart.length); 
           await getOrderPay(resp.data.cart);
@@ -47,7 +47,7 @@ const Order: React.FC<OrderProps> = () => {
         let count = 0;
         cart.map((c) => count += Number(c.total))
         count = Number(count.toFixed(2));
-        console.log('getOrderPay', count)
+        // console.log('getOrderPay', count)
         setOrderPay(count);
     }
         
@@ -56,7 +56,7 @@ const Order: React.FC<OrderProps> = () => {
     }, [])    
 
     useEffect(() => {
-        console.log("Updated Cart:", cart);
+        // console.log("Updated Cart:", cart);
     }, [cart]);
 
     const deleteItem = (id) => {
@@ -102,7 +102,7 @@ const Order: React.FC<OrderProps> = () => {
 
     const sendUpdateQty = async (id, quantity) => {
 
-        console.log('updateQty - id, quantity', id, quantity)
+        // console.log('updateQty - id, quantity', id, quantity)
         const body = {
           user_id: user['user_id'] || null,
           cart_id: id,
@@ -111,7 +111,7 @@ const Order: React.FC<OrderProps> = () => {
 
         try {
             const link = `${API_BASE_URL}api/store/cart/${id}`
-            console.log('sendUpdateQty link', link)
+            // console.log('sendUpdateQty link', link)
             const resp = await axios.put(link, body,
                 {
                     headers: {
@@ -121,7 +121,7 @@ const Order: React.FC<OrderProps> = () => {
                     },
                 },
             )
-            console.log('sendUpdateQty***', resp.data.cart)
+            // console.log('sendUpdateQty***', resp.data.cart)
           } catch (error) {
             console.log('sendUpdateQty error', error)
           }

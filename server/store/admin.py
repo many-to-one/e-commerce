@@ -102,12 +102,11 @@ class ProductAdmin(ImportExportModelAdmin):
     offers = []
 
     def product_image(self, obj):
-        if obj.thumbnail:
-            return format_html(
-                '<img src="{}" width="60" height="60" style="object-fit:cover;border-radius:4px;" />',
-                obj.thumbnail.url
-            )
-        return "No image"
+        gallery = obj.gallery().first()
+        if gallery and gallery.image:  # assuming Gallery model has 'image' field
+            return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', gallery.image.url)
+        return format_html('<span style="color: #999;">No image</span>')
+
 
     product_image.short_description = "Zdjęcie"
 
@@ -145,16 +144,16 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def allegro_export(self, request, queryset):
 
-        print('allegro_export request.user ----------------', request.user)
+        # print('allegro_export request.user ----------------', request.user)
         url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        for vendor in vendors:
-            print('allegro_export vendors ----------------', vendors)
+        # for vendor in vendors:
+            # print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
             access_token = vendor.access_token
             producer = self.responsible_producers(access_token, vendor.name)
-            print('allegro_export producer ----------------', producer)
+            # print('allegro_export producer ----------------', producer)
             for product in queryset:
                 # print('allegro_export ----------------', product.ean)
                 self.create_offer_from_product(product, url, access_token, vendor.name, producer)
@@ -596,7 +595,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         #     print('generate_invoice ----------- test', i)
 
         for allegro_order in invoices:
-            print('Generating invoice order*buyer_email ----------------', allegro_order.buyer_email)
+            # print('Generating invoice order*buyer_email ----------------', allegro_order.buyer_email)
             try:
                 invoice_data = {
                     'created_at': now(),

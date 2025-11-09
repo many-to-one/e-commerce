@@ -44,14 +44,14 @@ const Product: React.FC<ProductProps> = ({product}) => {
             </picture>
           ) : (
             <picture>
-              {/* <source
+              <source
                 srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200`}
                 type="image/webp"
               />
               <source
                 srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200&format=jpg`}
                 type="image/jpeg"
-              /> */}
+              />
               <img
                 src={product.img_links[0]}
                 alt="Product"

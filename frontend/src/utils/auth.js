@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 
 export const login = async (email, password) => {
 
-    console.log('LOGIN---', email, password)
+    // console.log('LOGIN---', email, password)
 
     try {
         const { data, status } = await axios.post('api/users/token', {
@@ -15,7 +15,7 @@ export const login = async (email, password) => {
         });
 
         if (status === 200) {
-            console.log('data', data)
+            // console.log('data', data)
             setAuthUser(data.access, data.refresh);
         }
 
@@ -34,7 +34,7 @@ export const login = async (email, password) => {
 
 export const register = async (full_name, email, phone, password, password2) => {
     try {
-        console.log(full_name, email, phone, password, password2)
+        // console.log(full_name, email, phone, password, password2)
         const { data } = await axios.post('api/users/register', {
             full_name,
             email,
@@ -43,7 +43,7 @@ export const register = async (full_name, email, phone, password, password2) => 
             password2
         });
 
-        console.log('register data', data)
+        // console.log('register data', data)
 
         await login(email, password);
 
@@ -83,7 +83,7 @@ export const isAccessTokenExpired = (accessToken) => {
 export const __userId = () => {
     try {
         const decodedToken = jwtDecode(Cookies.get('access_token'));
-        console.log('__userId', decodedToken);
+        // console.log('__userId', decodedToken);
         return decodedToken;
     } catch (error) {
         console.log('__userId--error', error);
@@ -141,7 +141,7 @@ export const setAuthUser = (access_token, refresh_token) => {
         expires: 7,  // Refresh token expires in 7 days
         secure: true,
     });
-    console.log('setAuthUser', user)
+    // console.log('setAuthUser', user)
 
     // If user information is present, update user state; otherwise, set loading state to false
     if (user) {
@@ -153,7 +153,7 @@ export const setAuthUser = (access_token, refresh_token) => {
 
 export const createNewPass = async (otp, uidb64, reset_token, password) => {
     try {
-        console.log(otp, uidb64, reset_token, password)
+        // console.log(otp, uidb64, reset_token, password)
         const { data } = await axios.post('api/users/new-password', {
             otp,
             uidb64,
@@ -161,7 +161,7 @@ export const createNewPass = async (otp, uidb64, reset_token, password) => {
             password,
         });
 
-        console.log('register data', data)
+        // console.log('register data', data)
 
         // await login(email, password);
 

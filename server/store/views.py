@@ -662,17 +662,17 @@ class ProductCSVView(APIView):
                     # print('***PANDAS-ROW-price***', row[14])
 
                     category = row.iloc[10].split('>')
-                    print('*** PANDAS-ROW-category ***', category)
+                    # print('*** PANDAS-ROW-category ***', category)
                     for cat in category:
                         # clean_cat = re.sub(r"\s*\(\d+\)", "", category).strip()
                         match = re.search(r"\((\d+)\)", cat)
                         if match:
                             allegro_cat_id = match.group(1)
 
-                    print('*** PANDAS-ROW category MAIN ***', category[0])
+                    # print('*** PANDAS-ROW category MAIN ***', category[0])
                     cat_set.add(category[-1:][0])
                     # print('*** PANDAS-ROW clean_cat ***', clean_cat)
-                    print('*** PANDAS-ROW allegro_cat_id ***', allegro_cat_id)
+                    # print('*** PANDAS-ROW allegro_cat_id ***', allegro_cat_id)
 
                     # DESCR
                     descr = []
@@ -700,11 +700,11 @@ class ProductCSVView(APIView):
                     for link in links:
                         img_links.append(f"{link.strip()},")
 
-                        print('***PANDAS-ROW***IMAGE --- STRIPT --- ', link.strip())
-                    print('***PANDAS-ROW***IMAGE --- LINKS ---', img_links)
-                    print('----------------------------------------------',)
-                    print('##############################################',)
-                    print('----------------------------------------------',)
+                    #     print('***PANDAS-ROW***IMAGE --- STRIPT --- ', link.strip())
+                    # print('***PANDAS-ROW***IMAGE --- LINKS ---', img_links)
+                    # print('----------------------------------------------',)
+                    # print('##############################################',)
+                    # print('----------------------------------------------',)
 
                     sub_cat = []
                     try:
@@ -755,126 +755,135 @@ class ProductCSVView(APIView):
             return Response({"error": str(e)}, status=500)
         
 
-# class LinksToGallery(APIView):
+class LinksToGallery(APIView):
 
-#     permission_classes = (AllowAny,)
+    permission_classes = (AllowAny,)
 
-#     def post(self, request):
+    def post(self, request):
 
-#         def compress_image(image: Image.Image, max_size_kb=200):
-#             """
-#             Compress image while keeping aspect ratio.
-#             - Reduces quality if needed to fit within `max_size_kb`.
-#             """
-#             output = BytesIO()
-#             quality = 85  # Start with high quality
-#             image.save(output, format="JPEG", quality=quality, optimize=True)
+        def compress_image(image: Image.Image, max_size_kb=200):
+            """
+            Compress image while keeping aspect ratio.
+            - Reduces quality if needed to fit within `max_size_kb`.
+            """
+            output = BytesIO()
+            quality = 85  # Start with high quality
+            image.save(output, format="JPEG", quality=quality, optimize=True)
             
-#             while output.tell() > max_size_kb * 1024 and quality > 10:
-#                 output.seek(0)
-#                 quality -= 5
-#                 output.truncate()
-#                 image.save(output, format="JPEG", quality=quality, optimize=True)
+            while output.tell() > max_size_kb * 1024 and quality > 10:
+                output.seek(0)
+                quality -= 5
+                output.truncate()
+                image.save(output, format="JPEG", quality=quality, optimize=True)
             
-#             output.seek(0)
-#             return output
+            output.seek(0)
+            return output
 
-#         try:
-#             products = Product.objects.all()
+        try:
+            products = Product.objects.all()
 
-#             for product in products:
-#                 img_links = product.img_links
+            for product in products:
+                img_links = product.img_links
 
-#                 if not img_links:
-#                     return f"No images found for product {product.id}"
+                if not img_links:
+                    return f"No images found for product {product.id}"
 
-#                 for index, img_url in enumerate(img_links):
-#                     response = requests.get(img_url.strip(), timeout=10)
-#                     if response.status_code == 200:
-#                         img = Image.open(BytesIO(response.content))
-#                         img = img.convert("RGB")  # Convert to RGB to avoid format issues
+                for index, img_url in enumerate(img_links):
+                    response = requests.get(img_url.strip(), timeout=10)
+                    if response.status_code == 200:
+                        img = Image.open(BytesIO(response.content))
+                        img = img.convert("RGB")  # Convert to RGB to avoid format issues
                         
-#                         # Compress image
-#                         compressed_img = compress_image(img)
+                        # Compress image
+                        compressed_img = compress_image(img)
 
-#                         # Save first image as `product.image`
-#                         if index == 0:
-#                             product.image.save(f"product_{product.id}.jpg", ContentFile(compressed_img.read()), save=True)
-#                         else:
-#                             # Save the rest as gallery images
-#                             gallery_img = Gallery(product=product)
-#                             gallery_img.image.save(f"gallery_{product.id}_{index}.jpg", ContentFile(compressed_img.read()), save=True)
-#                     else:
-#                         print('########### RESPONSE NOT 200', response.status_code)
+                        # Save first image as `product.image`
+                        if index == 0:
+                            product.image.save(f"{product.sku}.jpeg", ContentFile(compressed_img.read()), save=True)
+                            product.thumbnail.save(f"{product.sku}.webp", ContentFile(compressed_img.read()), save=True)
+                        else:
+                            # Save the rest as gallery images
+                            gallery_img = Gallery(product=product)
+                            gallery_img.image.save(f"gallery_{product.id}_{index}.jpg", ContentFile(compressed_img.read()), save=True)
+                    else:
+                        print('########### RESPONSE NOT 200', response.status_code)
 
-#             return Response({
-#                 "message": f"Images for products stored successfully"
-#             })
+            return Response({
+                "message": f"Images for products stored successfully"
+            })
 
-#         except Product.DoesNotExist:
-#              return Response({
-#                     "message": f"Product {product.id} does not exist"
-#                 })
-#         except Exception as e:
-#             return Response({
-#                     "message": f"Error: {str(e)}"
-#                 })
-
-
-
+        except Product.DoesNotExist:
+             return Response({
+                    "message": f"Product {product.id} does not exist"
+                })
+        except Exception as e:
+            return Response({
+                    "message": f"Error: {str(e)}"
+                })
 
 
 
-async def fetch_image(client, url: str) -> Image.Image | None:
-    try:
-        resp = await client.get(url, timeout=10)
-        resp.raise_for_status()
-        img = Image.open(BytesIO(resp.content))
-        return img.convert("RGB")
-    except Exception as e:
-        print("Failed to fetch", url, e)
-        return None
 
-async def fetch_all(urls: list[str]) -> list[Image.Image]:
-    async with httpx.AsyncClient() as client:
-        tasks = [fetch_image(client, u) for u in urls]
-        return await asyncio.gather(*tasks)
+
+
+# async def fetch_image(client, url: str) -> Image.Image | None:
+#     try:
+#         resp = await client.get(url, timeout=10)
+#         resp.raise_for_status()
+#         img = Image.open(BytesIO(resp.content))
+#         return img.convert("RGB")
+#     except Exception as e:
+#         print("Failed to fetch", url, e)
+#         return None
+
+# async def fetch_all(urls: list[str]) -> list[Image.Image]:
+#     async with httpx.AsyncClient() as client:
+#         tasks = [fetch_image(client, u) for u in urls]
+#         return await asyncio.gather(*tasks)
     
-def compress_image(img: Image.Image, max_size_kb=200) -> BytesIO:
-    output = BytesIO()
-    quality = 85
-    while True:
-        output.seek(0)
-        output.truncate()
-        img.save(output, format="JPEG", quality=quality, optimize=True)
-        if output.tell() <= max_size_kb * 1024 or quality <= 10:
-            break
-        quality -= 5
-    output.seek(0)
-    return output
+# def compress_image(img: Image.Image, max_size_kb=200) -> BytesIO:
+#     output = BytesIO()
+#     quality = 85
+#     while True:
+#         output.seek(0)
+#         output.truncate()
+#         img.save(output, format="JPEG", quality=quality, optimize=True)
+#         if output.tell() <= max_size_kb * 1024 or quality <= 10:
+#             break
+#         quality -= 5
+#     output.seek(0)
+#     return output
 
 
-def save_product_images(product, images: list[Image.Image]):
-    gallery_objs = []
-    for idx, img in enumerate(images):
-        if not img:
-            continue
-        compressed = compress_image(img)
-        if idx == 0:
-            product.image.save(
-                f"product_{product.id}.jpg",
-                ContentFile(compressed.read()),
-                save=True
-            )
-        else:
-            gallery_objs.append(
-                Gallery(
-                    product=product,
-                    image=ContentFile(compressed.read(), name=f"gallery_{product.id}_{idx}.jpg")
-                )
-            )
-    if gallery_objs:
-        Gallery.objects.bulk_create(gallery_objs)
+# def save_product_images(product, images: list[Image.Image]): 
+#     for idx, img in enumerate(images):
+#     # for idx, img in enumerate(images):
+#         if not img:
+#             continue
+#         compressed = compress_image(img)
+#         if idx == 0:
+#             product.thumbnail.save(
+#                 f"{product.sku}_thumb.jpg",
+#                 ContentFile(compressed.read()),
+#                 save=True
+#             )
+#         else:
+#             gallery = Gallery(product=product)
+#             gallery.image.save(
+#                 f"{product.sku}_{idx}.jpg",
+#                 ContentFile(compressed.read()),
+#                 save=True
+#             )
+
+
+
+
+
+
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework.permissions import AllowAny
+# from asgiref.sync import sync_to_async
 
 
 # class LinksToGallery(APIView):
@@ -882,44 +891,22 @@ def save_product_images(product, images: list[Image.Image]):
 
 #     async def post(self, request):
 #         try:
-#             for product in Product.objects.all():
+#             # ORM call wrapped in sync_to_async
+#             products = await sync_to_async(list)(Product.objects.all())
+
+#             for product in products:
 #                 if not product.img_links:
 #                     continue
+
+#                 # async httpx fetch
 #                 images = await fetch_all(product.img_links)
-#                 save_product_images(product, images)
+
+#                 # save_product_images is sync (uses ORM + file I/O)
+#                 await sync_to_async(save_product_images)(product, images)
+
 #             return Response({"message": "Images stored successfully"})
 #         except Exception as e:
 #             return Response({"message": f"Error: {e}"})
-
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from asgiref.sync import sync_to_async
-
-
-class LinksToGallery(APIView):
-    permission_classes = (AllowAny,)
-
-    async def post(self, request):
-        try:
-            # ORM call wrapped in sync_to_async
-            products = await sync_to_async(list)(Product.objects.all())
-
-            for product in products:
-                if not product.img_links:
-                    continue
-
-                # async httpx fetch
-                images = await fetch_all(product.img_links)
-
-                # save_product_images is sync (uses ORM + file I/O)
-                await sync_to_async(save_product_images)(product, images)
-
-            return Response({"message": "Images stored successfully"})
-        except Exception as e:
-            return Response({"message": f"Error: {e}"})
 
 
 
@@ -954,7 +941,7 @@ class ResizeImageView(APIView):
         width = int(request.query_params.get('w', 200))
         height = int(request.query_params.get('h', 200))
 
-        print('********** ResizeImageView **********', image_url, width, height)
+        # print('********** ResizeImageView **********', image_url, width, height)
 
         if not image_url:
             return Response({'error': 'Missing image URL'}, status=400)
@@ -963,8 +950,8 @@ class ResizeImageView(APIView):
         if not product:
             return Response({'error': 'Product not found'}, status=404)
 
-        # generate_thumbnail(product.id, image_url, width, height)
-        test.delay(2, 2)
+        generate_thumbnail.delay(product.id, image_url, width, height)
+        # test.delay(2, 2)
 
         response = requests.get(image_url, timeout=10)
         response.raise_for_status()

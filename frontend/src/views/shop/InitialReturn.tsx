@@ -25,7 +25,7 @@ function InitialReturn() {
     const [total, setTotal] = useState(total_price);
     const [returnReason, setReturnReason] = useState('');
 
-    console.log('InitialReturn', item, return_reasons)
+    // console.log('InitialReturn', item, return_reasons)
 
     const handleQtyChange = (e) => {
 
@@ -45,7 +45,7 @@ function InitialReturn() {
     };
 
     const initialReturn = async (product) => {
-            console.log('initialReturn called', oid, product.id)
+            // console.log('initialReturn called', oid, product.id)
 
             if (returnReason === 'Powód zwrotu' || returnReason === '') {
                 showToast('error', 'Wybierz powód zwrotu')
@@ -62,7 +62,7 @@ function InitialReturn() {
             }
             try {
                 const resp = await axios_.post('api/store/return-item', body)
-                console.log('initialReturn', resp)
+                // console.log('initialReturn', resp)
                 navigate('/profile')
             } catch (error) {
                 showToast("error", error)
@@ -71,7 +71,7 @@ function InitialReturn() {
 
 
     const handleReason = (e) => {
-        console.log('handleReason---', e.target.value)
+        // console.log('handleReason---', e.target.value)
         setReturnReason(e.target.value)
     }
 

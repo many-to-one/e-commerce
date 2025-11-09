@@ -11,7 +11,7 @@ function Profile() {
     // const user = useAuthStore((state) => state.allUserData);
     const user = __userId(); 
     // console.log('user', user['username']);
-    console.log('user', user);
+    // console.log('user', user);
     const navigate = useNavigate();
     const axios_ = useAxios();
 
@@ -21,7 +21,7 @@ function Profile() {
       axios_.get(`api/store/vendors/${user['email']}`)
         .then(response => {
           setVendors(response.data.vendors)
-          console.log('DRF vendors responce -------------:', response.data);
+          // console.log('DRF vendors responce -------------:', response.data);
         })
         .catch(error => {
           console.error('DRF vendors Axios error ----------:', error);

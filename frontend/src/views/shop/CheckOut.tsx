@@ -41,7 +41,7 @@ const CheckOut: React.FC = () => {
         try {
             const resp = await axios.get(endpoint)
             setCouriers(resp.data.couriers)
-            console.log('couriers', resp)
+            // console.log('couriers', resp)
         } catch (error) {
             showToast("error", error)
         }
@@ -49,10 +49,10 @@ const CheckOut: React.FC = () => {
 
     const makeOrder = async () => {
 
-        console.log('makeOrder, courier', selectedCourier)
+        // console.log('makeOrder, courier', selectedCourier)
 
         if ( selectedCourier === '' ) {
-            showToast("warning", "Please chouse the delivery")
+            showToast("warning", "Wybierz przewoźnika!")
             return;
         }
 
@@ -63,7 +63,7 @@ const CheckOut: React.FC = () => {
 
         if (!fullName || !email || !mobile || !street || !postCode || !number || !city) {
             // If any required field is missing, show an error message or take appropriate action
-            showToast("warning", "Missing Fields!")
+            showToast("warning", "Nie wszystkie pola uzupełnione!")
             return;
         } else {
 
@@ -88,17 +88,17 @@ const CheckOut: React.FC = () => {
                     const payment = await axios.post(`api/store/stripe-payment`, {
                         order_oid: resp.data.order.oid
                     })
-                    console.log('payment', payment)
+                    // console.log('payment', payment)
                     if ( payment.status === 200 ) {
                         await finishOrder(resp.data.order.oid)
                         window.location.href = payment.data.redirect_url;
                         // window.location.href = payment.data.checkout_session
                     } else {
-                        showToast("error", 'Problems with payment')
+                        showToast("error", 'Wystapiły problemy z płatnością')
                     }
 
                 } else {
-                    showToast("error", 'Problems with payment')
+                    showToast("error", 'Wystapiły problemy z zamówieniem')
                 }
             } catch (error) {
                 showToast("error", error)
@@ -116,16 +116,16 @@ const CheckOut: React.FC = () => {
     const handleCourierChange = (e) => {
 
         if ( e === "Darmowa" ) {
-            console.log("handleCourierChange=Darmowa", e)
+            // console.log("handleCourierChange=Darmowa", e)
             setSelectedCourier(e);
             setTotalOrderPrice(orderPay)
         } else {
-            console.log("handleCourierChange", e)
+            // console.log("handleCourierChange", e)
             const { name } = JSON.parse(e);
-            console.log("handleCourierChange name", name)
+            // console.log("handleCourierChange name", name)
             setSelectedCourier(name);
             const { price } = JSON.parse(e);
-            console.log("handleCourierChange price", price)
+            // console.log("handleCourierChange price", price)
             setTotalOrderPrice(orderPay + Number(price))
         }
     }

@@ -39,7 +39,7 @@ const Products: React.FC = () => {
 
     const fetchProducts = async ( url ) => {
 
-        console.log(`currentPage`, currentPage);
+        // console.log(`currentPage`, currentPage);
         setIsLoading(false);
 
         try {
@@ -49,17 +49,17 @@ const Products: React.FC = () => {
             ? `${url}${hasQuery ? '&' : '?'}search=${encodeURIComponent(search)}`
             : url;
 
-            console.log(`fetchProducts url --------`, _url);
+            // console.log(`fetchProducts url --------`, _url);
             const response = await axios.get(_url);
-            console.log(`fetchProducts response --------`, response);
+            // console.log(`fetchProducts response --------`, response);
 
             // console.log(`${url}`, response.data)
             setProducts(response.data.results);
             setNextPage(response.data.next);
             setPrevPage(response.data.previous);
             setIsLoading(true);
-            console.log(`nextPage`, nextPage);
-            console.log(`prevPage`, prevPage);
+            // console.log(`nextPage`, nextPage);
+            // console.log(`prevPage`, prevPage);
 
             // Calculate total pages
             const total = Math.ceil(response.data.count / 20);  // Since page_size = 50

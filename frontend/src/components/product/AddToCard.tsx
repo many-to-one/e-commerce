@@ -29,10 +29,10 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
   const accessToken = Cookies.get('access_token');
   const user = __userId(); //useAuthStore((state) => state.allUserData);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  console.log('AddToCard user', user)
+  // console.log('AddToCard user', user)
 
     const sendToCard = async () => {
-        console.log('AddToCard', id, quantity)
+        // console.log('AddToCard', id, quantity)
 
         if ( user === null ) {
           navigate('/login')
@@ -46,7 +46,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
         
           try {
             const link = `${API_BASE_URL}api/store/add-to-cart`
-            console.log('AddToCard link', link)
+            // console.log('AddToCard link', link)
             const resp = await axios.post(link, body,
               {
                   headers: {
@@ -58,7 +58,7 @@ const AddToCard: React.FC<AddToCardProps> = ({id, quantity}) => {
             )
             // console.log('sendToCard***', resp)
             useAuthStore.getState().addCartCount();
-            showToast("success", "Added product to cart")
+            showToast("success", "Produkt dodany do koszyka!")
           } catch (error) {
             console.log('sendToCard error', error)
             if ( error.status === 403 ) {

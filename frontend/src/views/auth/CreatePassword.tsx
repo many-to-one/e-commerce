@@ -20,7 +20,7 @@ const CreatePassword: React.FC = () => {
 
         if ( password === password2 ) {
             const res = await createNewPass(otp, uidb64, reset_token, password);
-            console.log('newPass', res);
+            // console.log('newPass', res);
             if ( res.data.status === 200 ) {
                 navigation('/login');
             }

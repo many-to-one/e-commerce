@@ -42,7 +42,7 @@ const Category: React.FC<CategoryProps> = ({category}) => {
     }
 
     const goToSubProducts = (subCat) => {
-      console.log('subCat', subCat)
+      // console.log('subCat', subCat)
       navigate(`sub-category-products/${category.slug}`, {state: {subCat: subCat}});
       window.location.reload(); // Ważne do odświeżenia widoku po nawigacji !!
     }

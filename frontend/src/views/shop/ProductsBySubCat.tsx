@@ -21,7 +21,7 @@ const ProductsBySubCat: React.FC = () => {
 
     try {
         const response = await axios.get(endpoint);
-        console.log(`${endpoint}`, response.data)
+        // console.log(`${endpoint}`, response.data)
         setProducts(response.data.products);
         setCategory(response.data.category);
     } catch (error) {

@@ -27,7 +27,7 @@ function OrderHistory() {
             const resp = await axios_.get('api/store/order-history')
             setProducts(resp.data.results)
             setReturnReasons(resp.data.return_reasons)
-            console.log('OrderHistory', resp)
+            // console.log('OrderHistory', resp)
         } catch (error) {
             showToast("error", error)
         }
@@ -58,7 +58,7 @@ function OrderHistory() {
                 }
         
                 const data = await response.json();
-                console.log('getDPDToken', data)
+                // console.log('getDPDToken', data)
                 // return data.token; // Assuming the API response contains a "token" field
             } catch (error) {
                 console.error("Error getting DPD token:", error);

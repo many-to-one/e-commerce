@@ -17,7 +17,7 @@ const ForgotPassword: React.FC = () => {
         try {
             await axios.get(`api/users/password-reset/${email}`)
             .then((res) => {
-                console.log('response', res)
+                // console.log('response', res)
                 alert('Sprawdź swoją skrzynkę email w celu zresetowania hasła.');
                 // navigate(`/${res.data.link}`);
             });

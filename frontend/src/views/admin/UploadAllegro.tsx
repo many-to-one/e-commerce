@@ -40,15 +40,15 @@ const UploadAllegro: React.FC = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setIsLoading(true);
-      console.log("sendFile", resp);
+      // console.log("sendFile", resp);
       showToast("success", "Plik przesłany pomyślnie!");
     } catch (error) {
       console.log("error - upload", error);
       // Axios errors often have response data here:
       if (error.response && error.response.data) {
-        showToast("error", error.response.data.Błąd || "Upload failed");
+        showToast("error", error.response.data.Błąd || "Coś poszło nie tak...");
       } else {
-        showToast("error", "Unexpected error");
+        showToast("error", "Coś poszło nie tak...");
       }
     }
 
@@ -78,12 +78,13 @@ const UploadAllegro: React.FC = () => {
     }
   }
 
-  const convertImages = async () => {
+  const convertImages = () => {
     setIsLoading(false);
     try {
-      const resp = await axios_.post('api/store/convert-links-to-imgs')
+      const resp = axios_.post('api/store/convert-links-to-imgs')
+      // console.log("convertImages*****************", resp);
       setIsLoading(true);
-      showToast("success", "Wszystkie produkty zostały usunięte");
+      showToast("success", "Zdjęcia w trakcie zapisywania");
     } catch (error) {
       showToast("error", "Coś poszło nie tak...");
     }
