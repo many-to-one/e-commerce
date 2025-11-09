@@ -5,7 +5,7 @@ import Likes from './Likes';
 import '../../styles/product.css';
 import { useNavigate } from 'react-router-dom';
 import '../../types/ProductType';
-import { API_BASE_URL } from '../../utils/constants';
+import { API_BASE_URL, IMG_BASE_URL } from '../../utils/constants';
 
 interface ProductProps {
     product: ProductType;
@@ -23,6 +23,8 @@ const Product: React.FC<ProductProps> = ({product}) => {
     }
   }, [])
 
+  const thumb = product.thumbnail?.replace('http://', 'https://');
+
   return (
     <div
       className='productCard' 
@@ -30,11 +32,11 @@ const Product: React.FC<ProductProps> = ({product}) => {
      >
         <div className='productImageCont'>
 
-         {product.thumbnail ? (
+         {thumb ? (
             <picture>
-              <source srcSet={product.thumbnail} type="image/webp" />
+              <source srcSet={thumb} type="image/webp" />
               <img
-                src={product.thumbnail}
+                src={thumb}
                 alt="Product"
                 width={200}
                 height={200}
