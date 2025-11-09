@@ -130,8 +130,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: eshop_web
-    command: sh -c "uvicorn backend.asgi:application --host 0.0.0.0 --port ${DJANGO_PORT} --reload"
-    # command: sh -c "uvicorn backend.asgi:application --workers 4 --threads 2 --timeout 120"
+    # command: sh -c "uvicorn backend.asgi:application --host 0.0.0.0 --port ${DJANGO_PORT} --reload"
+    command: sh -c "uvicorn backend.asgi:application --workers 4 --threads 2 --timeout 120"
     volumes:
       - ./server:/app
     ports:
