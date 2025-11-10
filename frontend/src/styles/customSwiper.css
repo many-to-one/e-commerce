@@ -1,38 +1,28 @@
 .swiper {
-    width: 100%;
+    width: 100% !important;
     padding-top: 50px;
     padding-bottom: 50px;
+    margin-left: 50px;
   }
   
-  /* .swiper-slide {
-    background-position: center;
-    background-size: cover;
-    width: 200px !important;
-    height: 300px;
-  }
-  
-  .swiper-slide img {
-    display: block;
-    width: 100%;
-  } */
 
   .swiper-pagination {
     position: relative !important;
   }
   
-  /* Product Swiper Slide */
+
   .mySwiper .swiper-slide {
     width: 200px !important;
     height: 300px;
   }
-  
-  /* Product Swiper Images */
+
   .mySwiper .swiper-slide img {
+    touch-action: pan-y !important;
     display: block;
     width: 100%;
   }
   
-  /* 🎯 Specific Gallery Swiper Styles */
+
   .gallerySwiper .swiper-slide {
     width: auto !important; 
     height: auto;
@@ -41,9 +31,24 @@
     align-items: center;
   }
   
-  /* Gallery Images */
   .gallerySwiper .swiper-slide img {
     max-width: 150px;
     max-height: 150px;
     object-fit: contain;
   }
+
+  .swiper-slide {
+  cursor: grab;
+}
+
+.swiper-slide * {
+  pointer-events: none;
+}
+
+.swiper-slide a,
+.swiper-slide button {
+  pointer-events: auto;
+}
+
+
+

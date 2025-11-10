@@ -101,10 +101,15 @@ class ProductAdmin(ImportExportModelAdmin):
 
     offers = []
 
-    def product_image(self, obj):
-        gallery = obj.gallery().first()
-        if gallery and gallery.image:  # assuming Gallery model has 'image' field
-            return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', gallery.image.url)
+    # def product_image(self, obj):
+    #     gallery = obj.gallery().first()
+    #     if gallery and gallery.image:  # assuming Gallery model has 'image' field
+    #         return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', gallery.thumbnail.url)
+    #     return format_html('<span style="color: #999;">No image</span>')
+
+    def product_image(self, obj):  # assuming Gallery model has 'image' field
+        if obj.thumbnail:
+            return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', obj.thumbnail.url)
         return format_html('<span style="color: #999;">No image</span>')
 
 

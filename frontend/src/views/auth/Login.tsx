@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../../utils/auth';
 import '../../styles/auth.css'
+import DotsLoader from '../../components/DotsLoader';
 
 const Login: React.FC = () => {
 
@@ -41,7 +42,9 @@ const Login: React.FC = () => {
 
 
   return (
-    <div>
+    <>
+    {isLoading === true ? (
+        <div>
         <form onSubmit={handleLogin} className='flexColumnCenter'>
             <img src="/login.jpg" alt="login" width={300}/>
             <input 
@@ -71,6 +74,13 @@ const Login: React.FC = () => {
             </p>
         </form>
     </div>
+    ):(
+        <div className='flexColumnCenter gap-15'>
+            <DotsLoader />
+        </div>
+    )}
+    
+    </>
   )
 }
 

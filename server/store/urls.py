@@ -6,6 +6,9 @@ from .allegro_views.vendors import *
 urlpatterns = [
     path('categories', CategoriesView.as_view(), name='categories'),
     path('products', ProductsView.as_view(), name='products'),
+    path('popular', PopularProductsView.as_view(), name='popular'),
+    path('discounts', DiscountProductsView.as_view(), name='discounts'),
+    path('news', NewsProductsView.as_view(), name='news'),
     path('product/<int:id>', ProductDetailsView.as_view(), name='product-details'),
     path('category-products/<int:id>', ProductsByCat.as_view(), name='category-products'),
     path('sub-category-products/<str:sub_cat>', ProductsBySubCat.as_view(), name='sub-category-products'),

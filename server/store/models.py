@@ -103,9 +103,9 @@ class Product(models.Model):
     type = models.CharField(choices=PRODUCT_TYPE, max_length=50, default="regular")
     
     # Product flags (featured, hot deal, special offer, digital)
-    featured = models.BooleanField(default=False)
-    hot_deal = models.BooleanField(default=False)
-    special_offer = models.BooleanField(default=False)
+    featured = models.BooleanField(default=False, verbose_name='Nowości')
+    hot_deal = models.BooleanField(default=False, verbose_name='Rabat')
+    special_offer = models.BooleanField(default=False, verbose_name='Popularne')
     digital = models.BooleanField(default=False)
     
     # Product statistics (views, orders, saved, rating)

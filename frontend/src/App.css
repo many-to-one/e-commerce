@@ -3,6 +3,13 @@
   margin: 10px;
   padding: 10px;
   /* background-color: var(--); */
+  --pink: #ff6fb5;
+  --blue: #5ec8e6;
+  --yellow: #ffe873;
+  --violet: #b984f6;
+  --white: #fff;
+  --gray: #f9f9f9;
+  --btn-color: greenyellow;
 }
 
 .Header {
@@ -220,14 +227,6 @@
   .Cursor {
     font-size: 16px;
     padding: 8px 0;
-  }
-
-  .productCont {
-    margin-top: 0px;
-    /* margin-left: -17%; */
-    background-color: var(--p-card-bg-color);
-    padding: 5px;
-    width: 96vw;
   }
 
   .flexColumnCenter {

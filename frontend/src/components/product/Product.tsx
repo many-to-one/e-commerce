@@ -27,10 +27,10 @@ const Product: React.FC<ProductProps> = ({product}) => {
 
   return (
     <div
-      className='productCard' 
+      className='product-card product-info' 
       onClick={() => navigate(`/product-details/${product.slug}`, {state:{ id: product.id, catId: product.category}})}
      >
-        <div className='productImageCont'>
+        <div>
 
          {thumb ? (
             <picture>
@@ -41,7 +41,14 @@ const Product: React.FC<ProductProps> = ({product}) => {
                 width={200}
                 height={200}
                 loading="lazy"
-                style={{ objectFit: 'cover' }}
+                // style={{ objectFit: 'cover' }}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                style={{
+                  touchAction: 'pan-y',       // allow vertical page scroll, allow horizontal swipes
+                  // WebkitUserDrag: 'none',
+                  userSelect: 'none',
+                }}
               />
             </picture>
           ) : (
@@ -60,14 +67,21 @@ const Product: React.FC<ProductProps> = ({product}) => {
                 width={200}
                 height={200}
                 loading="lazy"
-                style={{ objectFit: 'cover' }}
+                // style={{ objectFit: 'cover' }}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                style={{
+                  touchAction: 'pan-y',       // allow vertical page scroll, allow horizontal swipes
+                  // WebkitUserDrag: 'none',
+                  userSelect: 'none',
+                }}
               />
             </picture>
           )}
     
         </div>
-        <p>{product.title}</p>
-          <div className='flexRowStart gap-15'>
+        <h3>{product.title}</h3>
+          <div className='price'>
             {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price} PLN</p>}
             <p>{product.price} PLN</p>
           </div>

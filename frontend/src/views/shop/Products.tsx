@@ -75,16 +75,6 @@ const Products: React.FC = () => {
         fetchProducts('/api/store/products?page=1')
     }, [])
 
-
-    const debouncedSearch = useCallback(
-        debounce((value: string) => {
-        setIsLoading(false);
-          navigate(`/?search=${encodeURIComponent(value)}`);
-          window.location.reload(); // optional, but usually avoid this
-          setIsLoading(true);
-        }, 300),
-        []
-      );
     
     
     useEffect(() => {
@@ -101,17 +91,6 @@ const Products: React.FC = () => {
         {isLoading === true ? (
 
             <div>
-
-            {isMobile && (
-                <div className="flexRowCenterHeader mr-30 ">
-                    <input
-                    type="text"
-                    onChange={(e) => debouncedSearch(e.target.value)}
-                    placeholder="Szukaj produktów..."
-                    className="SearchInput ml-30"
-                    />
-                </div>
-            )}
 
             <div className='flexRowCenter productCont'>
 

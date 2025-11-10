@@ -40,6 +40,11 @@
 } 
 
 
+@media (max-width: 748px) {
+  .dots-loader {
+    margin-left: 50%;
+  }
+}
 
 
 

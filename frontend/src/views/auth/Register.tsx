@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../utils/auth';
 import { useAuthStore } from '../../store/auth';
 import '../../styles/auth.css';
+import DotsLoader from '../../components/DotsLoader';
 
 function Register() {
     const [fullName, setFullName] = useState<string>("");
@@ -45,7 +46,9 @@ function Register() {
 
 
   return (
-    <div>
+    <>
+    {isLoading === true ? (
+        <div>
         <form onSubmit={handleRegister} className='flexColumnCenter'>
             <img src="/register.jpg" alt="register" width={560}/>
             <input 
@@ -95,6 +98,12 @@ function Register() {
             </p>
         </form>
     </div>
+    ):(
+        <div className='flexColumnCenter gap-15'>
+            <DotsLoader />
+        </div>
+    )}
+    </>
   )
 }
 

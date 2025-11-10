@@ -30,6 +30,8 @@ const Order: React.FC<OrderProps> = () => {
     const [orderPay, setOrderPay] = useState<number>(0.00);
     const [inputQty, setInputQty] = useState({});
 
+    // console.log('user///////////////', user)
+
     const fetchCartData = async () => {
         try {
           const resp = await axios_.get(`api/store/cart/${user['user_id']}`);

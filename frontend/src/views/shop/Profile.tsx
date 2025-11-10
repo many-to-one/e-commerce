@@ -17,17 +17,41 @@ function Profile() {
 
     const [vendors, setVendors] = React.useState([])
 
+    // useEffect(() => {
+    //   axios_.get(`api/store/vendors/${user['email']}`)
+    //     .then(response => {
+    //       setVendors(response.data.vendors)
+    //       console.log('DRF vendors responce -------------:', response.data);
+    //     })
+    //     .catch(error => {
+    //       console.error('DRF vendors Axios error ----------:', error);
+    //       navigate('/login');
+    //     });
+    //   }, []);
+
     useEffect(() => {
-      axios_.get(`api/store/vendors/${user['email']}`)
-        .then(response => {
-          setVendors(response.data.vendors)
-          // console.log('DRF vendors responce -------------:', response.data);
-        })
-        .catch(error => {
-          console.error('DRF vendors Axios error ----------:', error);
-          navigate('/login');
-        });
-      }, []);
+  const fetchVendors = async () => {
+    if (!user) {
+      console.warn('User email not defined, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await axios_.get(`api/store/vendors/${user['email']}`);
+      setVendors(response.data.vendors);
+      console.log('DRF vendors response -------------:', response.data);
+    } catch (error) {
+      console.error('DRF vendors Axios error ----------:', error);
+      navigate('/login');
+    }
+  };
+
+  fetchVendors();
+}, [user]);
+
+
+
     
 
     const loginAllegro = ( client_id, vendor_name ) => {
@@ -37,37 +61,81 @@ function Profile() {
     }
 
 
-  return (
-    <div className='flexColumnCenter'>
+//   return (
+//     <div className='flexColumnCenter'>
 
+//         <p>Adres e-mail: {user['email']}</p>
+//         <p>Imię i nazwisko: {user['first_name']} {user['last_name']}</p>
+
+//         {user['user_id'] === 1 &&
+//             <button className='Cursor fileUpload' onClick={()=> navigate('/upload-files')}>Importuj oferty allegro</button>
+//             // <button className='Cursor fileUpload' onClick={()=> navigate('/allegro-auth')}>Zaloguj się do allegro</button>
+//         }
+//          {/* <button className='Cursor fileUpload' onClick={()=> loginAllegro()}>Zaloguj się do allegro</button> */}
+
+//         {vendors.length > 0 && 
+//             <div className='flexColumnCenter'>
+//                 <p>Twoje sklepy:</p>
+//                 {vendors.map((vendor, index) => (
+//                     <div key={index} className='flexRowCenter gap10px border1px p5px m5px Cursor'>
+//                         {/* <MaterialIcon icon="store" onClick={()=> loginAllegro(vendor.client_id, vendor.name)} /> */}
+//                         <StorefrontRoundedIcon onClick={()=> loginAllegro(vendor.client_id, vendor.name)} />
+//                         <p>{vendor.marketplace} - {vendor.name}</p>
+//                     </div>
+//                 ))}
+//             </div>
+//         }
+
+//         {/* <button className='Cursor' onClick={()=> navigate('/profile-edit')}>Edytuj profil</button> */}
+//         <button className='Cursor' onClick={()=> navigate('/returns')}>Zwroty</button>
+//         <p>Historia zamówień:</p>
+//         <OrderHistory />
+//     </div>
+//   )
+// }
+
+return (
+  <div className='flexColumnCenter'>
+    {user ? (
+      <>
         <p>Adres e-mail: {user['email']}</p>
         <p>Imię i nazwisko: {user['first_name']} {user['last_name']}</p>
 
-        {user['user_id'] === 1 &&
-            <button className='Cursor fileUpload' onClick={()=> navigate('/upload-files')}>Importuj oferty allegro</button>
-            // <button className='Cursor fileUpload' onClick={()=> navigate('/allegro-auth')}>Zaloguj się do allegro</button>
-        }
-         {/* <button className='Cursor fileUpload' onClick={()=> loginAllegro()}>Zaloguj się do allegro</button> */}
+        {user['user_id'] === 1 && (
+          <button
+            className='Cursor fileUpload'
+            onClick={() => navigate('/upload-files')}
+          >
+            Importuj oferty allegro
+          </button>
+        )}
 
-        {vendors.length > 0 && 
-            <div className='flexColumnCenter'>
-                <p>Twoje sklepy:</p>
-                {vendors.map((vendor, index) => (
-                    <div key={index} className='flexRowCenter gap10px border1px p5px m5px Cursor'>
-                        {/* <MaterialIcon icon="store" onClick={()=> loginAllegro(vendor.client_id, vendor.name)} /> */}
-                        <StorefrontRoundedIcon onClick={()=> loginAllegro(vendor.client_id, vendor.name)} />
-                        <p>{vendor.marketplace} - {vendor.name}</p>
-                    </div>
-                ))}
-            </div>
-        }
+        {vendors.length > 0 && (
+          <div className='flexColumnCenter'>
+            <p>Twoje sklepy:</p>
+            {vendors.map((vendor, index) => (
+              <div
+                key={index}
+                className='flexRowCenter gap10px border1px p5px m5px Cursor'
+              >
+                <StorefrontRoundedIcon onClick={() => loginAllegro(vendor['client_id'], vendor['name'])} />
+                <p>{vendor['marketplace']} - {vendor['name']}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* <button className='Cursor' onClick={()=> navigate('/profile-edit')}>Edytuj profil</button> */}
-        <button className='Cursor' onClick={()=> navigate('/returns')}>Zwroty</button>
+        <button className='Cursor' onClick={() => navigate('/returns')}>
+          Zwroty
+        </button>
         <p>Historia zamówień:</p>
         <OrderHistory />
-    </div>
-  )
+      </>
+    ) : (
+      <p>Ładowanie danych użytkownika...</p>
+    )}
+  </div>
+);
 }
 
 export default Profile

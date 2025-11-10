@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { createNewPass } from '../../utils/auth';
 import '../../styles/auth.css';
+import DotsLoader from '../../components/DotsLoader';
 
 const CreatePassword: React.FC = () => {
 
@@ -12,15 +13,18 @@ const CreatePassword: React.FC = () => {
     const otp = searchParams.get('otp');
     const uidb64 = searchParams.get('uidb64');
     const reset_token = searchParams.get('reset_token');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const navigation = useNavigate();
 
     const handleLogin = async (e) => {
+        setIsLoading(true)
         e.preventDefault();
 
         if ( password === password2 ) {
             const res = await createNewPass(otp, uidb64, reset_token, password);
             // console.log('newPass', res);
+            setIsLoading(false)
             if ( res.data.status === 200 ) {
                 navigation('/login');
             }
@@ -30,7 +34,9 @@ const CreatePassword: React.FC = () => {
     }
 
   return (
-    <div>
+    <>
+    {isLoading === true ? (
+        <div>
         <h1>Create New Password</h1>
         <img src="/create_psw.jpg" alt="login" width={500}/>
         <form onSubmit={handleLogin} className='flexColumnCenter'>
@@ -56,6 +62,12 @@ const CreatePassword: React.FC = () => {
             </p>
         </form>
     </div>
+    ):(
+        <div className='flexColumnCenter gap-15'>
+            <DotsLoader />
+        </div>
+    )}
+    </>
   )
 }
 

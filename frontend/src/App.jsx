@@ -13,10 +13,12 @@ import Logout from './views/auth/Logout';
 import ForgotPassword from './views/auth/ForgotPassword';
 import CreatePassword from './views/auth/CreatePassword';
 import Products from './views/shop/Products';
+import _Products from './views/shop/_Products';
 import Product from './components/product/Product';
 import ProductDetails from './views/shop/ProductDetails';
 import ProductsByCat from './views/shop/ProductsByCat';
 import Header from './views/Header';
+import _Header from './views/_Header';
 import Order from './views/shop/Order';
 import CheckOut from './views/shop/CheckOut';
 import SuccessPayment from './views/shop/SuccessPayment';
@@ -45,7 +47,7 @@ function AppContent() {
 
   return (
     <>
-      {!isLoginPage && <Header />}
+      {!isLoginPage && <_Header />}
       <Routes>
         {/* AUTH */}
         <Route path='/register' element={<Register />} />
@@ -56,7 +58,7 @@ function AppContent() {
         <Route path='/create-new-password' element={<CreatePassword />} />
 
         {/* STORE */}
-        <Route path='/' element={<Products />} />
+        <Route path='/' element={<_Products />} />
         <Route path='/product-details/:slug' element={<ProductDetails />} />
         <Route path='/category-products/:slug' element={<ProductsByCat />} />
         <Route path='/sub-category-products/:slug' element={<ProductsBySubCat />} />

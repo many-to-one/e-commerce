@@ -80,7 +80,37 @@ class ProductsView(generics.ListAPIView):
         return queryset
 
 
+class PopularProductsView(generics.ListAPIView):
 
+    serializer_class = IconProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        queryset = Product.objects.filter(special_offer=True)
+        return queryset
+    
+
+class DiscountProductsView(generics.ListAPIView):
+
+    serializer_class = IconProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        queryset = Product.objects.filter(hot_deal=True)
+        return queryset
+    
+
+class NewsProductsView(generics.ListAPIView):
+
+    serializer_class = IconProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        queryset = Product.objects.filter(featured=True)
+        return queryset
 
 
 class DeleteProductsView(APIView):

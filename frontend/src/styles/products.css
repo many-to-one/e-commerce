@@ -1,0 +1,39 @@
+.products-page {
+  background: linear-gradient(180deg, #fdfdfd 0%, #f3faff 100%);
+  padding: 30px 20px;
+  width: 1280px;
+}
+
+.product-section {
+  margin-bottom: 50px;
+}
+
+.product-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  color: #ff6b81;
+  text-align: center;
+  font-family: "Comic Sans MS", "Poppins", sans-serif;
+}
+
+.productCont {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 748px) {
+  .swiper-slide {
+    width: 50% !important;
+  }
+  .productCont {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .products-page {
+    width: 90%;
+    padding: 20px 28px;
+  }
+}

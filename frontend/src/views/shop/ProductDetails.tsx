@@ -244,24 +244,51 @@ const ProductDetails: React.FC = () => {
 
             {/* <div> */}
                 <h3>Inne z tej kategorii:</h3>
-                <div className='flexRowStart productCont'>
+                <div className='flexRowStart'>
 
                     <Swiper
+                        // grabCursor={true}
+                        // spaceBetween={30}
+                        // modules={[Navigation]}
+                        // slidesPerView={3}
+                        // navigation={true}
+                        // pagination={true}
+                        // className="mySwiper"
+                        
                         grabCursor={true}
                         spaceBetween={30}
                         modules={[Navigation]}
                         slidesPerView={3}
                         navigation={true}
-                        pagination={true}
+                        pagination={{ clickable: true }}
                         className="mySwiper"
+
+                        /* touch / sensitivity */
+                        allowTouchMove={true}
+                        simulateTouch={true}
+                        touchRatio={1}
+                        threshold={5}                // smaller = more sensitive
+                        touchStartPreventDefault={false}
+                        touchMoveStopPropagation={false}
+                        preventClicks={false}
+                        preventClicksPropagation={false}
+                        
+
+
                     >
-                        {products.map((product, index) => {
+                        {/* {products.map((product, index) => {
                         return (
                             <SwiperSlide key={index}>
                             <Product product={product} />
                             </SwiperSlide>
                         );
-                        })}
+                        })} */}
+
+                        {products.map((product, index) => (
+                            <SwiperSlide key={index}>
+                            <Product product={product} />
+                            </SwiperSlide>
+                        ))}
                     </Swiper>
 
                 </div>

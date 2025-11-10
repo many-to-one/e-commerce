@@ -1,4 +1,4 @@
-:root {
+/* :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -33,9 +33,6 @@ body {
   justify-content: center;
   place-items: center;
   min-width: 320px;
-  /* max-width: 1000px; */
-  /* min-height: 100vh; */
-  /* background-color: var(--body-bg-color); */
 }
 
 h1 {
@@ -72,5 +69,243 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+} */
+
+
+:root {
+  --pink: #ff6fb5;
+  --blue: #5ec8e6;
+  --yellow: #ffe873;
+  --violet: #b984f6;
+  --white: #fff;
+  --gray: #f9f9f9;
+}
+
+body {
+  margin: 0;
+  /* padding-top: 100px; */
+  display: flex;
+  justify-content: center;
+  place-items: center;
+  min-width: 320px;
+
+  font-family: "Poppins", sans-serif;
+  background: var(--gray);
+  margin: 0;
+  color: #333;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  background: var(--blue);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  z-index: 100;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+header .logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+header .search-bar input {
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  outline: none;
+  width: 180px;
+}
+
+header .actions {
+  display: flex;
+  gap: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+section {
+  padding: 20px;
+}
+
+h2 {
+  color: var(--violet);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.swiper {
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+.swiper-slide {
+  display: flex;
+  justify-content: center;
+}
+
+/* .product-card {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  text-align: center;
+  transition: transform 0.2s;
+  width: 180px;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.product-card img {
+  width: 100%;
+  border-radius: 12px;
+}
+
+.product-card .title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-top: 6px;
+}
+
+.product-card .price {
+  color: var(--pink);
+  font-weight: 700;
+  margin-top: 4px;
+} */
+
+@media (max-width: 748px) {
+  .swiper-slide {
+    width: 50%;
+  }
+
+  header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  header .search-bar input {
+    width: 100%;
+  }
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+
+
+/* ========================= */
+/* 🎨 TABLET STYLES (≤1024px) */
+/* ========================= */
+@media (max-width: 1024px) {
+  .toy-header {
+    padding: 10px 20px;
+    border-radius: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toy-search input {
+    width: 180px;
+    font-size: 0.9rem;
+  }
+
+  .toy-menu-btn {
+    display: block;
+  }
+
+  .toy-actions {
+    display: none;
+  }
+
+  .toy-mobile-menu {
+    background: var(--bg, #fff6fc);
+    color: #333;
+    padding: 14px;
+    border-radius: 10px;
+    animation: slideDown 0.3s ease;
+  }
+
+  .toy-mobile-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .toy-mobile-link:hover {
+    color: var(--pink, #ff61a6);
+  }
+
+  .toy-mobile-categories {
+    background: #fff6fc;
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .swiper-slide {
+    width: 33.3% !important; /* 3 produkty w rzędzie na tablet */
+  }
+
+  .product-card {
+    width: 180px;
+  }
+
+  .product-card img {
+    width: 95%;
+    margin-bottom: 12px;
+  }
+
+  .product-info h3 {
+    font-size: 0.8rem;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

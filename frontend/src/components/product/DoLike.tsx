@@ -3,7 +3,7 @@ import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 
 const DoLike: React.FC = () => {
   return (
-    <div>
+    <div className='mt-20 ml-30'>
         <FavoriteRoundedIcon />
     </div>
   )
