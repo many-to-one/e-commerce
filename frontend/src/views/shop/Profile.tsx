@@ -48,7 +48,7 @@ function Profile() {
   };
 
   fetchVendors();
-}, [user]);
+}, []); //user
 
 
 

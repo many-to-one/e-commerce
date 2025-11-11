@@ -41,14 +41,8 @@
   cursor: grab;
 }
 
-.swiper-slide * {
-  pointer-events: none;
-}
-
-.swiper-slide a,
-.swiper-slide button {
-  pointer-events: auto;
-}
 
 
 
+
+ 

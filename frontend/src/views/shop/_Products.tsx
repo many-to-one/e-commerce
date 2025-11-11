@@ -9,9 +9,12 @@ import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRigh
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { debounce } from 'lodash';
 import DotsLoader from '../../components/DotsLoader';
+// import Swiper core and required modules
 import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Scrollbar, A11y } from 'swiper/modules';
 import 'swiper/css';
 import '../../styles/products.css'; // new styles for layout and Swiper
+import CustomSwiper from "../../components/CustomSwiper";
 
 const Products: React.FC = () => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -82,12 +85,22 @@ const Products: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+
+
   const renderSwiperSection = (title: string, data: ProductType[]) => (
     <section className="product-section">
       <h2>{title}</h2>
       <Swiper
+      modules={[Navigation, Pagination, Scrollbar, A11y]}
         spaceBetween={15}
-        slidesPerView={2}
+        slidesPerView={3}
+        preventClicks={false}
+        preventClicksPropagation={false}
+        navigation
+        pagination={{ clickable: true }}
+        scrollbar={{ draggable: true }}
+        // onSwiper={(swiper) => console.log(swiper)}
+        // onSlideChange={() => console.log('slide change')}
         breakpoints={{
           748: { slidesPerView: 3 },
           1024: { slidesPerView: 4 },
@@ -95,13 +108,15 @@ const Products: React.FC = () => {
         }}
       >
         {data.map((product, index) => (
-          <SwiperSlide key={index}>
-            <Product product={product} />
+          <SwiperSlide key={product.id ?? index}>
+              <Product product={product} />
           </SwiperSlide>
         ))}
       </Swiper>
+
     </section>
   );
+
 
   return (
     <>
@@ -109,9 +124,11 @@ const Products: React.FC = () => {
         <div className="products-page">
 
           {/* Swiper sections */}
-          {renderSwiperSection('Polecane produkty', recommended)}
+          {/* {renderSwiperSection('Polecane produkty', recommended)}
           {renderSwiperSection('Promocje', discounts)}
-          {renderSwiperSection('Nowości', news)}
+          {renderSwiperSection('Nowości', news)} */}
+
+
 
           {/* Regular paginated product list */}
           <div className="flexRowCenter productCont">

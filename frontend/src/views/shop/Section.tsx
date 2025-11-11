@@ -30,11 +30,17 @@ const Section: React.FC<ProductProps> = ({className, product}) => {
       <h2>{title}</h2>
       <div className={`swiper ${className}`}>
         <div className="swiper-wrapper">
-          {products.map((p, i) => (
+          {/* {product.map((p, i) => (
             <div className="swiper-slide" key={i}>
               <Product {...p} />
             </div>
-          ))}
+          ))} */}
+          <div className='flexRowCenter productCont'>
+          
+                          {product?.map((p, index) => (
+                               <Product key={index} product={p} />
+                          ))}
+                      </div>
         </div>
       </div>
     </section>

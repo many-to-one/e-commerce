@@ -31,6 +31,7 @@ load_dotenv()
 # Access them like normal environment variables
 ALLEGRO_API_URL = os.getenv("ALLEGRO_API_URL")
 PAYU_API_URL = os.getenv("PAYU_API_URL")
+_marketplace = os.getenv("marketplace")
 
 
 @admin.action(description="Discount") #How to add 20% to the title/description?
@@ -115,8 +116,21 @@ class ProductAdmin(ImportExportModelAdmin):
 
     product_image.short_description = "Zdjęcie"
 
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "vendor":
+            # Only show the vendors for current user and marketplace
+            kwargs["queryset"] = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+
     def save_model(self, request, obj, form, change):
+            
+        if obj.price:
+            obj.price = (obj.price * Decimal('0.8')).quantize(Decimal('0.01'))  # - 20% round to second number after coma (Exp: 12.99PLN)
         super().save_model(request, obj, form, change)
+
+        vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
+        obj.vendors.set(vendors)
 
         # print("---- selected_vendors obj ----", obj)
 
@@ -153,15 +167,22 @@ class ProductAdmin(ImportExportModelAdmin):
         url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         # for vendor in vendors:
-            # print('allegro_export vendors ----------------', vendors)
+        #     print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
+            print('check vendor ----------------', vendor)
             access_token = vendor.access_token
             producer = self.responsible_producers(access_token, vendor.name)
             # print('allegro_export producer ----------------', producer)
+        
             for product in queryset:
-                # print('allegro_export ----------------', product.ean)
-                self.create_offer_from_product(product, url, access_token, vendor.name, producer)
+                product_vendors = product.vendors.all()
+                if vendor in product_vendors:
+                    print('if vendor in product_vendors ----------------', vendor)
+                    self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+                # print('allegro_export vendors ----------------', product_vendors)
+            #     print('allegro_export ----------------', product.ean)
+                # self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
 
 
     def responsible_producers(self, access_token, name):
@@ -181,38 +202,41 @@ class ProductAdmin(ImportExportModelAdmin):
         return response.json()
 
 
-    def create_offer_from_product(self, product, url, access_token, vendor_name, producer):
+    def create_offer_from_product(self, request, product, url, access_token, vendor_name, producer):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
 
         try:
             payload = json.dumps({
-            "productSet": [
-                {
-                "product": {
-                    "id": product.ean,
-                    "idType": "GTIN"
+                "external": {
+                    "id": f"{product.sku}" 
                 },
-                "responsibleProducer": {
-                    "type": "ID",
-                    "id": producer["responsibleProducers"][0]['id']
+                "productSet": [
+                    {
+                    "product": {
+                        "id": product.ean,
+                        "idType": "GTIN"
+                    },
+                    "responsibleProducer": {
+                        "type": "ID",
+                        "id": producer["responsibleProducers"][0]['id']
+                    },
+                    },
+                ],
+                "sellingMode": {
+                    "price": {
+                    "amount": str(product.price),
+                    "currency": "PLN"
+                    }
                 },
+                "stock": {
+                    "available": product.stock_qty
                 },
-            ],
-            "sellingMode": {
-                "price": {
-                "amount": "220.85",
-                "currency": "PLN"
-                }
-            },
-            "stock": {
-                "available": 10
-            },
-            'delivery': {
-                'shippingRates': {
-                    'name': 'Standard'
-                }
-            },
+                'delivery': {
+                    'shippingRates': {
+                        'name': 'Standard'
+                    }
+                },
             })
 
             headers = {
@@ -224,9 +248,16 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.request("POST", url, headers=headers, data=payload)
             response = allegro_request("POST", url, vendor_name, headers=headers, data=payload)
-            # print('create_offer_from_product response ----------------', response)
+            print('create_offer_from_product response ----------------', response.text)
+            if response.status_code == 202:
+                    self.message_user(request, f"✅ Wystawiłeś ofertę {product.ean} allegro dla {vendor_name}", level='success')
+            elif response.status_code == 401:
+                self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
+            else:
+                self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='error')
             return response
         except requests.exceptions.HTTPError as err:
+            self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
             raise SystemExit(err)
        
 
@@ -420,9 +451,9 @@ class InvoiceCorrectionInline(admin.TabularInline):
 
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'invoice_generated', 'vendor', 'buyer_login', 'occurred_at', 'type']
+    list_display = ['order_id', 'invoice_generated', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
     list_filter = ['vendor', 'type', 'occurred_at',]
-    search_fields = ['order_id', 'buyer_login', 'buyer_email',]
+    search_fields = ['order_id', 'buyer_login', 'buyer_email', 'type']
     actions = ['generate_invoice', 'remove_duplicate_invoices']
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
@@ -430,6 +461,15 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
     invoice_required = None
     invoice_data = {}
+
+    def get_type_display_pl(self, obj):
+        mapping = {
+            'READY_FOR_PROCESSING': 'Gotowe do realizacji',
+            'BOUGHT': 'Zakupione',
+            'FILLED_IN': 'Uzupełnione dane kupującego',
+        }
+        return mapping.get(obj.type, obj.type)
+    get_type_display_pl.short_description = "Typ zdarzenia"
     
     def get_buyer_info(self, order_id, access_token, vendor_name):
 
@@ -470,7 +510,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 events = response.json().get('events', [])
 
                 for event in events:
-                    # print('Processing event ----------------', event)
+                    print('Processing event ----------------', event)
                     order = event.get('order') or {}
                     checkout_form = order.get('checkoutForm') or {}
                     checkout_form_id = checkout_form.get('id')
@@ -522,7 +562,20 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     # --- 2. Utwórz/aktualizuj pozycje zamówienia ---
                     for item in line_items:
                         external_id = item['offer'].get('external', {}).get('id')
+                        offer_name = item['offer']['name']
+                        price = Decimal(item['price']['amount'])
+                        quantity = item['quantity']
                         product = Product.objects.filter(sku=external_id).first()
+
+
+                        # Tworzenie produktu w www sklepie jeśli go tam nie ma
+                        # w przypadku gdy był wystawiony tylko na all-ro
+                        product, _ = Product.objects.get_or_create(
+                            sku=external_id,
+
+                        )
+                        product.title=offer_name
+                        product.save(update_fields=['title'])
 
                         AllegroOrderItem.objects.update_or_create(
                             order=allegro_order,

@@ -78,6 +78,23 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           <HomeRoundedIcon /> <span>Kidnetic</span>
         </div>
 
+
+          {!isMobile && (
+            <div className="Cursor Cat showCat" 
+                    onMouseEnter={() => setShowCategories(true)} 
+                    onMouseLeave={() => setShowCategories(false)} 
+                  > 
+                    <ArticleRoundedIcon /> Kategorie 
+                    {showCategories && (
+                      <div className="categoryTitles"> 
+                        {categories?.map((category, index) => ( 
+                          <Category key={index} category={category} /> 
+                        ))} 
+                      </div> 
+                      )} 
+                  </div>
+          )}
+
         <div className="toy-search">
             <input
                 type="text"
