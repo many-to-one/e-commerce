@@ -25,7 +25,6 @@ function _Header() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showHeader, setShowHeader] = useState(false);
 
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -44,10 +43,20 @@ function _Header() {
     window.location.reload();
   }
 
+  // const fetchData = async () => {
+  //   const endpoint = user ? '/api/store/categories' : `${API_BASE_URL}api/store/categories`;
+  //   try {
+  //     const response = user ? await _axios.get(endpoint) : await axios.get(endpoint);
+  //     setCategories(response.data.results || []);
+  //   } catch (error) {
+  //     console.log('Category fetch error', error);
+  //   }
+  // };
+
   const fetchData = async () => {
-    const endpoint = user ? '/api/store/categories' : `${API_BASE_URL}api/store/categories`;
+    const endpoint = `${API_BASE_URL}api/store/categories`;
     try {
-      const response = user ? await _axios.get(endpoint) : await axios.get(endpoint);
+      const response = await axios.get(endpoint);
       setCategories(response.data.results || []);
     } catch (error) {
       console.log('Category fetch error', error);
@@ -87,9 +96,13 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <ArticleRoundedIcon /> Kategorie 
                     {showCategories && (
                       <div className="categoryTitles"> 
-                        {categories?.map((category, index) => ( 
-                          <Category key={index} category={category} /> 
-                        ))} 
+                        {categories.map((category) => (
+                          <Category
+                            key={category.title}
+                            category={category}
+                          />
+                        ))}
+
                       </div> 
                       )} 
                   </div>

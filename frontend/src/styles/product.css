@@ -91,7 +91,7 @@
 }
 
 /* Responsive: 2 cards in a row only for mobile */
-@media (max-width: 748px) {
+@media (max-width: 768px) {
   .swiper-slide {
     width: 50% !important;
   }

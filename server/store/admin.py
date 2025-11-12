@@ -452,8 +452,8 @@ class InvoiceCorrectionInline(admin.TabularInline):
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
     list_display = ['order_id', 'invoice_generated', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
-    list_filter = ['vendor', 'type', 'occurred_at',]
-    search_fields = ['order_id', 'buyer_login', 'buyer_email', 'type']
+    list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
+    search_fields = ['order_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
     actions = ['generate_invoice', 'remove_duplicate_invoices']
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
@@ -510,7 +510,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 events = response.json().get('events', [])
 
                 for event in events:
-                    print('Processing event ----------------', event)
+                    # print('Processing event ----------------', event)
                     order = event.get('order') or {}
                     checkout_form = order.get('checkoutForm') or {}
                     checkout_form_id = checkout_form.get('id')
@@ -529,14 +529,18 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                     delivery = buyer_info.get('delivery') or {}
                     delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
-                    is_smart = delivery.get('smart', False)
+                    is_smart = delivery.get('smart')
+
+                    print('buyer_info delivery ----------------', delivery)
+                    print('buyer_info delivery_cost ----------------', delivery_cost)
+                    print('buyer_info is_smart ----------------', is_smart)
 
 
                     # print('company ----------------', company.get('name', ''))
                     # print('buyer_zipcode ----------------', buyer.get('address', {}).get('postCode', ''))
 
                     delivery_cost = float(buyer_info['delivery']['cost']['amount']) or 0.00
-                    is_smart = buyer_info.get('delivery', {}).get('smart', False)
+                    is_smart = buyer_info.get('delivery', {}).get('smart')
 
                     # --- 1. Utwórz/aktualizuj nagłówek zamówienia ---
                     allegro_order, created = AllegroOrder.objects.update_or_create(
@@ -653,6 +657,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         #     print('generate_invoice ----------- test', i)
 
         for allegro_order in invoices:
+            # print('######################## generate_invoice #######################', allegro_order)
             # print('Generating invoice order*buyer_email ----------------', allegro_order.buyer_email)
             try:
                 invoice_data = {
@@ -660,7 +665,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     'buyer_email': allegro_order.buyer_email or '',
                     'vendor': allegro_order.vendor or '',
                     'is_generated': True,
-                    'buyer_name': allegro_order.buyer_login or '',
+                    'buyer_name': allegro_order.buyer_name or '',
                     'buyer_street': allegro_order.buyer_street or '',
                     'buyer_zipcode': allegro_order.buyer_zipcode or '',
                     'buyer_city': allegro_order.buyer_city or '',
@@ -865,10 +870,11 @@ class InvoiceAdmin(admin.ModelAdmin):
         with zipfile.ZipFile(buffer, 'w') as zip_file:
             for invoice in queryset:
                 vendor = invoice.vendor
+                user = request.user
 
                 # Web store logic
                 if vendor.marketplace == 'kidnetic.pl':
-                    print('KIDNETIC-------------------', vendor.marketplace)
+                    # print('KIDNETIC-------------------', vendor.marketplace)
                     buyer_info = {
                         'name': invoice.buyer_name,
                         'street': invoice.buyer_street,
@@ -891,7 +897,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                             }
                         })
 
-                    pdf_content = generate_invoice_webstore(invoice, vendor, buyer_info, products)
+                    pdf_content = generate_invoice_webstore(invoice, vendor, user, buyer_info, products)
                 
                 else:
                     print(f'{vendor.marketplace}-------------------')
@@ -920,7 +926,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                         })
 
                     # generowanie PDF
-                    pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
+                    pdf_content = generate_invoice_allegro(invoice, vendor, user, buyer_info, products)
 
                 # print('PDF PRODUCTS ---------------', products)
 
@@ -934,12 +940,15 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     @admin.action(description="📧 Wyślij faktury do klienta")
     def generate_invoice(self, request, queryset):
+
+        user = request.user
+
         for invoice in queryset:
             vendor = invoice.vendor
 
             # Web store logic
             if vendor.marketplace == 'kidnetic.pl':
-                print('KIDNETIC-------------------', vendor.marketplace)
+                # print('KIDNETIC-------------------', vendor.marketplace)
                 buyer_info = {
                     'name': invoice.buyer_name,
                     'street': invoice.buyer_street,
@@ -962,7 +971,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                         }
                     })
 
-                pdf_content = generate_invoice_webstore(invoice, vendor, buyer_info, products)
+                pdf_content = generate_invoice_webstore(invoice, vendor, user, buyer_info, products)
                 try:
                     # przypięcie do zamówienia sklepowego
                     order = invoice.shop_order  # zakładam, że Invoice ma FK do CartOrder
@@ -1011,7 +1020,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                     })
 
                 # generowanie PDF
-                pdf_content = generate_invoice_allegro(invoice, vendor, buyer_info, products)
+                pdf_content = generate_invoice_allegro(invoice, vendor, user, buyer_info, products)
 
                 try:
                     resp = post_invoice_to_allegro(invoice, pdf_content, False)
@@ -1306,11 +1315,13 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
     @admin.action(description="📧 Wyślij fakturę koregującą do klienta")
     def generate_correction_invoice(self, request, queryset):
 
+        user = request.user
+
         """ W przypadku faktury korygującej sprawdzamy, czy główna faktura jest powiązana z Allegro czy Webstore
             i na tej podstawie NAJPIERW generujemy odpowiedni PDF i wysyłamy go do Allegro lub zapisujemy w systemie Webstore.,
             """
         for invoice in queryset:
-            print('---- generate_correction_invoice ----', invoice.invoice_number)
+            # print('---- generate_correction_invoice ----', invoice.invoice_number)
             vendor = invoice.main_invoice.vendor
             main_invoice_number = invoice.main_invoice.invoice_number
 
@@ -1356,8 +1367,9 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                         }
                     })
 
+
                 pdf_content = generate_correction_invoice_allegro(
-                    invoice, buyer_info, products, _main_invoice_products
+                    invoice, buyer_info, user, products, _main_invoice_products
                 )
                 resp = post_invoice_to_allegro(invoice, pdf_content, True)
 
@@ -1393,7 +1405,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
 
                 # tu zamiast generate_correction_invoice_allegro -> własny generator PDF dla webstore
                 pdf_content = generate_correction_invoice_webstore(
-                    invoice, buyer_info, products, _main_invoice_products
+                    invoice, buyer_info, user, products, _main_invoice_products
                 )
                 # np. zapis do FileField w InvoiceFile:
                 InvoiceFile.objects.create(
@@ -1447,6 +1459,8 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
 
     @admin.action(description="🖨️ Drukuj faktury korygujące (ZIP)")
     def print_invoice_correction_pdf(self, request, queryset):
+
+        user = request.user
         buffer = BytesIO()
         with zipfile.ZipFile(buffer, 'w') as zip_file:
             for invoice in queryset:
@@ -1491,7 +1505,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                         })
 
                     pdf_content = generate_correction_invoice_allegro(
-                        invoice, buyer_info, products, _main_invoice_products
+                        invoice, buyer_info, user, products, _main_invoice_products
                     )
 
                 elif getattr(invoice.main_invoice, "shop_order", None):
@@ -1521,7 +1535,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                         })
 
                     pdf_content = generate_correction_invoice_webstore(
-                        invoice, buyer_info, products, _main_invoice_products
+                        invoice, buyer_info, user, products, _main_invoice_products
                     )
 
                 else:
@@ -1623,7 +1637,7 @@ class CartOrderAdmin(ImportExportModelAdmin):
         error_count = 0
 
         for web_order in invoices:
-            print('Generating invoice order*buyer_email ----------------', web_order.email)
+            # print('Generating invoice order*buyer_email ----------------', web_order.email)
             try:
                 invoice_data = {
                     'created_at': now(),
@@ -1637,7 +1651,7 @@ class CartOrderAdmin(ImportExportModelAdmin):
                     'buyer_nip': web_order.buyer_nip or 'Brak',
                 }
 
-                print('generate_invoice_webstore --------------- test', invoice_data)
+                # print('generate_invoice_webstore --------------- test', invoice_data)
 
                 generated_invoice = Invoice.objects.update_or_create(
                     shop_order=web_order,

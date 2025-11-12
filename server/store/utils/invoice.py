@@ -163,7 +163,12 @@ def invoice_upload_path(instance, filename):
 
 
 
-def generate_invoice_allegro(invoice, vendor, buyer_info, products):  # tax_rate optional
+def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # tax_rate optional
+
+    # print(' VENDOR ----------------------- ', vendor)
+    # print(' USER ----------------------- ', user)
+    # print(' VENDOR NIP ----------------------- ', vendor.nip)
+    # print(' USERNAME ----------------------- ', user.full_name)
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -194,10 +199,10 @@ def generate_invoice_allegro(invoice, vendor, buyer_info, products):  # tax_rate
 
     # Seller info
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
-    c.drawString(2 * cm, height - 4.5 * cm, str(getattr(vendor, 'name', '') or ""))
-    c.drawString(2 * cm, height - 5 * cm, str(getattr(vendor, 'address', '') or ""))
-    c.drawString(2 * cm, height - 5.5 * cm, f"NIP {str(getattr(vendor, 'nip', '') or '')}")
-    c.drawString(2 * cm, height - 6 * cm, f"Telefon {str(getattr(vendor, 'mobile', '') or '')}")
+    c.drawString(2 * cm, height - 4.5 * cm, str(user.full_name or ""))
+    c.drawString(2 * cm, height - 5 * cm, f"Adres: {str(vendor.address or "")}" )
+    c.drawString(2 * cm, height - 5.5 * cm, f"NIP: {str(vendor.nip or "")}" )
+    c.drawString(2 * cm, height - 6 * cm, f"Telefon: {str(user.phone or "")}" )
     c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
 
     # Buyer info
@@ -303,7 +308,7 @@ def post_invoice_to_allegro(invoice, pdf_content, correction):
         # print('post_invoice_to_allegro invoice correction FALSE ---------', correction)
         _invoice = invoice
         _order_id = invoice.allegro_order.order_id
-    print('post_invoice_to_allegro invoice_number ---------', _invoice.invoice_number)
+    # print('post_invoice_to_allegro invoice_number ---------', _invoice.invoice_number)
     access_token = invoice.vendor.access_token
     url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{_order_id}/invoices"
 
@@ -358,7 +363,7 @@ def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_conten
 
 
 
-def generate_correction_invoice_allegro(invoice, buyer_info, products, _main_invoice_products):
+def generate_correction_invoice_allegro(invoice, buyer_info, user, products, _main_invoice_products):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -385,11 +390,16 @@ def generate_correction_invoice_allegro(invoice, buyer_info, products, _main_inv
     c.drawString(2 * cm, height - 4.7 * cm, f"Wystawionej w dniu: {main_invoice_created_at}")
 
     # --- Dane sprzedawcy i nabywcy ---
-    c.setFont("DejaVuSans", 9)
+    # c.setFont("DejaVuSans", 9)
     c.drawString(2 * cm, height - 6 * cm, "Sprzedawca:")
-    c.drawString(2 * cm, height - 6.5 * cm, invoice.main_invoice.vendor.name)
-    c.drawString(2 * cm, height - 7 * cm, invoice.main_invoice.vendor.address)
-    c.drawString(2 * cm, height - 7.5 * cm, f"NIP {invoice.main_invoice.vendor.nip}")
+    # c.drawString(2 * cm, height - 6.5 * cm, invoice.main_invoice.vendor.name)
+    # c.drawString(2 * cm, height - 7 * cm, invoice.main_invoice.vendor.address)
+    # c.drawString(2 * cm, height - 7.5 * cm, f"NIP {invoice.main_invoice.vendor.nip}")
+    c.drawString(2 * cm, height - 6.5 * cm, str(user.full_name or ""))
+    c.drawString(2 * cm, height - 7 * cm, f"Adres: {str(invoice.main_invoice.vendor.address or '')}")
+    c.drawString(2 * cm, height - 7.5 * cm, f"NIP: {str(invoice.main_invoice.vendor.nip or '')}")
+    c.drawString(2 * cm, height - 8 * cm, f"Telefon: {str(user.phone or '')}")
+    c.drawString(2 * cm, height - 8.5 * cm, f"Email: {str(invoice.main_invoice.vendor.email or '')}")
 
     c.drawString(12 * cm, height - 6 * cm, "Nabywca:")
     c.drawString(12 * cm, height - 6.5 * cm, buyer_info['name'])
@@ -482,7 +492,7 @@ def build_products_table(products, normal_style, allegro_order, tax_rate_default
 
 # WEBSTORE LOGIC 
 
-def generate_invoice_webstore(invoice, vendor, buyer_info, products): # tax_rate=23
+def generate_invoice_webstore(invoice, vendor, user, buyer_info, products): # tax_rate=23
     # print(' ----------- generate_invoice_webstore products -------------', products)
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -505,7 +515,7 @@ def generate_invoice_webstore(invoice, vendor, buyer_info, products): # tax_rate
     formatted_generated = localtime(invoice.created_at).strftime('%d-%m-%Y')
 
     # Title
-    print(' ----------- generate_invoice_webstore invoice -------------', invoice.invoice_number)
+    # print(' ----------- generate_invoice_webstore invoice -------------', invoice.invoice_number)
     c.setFont("DejaVuSans", 10)
     c.drawString(2 * cm, height - 2 * cm, "Faktura VAT")
     c.drawString(2 * cm, height - 2.5 * cm, f"nr: {invoice.invoice_number}")
@@ -520,11 +530,12 @@ def generate_invoice_webstore(invoice, vendor, buyer_info, products): # tax_rate
     # print(' ----------- generate_invoice_webstore vendor nip -------------', vendor.nip)
     # print(' ----------- generate_invoice_webstore vendor mobile -------------', vendor.mobile)
     # print(' ----------- generate_invoice_webstore vendor email -------------', vendor.email)
-    c.drawString(2 * cm, height - 4.5 * cm, str(vendor.name or ""))
-    c.drawString(2 * cm, height - 5 * cm, str(vendor.address or ""))
-    c.drawString(2 * cm, height - 5.5 * cm, f"NIP {str(vendor.nip or '')}")
-    c.drawString(2 * cm, height - 6 * cm, f"Telefon {str(vendor.mobile or '')}")
-    c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(vendor.email or '')}")
+    c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
+    c.drawString(2 * cm, height - 4.5 * cm, str(user.full_name or ""))
+    c.drawString(2 * cm, height - 5 * cm, f"Adres: {str(vendor.address or "")}" )
+    c.drawString(2 * cm, height - 5.5 * cm, f"NIP: {str(vendor.nip or "")}" )
+    c.drawString(2 * cm, height - 6 * cm, f"Telefon: {str(user.phone or "")}" )
+    c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
 
     # Buyer info
     # print(' ----------- generate_invoice_webstore buyer_info name -------------', buyer_info['name'])
@@ -637,7 +648,7 @@ from django.utils.timezone import localtime
 import os
 from django.conf import settings
 
-def generate_correction_invoice_webstore(invoice, buyer_info, products, _main_invoice_products):
+def generate_correction_invoice_webstore(invoice, buyer_info, user, products, _main_invoice_products):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -666,9 +677,16 @@ def generate_correction_invoice_webstore(invoice, buyer_info, products, _main_in
 
     c.setFont("DejaVuSans", 9)
     c.drawString(2 * cm, height - 6 * cm, "Sprzedawca:")
-    c.drawString(2 * cm, height - 6.5 * cm, str(invoice.main_invoice.vendor.name or ""))
-    c.drawString(2 * cm, height - 7 * cm, str(invoice.main_invoice.vendor.address or ""))
-    c.drawString(2 * cm, height - 7.5 * cm, f"NIP {str(invoice.main_invoice.vendor.nip or '')}")
+    # c.drawString(2 * cm, height - 6.5 * cm, str(user.full_name or ""))
+    # c.drawString(2 * cm, height - 7 * cm, str(invoice.main_invoice.vendor.address or ""))
+    # c.drawString(2 * cm, height - 7.5 * cm, str(invoice.main_invoice.vendor.email or ""))
+    # c.drawString(2 * cm, height - 8 * cm, str(user.phone or ""))
+    # c.drawString(2 * cm, height - 8.5 * cm, f"NIP {str(invoice.main_invoice.vendor.nip or '')}")
+    c.drawString(2 * cm, height - 6.5 * cm, str(user.full_name or ""))
+    c.drawString(2 * cm, height - 7 * cm, f"Adres: {str(invoice.main_invoice.vendor.address or '')}")
+    c.drawString(2 * cm, height - 7.5 * cm, f"NIP: {str(invoice.main_invoice.vendor.nip or '')}")
+    c.drawString(2 * cm, height - 8 * cm, f"Telefon: {str(user.phone or '')}")
+    c.drawString(2 * cm, height - 8.5 * cm, f"Email: {str(invoice.main_invoice.vendor.email or '')}")
 
     c.drawString(12 * cm, height - 6 * cm, "Nabywca:")
     c.drawString(12 * cm, height - 6.5 * cm, buyer_info['name'])

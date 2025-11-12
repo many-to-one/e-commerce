@@ -24,8 +24,8 @@ const Product: React.FC<ProductProps> = ({product}) => {
   }, [])
 
 
-  // const thumb = product.thumbnail?.replace('http://', 'http://'); // Production
-  const thumb = product.thumbnail?.replace('http://', 'https://'); // Development
+  // const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
+  const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
 
   return (
     <div
