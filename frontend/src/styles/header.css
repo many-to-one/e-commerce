@@ -5,11 +5,11 @@
   --purple: #b984f6;
   --bg: #fffdf8;
 }
-
+ 
 .toy-header {
   position: sticky;
   top: 0;
-  /* background: linear-gradient(90deg, var(--blue), var(--pink)); */
+  width: 100%;
   background: linear-gradient(90deg, rgb(57 115 202 / 88%), #74d0f2);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -67,6 +67,16 @@
 @media (max-width: 768px) {
   .toy-header {
     border-radius: 0px;
+    width: 90%;
+  }
+
+  .toy-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    height: 75px;
+    padding: 0;
   }
 
   .toy-search input {

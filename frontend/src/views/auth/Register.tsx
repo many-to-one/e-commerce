@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
-import { register } from '../../utils/auth';
+import { login, register } from '../../utils/auth';
 import { useAuthStore } from '../../store/auth';
 import '../../styles/auth.css';
 import DotsLoader from '../../components/DotsLoader';
+// import axios from '../../utils/axios';
+import apiInstance from '../../utils/axios';
+import axios from 'axios';
+import { API_BASE_URL } from '../../utils/constants';
 
 function Register() {
     const [fullName, setFullName] = useState<string>("");
@@ -32,22 +36,109 @@ function Register() {
 
     const handleRegister = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
+        // setIsLoading(true);
 
-        const { error } = await register(fullName, email, phone, password, password2);
-        if (error) {
-            alert(error);
-        } else {
-            navigate('/');
-            resetForm();
+        // const { error } = await register(fullName, email, phone, password, password2);
+        // if (error) {
+        //     alert(error);
+        // } else {
+        //     navigate('/');
+        //     resetForm();
+        // }
+
+        // console.log('REGISTER RESP', response.data);
+        // setIsLoading(false);
+
+        // try {
+        //     const response = await axios.post(
+        //     "http://127.0.0.1:8100/api/users/register",
+        //     {
+        //         fullName,
+        //         email,
+        //         phone,
+        //         password,
+        //         password2,
+        //     },
+        //     {
+        //         headers: {
+        //         "Content-Type": "application/json",
+        //         Accept: "application/json",
+        //         },
+        //     }
+        //     );
+
+        //     return response.data;
+        // } catch (error) {
+        //     // console.log("REGISTER ERROR:", error.response.data.full_name[0] || error);
+        //     return {
+        //         error: error.response.data?.full_name?.[0] || 
+        //            error.response.data?.phone || 
+        //            'Something went wrong',
+        //     }
+        // }
+
+// console.log('fullName', fullName)
+
+setIsLoading(true);
+
+        try {
+    const response = await axios.post(
+        
+        // "http://127.0.0.1:8100/api/users/register",
+        `${API_BASE_URL}api/users/register`,
+        {
+            full_name: fullName,
+            email,
+            phone,
+            password,
+            password2,
+        },
+        {
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
         }
-        setIsLoading(false);
+    );
+
+    await login(email, password);
+
+    setIsLoading(false);
+
+    navigate('/');
+    resetForm();
+
+    return response.data;
+
+
+} catch (error) {
+
+    // 1. Extract DRF validation errors safely
+    const data = error?.response?.data;
+
+    // 2. Convert DRF field-errors into readable text
+    let message = "Something went wrong";
+
+    if (data && typeof data === "object") {
+        message = Object.entries(data)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+            .join("\n");
+    }
+
+    // 3. Show alert
+    alert(message);
+    setIsLoading(false);
+
+    // 4. Return structured error to the caller if needed
+    return { error: message };
+}
+
     }
 
 
   return (
     <>
-    {isLoading === true ? (
+    {!isLoading ? (
         <div>
         <form onSubmit={handleRegister} className='flexColumnCenter'>
             <img src="/register.jpg" alt="register" width={560}/>

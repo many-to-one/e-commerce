@@ -49,15 +49,22 @@
     position: absolute;
     top: 0;
     left: 0;
-    margin-left: 3.3%;
+    margin-left: 20%;
     /* margin-bottom: 30vw; */
     padding: 15px;
     z-index: 100;
-    height: 100vh;
-    width: 85%;
+    height: 90%;
+    width: 60%;
     border-radius: 10px;
     background-color: rgb(235 255 252);
     color: #5a5a5a;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+@media (max-width: 768px) {
+  .subCat {
+    top: 8%;
+    width: 82%;
+    left: -15%;
+  }
+}

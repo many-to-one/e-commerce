@@ -541,16 +541,36 @@ class FinishedCartOrderView(APIView):
         })
     
 
-class CartOrderItemView(generics.ListAPIView):
+# class CartOrderItemView(generics.ListAPIView):
     
+#     serializer_class = CartOrderSerializer
+#     queryset = CartOrder.objects.all()
+#     permission_classes = (AllowAny, )
+
+#     def list(self, request, *args, **kwargs):
+#         response = super().list(request, *args, **kwargs)
+
+#         # Add choices to response
+#         response.data["return_reasons"] = ReturnItem.RETURN_REASONS
+#         return response
+
+
+class CartOrderItemView(generics.ListAPIView):
     serializer_class = CartOrderSerializer
-    queryset = CartOrder.objects.all()
-    permission_classes = (AllowAny, )
+    permission_classes = (AllowAny,)  # later you can change to IsAuthenticated
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # If user is authenticated — filter by buyer
+        if user.is_authenticated:
+            return CartOrder.objects.filter(buyer=user)
+
+        # If anonymous — return none or all depending on your logic
+        return CartOrder.objects.none()
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-
-        # Add choices to response
         response.data["return_reasons"] = ReturnItem.RETURN_REASONS
         return response
 

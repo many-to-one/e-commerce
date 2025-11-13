@@ -80,6 +80,7 @@ button:focus-visible {
   --violet: #b984f6;
   --white: #fff;
   --gray: #f9f9f9;
+  --body-bg: #eceff1;
 }
 
 body {
@@ -91,7 +92,7 @@ body {
   min-width: 320px;
 
   font-family: "Poppins", sans-serif;
-  background: var(--gray);
+  background: var(--body-bg);
   margin: 0;
   color: #333;
 }

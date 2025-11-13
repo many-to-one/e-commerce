@@ -128,15 +128,15 @@ const ProductDetails: React.FC = () => {
                 <div className='flexRowStart gap-50'>
                     <div className='flexColumnCenter'>
                         <div className='miGallCont'>
-                            {/* <img 
+                            <img 
                                 src={mainImg} 
                                 alt="" 
                                 className="mainGalleryImage" 
                                 ref={imageRef}
                                 onMouseMove={scaleImg} 
                                 onMouseOut={resetImg} 
-                            /> */}
-                            <picture>
+                            />
+                            {/* <picture>
                                 <source
                                     srcSet={`${mainImg}.webp`}
                                     type="image/webp"
@@ -150,7 +150,7 @@ const ProductDetails: React.FC = () => {
                                     onMouseOut={resetImg}
                                     loading="lazy"
                                 />
-                            </picture>
+                            </picture> */}
                         </div>
 
                         <div className='flexRowCenter w-400'>
@@ -168,10 +168,10 @@ const ProductDetails: React.FC = () => {
                                         <SwiperSlide key={index}>
                                             {/* <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} /> */}
                                             <picture>
-                                                {/* <source
+                                                <source
                                                     srcSet={`${image}.jpeg`}
                                                     type="image/webp"
-                                                /> */}
+                                                />
                                                 <img
                                                     src={image}
                                                     alt="ProductImgGallery"

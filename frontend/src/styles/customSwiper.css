@@ -13,7 +13,7 @@
 
   .mySwiper .swiper-slide {
     width: 200px !important;
-    height: 300px;
+    /* height: 300px; */
   }
 
   .mySwiper .swiper-slide img {
@@ -37,9 +37,9 @@
     object-fit: contain;
   }
 
-  .swiper-slide {
+  /* .swiper-slide {
   cursor: grab;
-}
+} */
 
 
 

@@ -9,7 +9,7 @@ export const login = async (email, password) => {
     // console.log('LOGIN---', email, password)
 
     try {
-        const { data, status } = await axios.post('api/users/token', {
+        const { data, status } = await axios.post('/api/users/token', {
             email,
             password,
         });
@@ -32,10 +32,10 @@ export const login = async (email, password) => {
 };
 
 
-export const register = async (full_name, email, phone, password, password2) => {
+export const register = async(full_name, email, phone, password, password2) => {
     try {
         // console.log(full_name, email, phone, password, password2)
-        const { data } = await axios.post('api/users/register', {
+        const {data} = await axios.post('/api/users/register', {
             full_name,
             email,
             phone,

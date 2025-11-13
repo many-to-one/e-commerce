@@ -43,7 +43,7 @@ const Login: React.FC = () => {
 
   return (
     <>
-    {isLoading === true ? (
+    {!isLoading ? (
         <div>
         <form onSubmit={handleLogin} className='flexColumnCenter'>
             <img src="/login.jpg" alt="login" width={300}/>
