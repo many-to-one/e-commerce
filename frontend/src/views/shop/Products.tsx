@@ -95,10 +95,10 @@ const Products: React.FC = () => {
             <div className='flexRowCenter productCont'>
 
                 {products?.map((product, index) => (
-                     <Product key={index} product={product} />
+                     <Product key={index} product={product} /> 
                 ))}
             </div>
-            <div className='flexRowCenter gap-15 mt-20'>
+            <div className='flexRowCenter footer-cont gap-15'>
                 <button
                     onClick={() => {
                         if (prevPage) {
