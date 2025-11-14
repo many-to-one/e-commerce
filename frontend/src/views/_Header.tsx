@@ -82,7 +82,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <header className="toy-header">
-      <div className="toy-header-inner">
+      <div className='toy-header-inner'>
         <div className="toy-logo" onClick={() => goMainPage()}>
           <HomeRoundedIcon /> <span>Kidnetic</span>
         </div>

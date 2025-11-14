@@ -144,7 +144,7 @@ setIsLoading(true);
             <img src="/register.jpg" alt="register" width={560}/>
             <input 
                 className='fullNameInput'
-                placeholder='Full Name...'
+                placeholder='Imię ...'
                 type="text" 
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -159,7 +159,7 @@ setIsLoading(true);
                 />
                 <input 
                     className='authInput'
-                    placeholder='Phone...'
+                    placeholder='Numer telefonu...'
                     type="text" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -168,24 +168,24 @@ setIsLoading(true);
             <div>
                 <input 
                     className='authInput'
-                    placeholder='Password...'
+                    placeholder='Hasło...'
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                 />
                 <input 
                     className='authInput'
-                    placeholder='Repeat password...'
+                    placeholder='Powtórz hasło...'
                     type="password" 
                     value={password2}
                     onChange={(e) => setPassword2(e.target.value)}
                 />
             </div>
 
-            <button type='submit'>Sing up</button>
+            <button type='submit'>Rejestracja</button>
             <br />
             <p>
-                Already have an account? <Link to={'/login'}>Back to Login page</Link>
+                Masz już konto? <Link to={'/login'}>Wrócz do logowania</Link>
             </p>
         </form>
     </div>

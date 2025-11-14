@@ -154,38 +154,78 @@ class ProductDetailsView(APIView):
     
 
 # @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
-class ProductsByCat(APIView):
-    
-    permission_classes = (AllowAny, )
+# class ProductsByCat(APIView):
+#     pagination_class = StorePagination
+#     permission_classes = (AllowAny, )
 
-    def get(self, request, id):
-        category = get_object_or_404(Category, id=id)
-        products = Product.objects.filter(category=category)      
-        prod_serializer = ProductSerializer(products, many=True, context={'request': request})
-        cat_serializer = CategorySerializer(category, context={'request': request})
-        return Response({
-            "products": prod_serializer.data,
-            "category": cat_serializer.data,
-        })
+#     def get(self, request, id):
+#         category = get_object_or_404(Category, id=id)
+#         products = Product.objects.filter(category=category)      
+#         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
+#         cat_serializer = CategorySerializer(category, context={'request': request})
+#         return Response({
+#             "products": prod_serializer.data,
+#             "category": cat_serializer.data,
+#         })
+
+class ProductsByCat(generics.ListAPIView):
+    serializer_class = ProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny,)
+
+    def get_queryset(self):
+        category_id = self.kwargs["id"]
+        category = get_object_or_404(Category, id=category_id)
+        return Product.objects.filter(category=category)
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        category = get_object_or_404(Category, id=self.kwargs["id"])
+        response.data["category"] = CategorySerializer(
+            category, context={"request": request}
+        ).data
+        return response
+
     
 
-class ProductsBySubCat(APIView):
-    
-    permission_classes = (AllowAny, )
+# class ProductsBySubCat(APIView):
+#     pagination_class = StorePagination
+#     permission_classes = (AllowAny, )
 
-    def get(self, request, sub_cat):
-        # sc = eval(f"[{sub_cat}]")
-        print('************************ ProductsBySubCat *****************************', sub_cat)
+#     def get(self, request, sub_cat):
+#         # sc = eval(f"[{sub_cat}]")
+#         print('************************ ProductsBySubCat *****************************', sub_cat)
+#         from django.db.models import Q
+
+#         products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
+#         print('************************ ProductsBySubCat products*****************************', products)
+#         # products = Product.objects.filter(sub_cat=)      
+#         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
+#         return Response({
+#             "products": prod_serializer.data,
+#         })
+    
+
+class ProductsBySubCat(generics.ListAPIView):
+    serializer_class = ProductSerializer
+    pagination_class = StorePagination
+    permission_classes = (AllowAny,)
+
+    def get_queryset(self):
         from django.db.models import Q
-
+        sub_cat = self.kwargs["sub_cat"]
         products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
-        print('************************ ProductsBySubCat products*****************************', products)
-        # products = Product.objects.filter(sub_cat=)      
-        prod_serializer = ProductSerializer(products, many=True, context={'request': request})
-        return Response({
-            "products": prod_serializer.data,
-        })
-    
+        return products
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        # category = get_object_or_404(Category, sub_cat=self.kwargs["sub_cat"])
+        # response.data["category"] = CategorySerializer(
+        #     category, context={"request": request}
+        # ).data
+        return response
+
+
 
 class AddToCardView(APIView):
 

@@ -20,6 +20,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
+  padding: 20px;
+  /* margin-left: 25px; */
+  background: var(--body-bg);
 }
 
 @media (max-width: 748px) {
@@ -35,4 +38,13 @@
   .products-page {
     width: 90%;
   }
+
+  .footer-cont {
+    background: linear-gradient(90deg, rgb(57 115 202 / 88%), #74d0f2);
+  }
+
+  .footer-cont button {
+    background: transparent;
+    color: white;
+}
 }

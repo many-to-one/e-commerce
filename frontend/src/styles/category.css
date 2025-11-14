@@ -11,15 +11,16 @@
     position: absolute;
     top: 50;
     left: 150px;
-    width: 87vw;
+    width: 75vw;
     display: flex;
     flex-direction: column;
     justify-items: flex-start;
     border: 1px solid gray;
+    border-radius: 10px;
     background-color: rgb(57, 164, 218);
     z-index: 10;
     padding: 10px;
-    /* margin-left: -5vw; */
+    margin-left: -6vw;
   }
   
   .categoryCard {
@@ -47,8 +48,8 @@
 
   .subCat {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 10px;
+    left: 35px;
     margin-left: 20%;
     /* margin-bottom: 30vw; */
     padding: 15px;
@@ -63,8 +64,9 @@
 
 @media (max-width: 768px) {
   .subCat {
-    top: 8%;
-    width: 82%;
-    left: -15%;
+    top: 9.5vh;
+    width: 92.5vw;
+    height: 97vh;
+    left: -20%;
   }
 }

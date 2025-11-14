@@ -65,12 +65,12 @@ const Login: React.FC = () => {
             <button type='submit'>Zaloguj</button>
             <br />
             <p>
-                Don't have an account? 
-                <Link to={'/register'}>Rejestracja</Link>
+                Nie masz konta? 
+                <Link to={'/register'}>Załóż</Link>
             </p>
             <br />
             <p>
-                <Link to={'/forgot-password'}>Niepamiętasz hasła?</Link>
+                <Link to={'/forgot-password'}>Nie pamiętasz hasła?</Link>
             </p>
         </form>
     </div>
