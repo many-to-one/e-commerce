@@ -45,6 +45,7 @@ const Products: React.FC = () => {
         : url;
 
       const response = await axios.get(_url);
+      // console.log('Products response ----', response);
       setProducts(response.data.results);
       setNextPage(response.data.next);
       setPrevPage(response.data.previous);

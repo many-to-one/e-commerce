@@ -169,7 +169,7 @@ class ProductDetailsView(APIView):
 #         })
 
 class ProductsByCat(generics.ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny,)
 
@@ -207,7 +207,7 @@ class ProductsByCat(generics.ListAPIView):
     
 
 class ProductsBySubCat(generics.ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny,)
 

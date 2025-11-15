@@ -54,6 +54,11 @@ const ProductDetails: React.FC = () => {
             // console.log(`${endpoint}`, response.data, response.data.gallery.length)
             // console.log('---- Image Link -----', `${API_BASE_URL}media/default.jpg`)
             setProduct(response.data.product);
+            
+            // const originalUrl = response.data.product.image;
+            // const galleryUrl = originalUrl.replace('product_', 'gallery_');
+            // setMainImg(galleryUrl);
+
             setMainImg(response.data.product.img_links[0])
             setGallery(response.data.gallery);
             setIsLoading(true);
@@ -62,6 +67,7 @@ const ProductDetails: React.FC = () => {
             console.log('Products error', error)
         }
     };
+
 
     useEffect(() => {
         fetchData(`/api/store/product/${prodId}`)
@@ -73,8 +79,8 @@ const ProductDetails: React.FC = () => {
 
         try {
             const response = await axios.get(`/api/store/category-products/${catId}`);
-            // console.log(`catProducts`, response.data)
-            setProducts(response.data.products)
+            console.log(`catProducts---------------*****----`, response.data)
+            setProducts(response.data.results)
             setIsLoading(true);
         } catch (error) {
             console.log('Products error', error)
