@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { __userId } from '../../utils/auth';
 
 import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
+import Tooltip from '@mui/material/Tooltip';
 
 function Cart () {
 
@@ -42,7 +43,9 @@ function Cart () {
   return (
     <div className="cart-container Cursor" onClick={goToCart}>
       {/* <MaterialIcon icon="shopping_cart" /> */}
+      <Tooltip title="Koszyk" arrow>
       <ShoppingCartRoundedIcon />
+      </Tooltip>
         { count !== null ? (
           <span className="cart-badge">{count}</span>
         ):(

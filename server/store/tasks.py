@@ -147,6 +147,45 @@ def test(x, y):
     # print('Test celery task running.../////////////////////////////////', x + y)
     return x + y
 
+
+########## REMOVE BACKGROUND LOGIC ##########
+
+# @shared_task
+# def generate_thumbnail(product_id, image_url, width=200, height=200):
+#     print('generate_thumbnail celery task running.../////////////////////////////////', product_id)
+#     from rembg import remove
+#     try:
+#         # Download image
+#         response = requests.get(image_url, timeout=10)
+#         response.raise_for_status()
+
+#         # Remove background using rembg (returns bytes with alpha channel)
+#         input_bytes = response.content
+#         output_bytes = remove(input_bytes)  # PNG with transparency
+
+#         # Open with Pillow
+#         pil_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
+
+#         # Resize thumbnail
+#         pil_img.thumbnail((width, height), Image.LANCZOS)
+
+#         # Save to buffer (WebP supports alpha channel)
+#         buffer = BytesIO()
+#         pil_img.save(buffer, format="WEBP", quality=80)
+#         buffer.seek(0)
+
+#         # Attach to product
+#         product = Product.objects.get(id=product_id)
+#         product.thumbnail.save(
+#             f"{product.sku}_thumb.webp",
+#             ContentFile(buffer.read()),
+#             save=True
+#         )
+
+#     except Exception as e:
+#         print(f"Thumbnail generation failed: {e}")
+
+
 @shared_task
 def generate_thumbnail(product_id, image_url, width=200, height=200):
     # print('Generating thumbnail for////////////////////////////////////////////', product_id, image_url)

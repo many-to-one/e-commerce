@@ -15,6 +15,7 @@ import ContactMailRoundedIcon from '@mui/icons-material/ContactMailRounded';
 import MenuIcon from '@mui/icons-material/Menu';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import { API_BASE_URL } from '../utils/constants';
+import Tooltip from '@mui/material/Tooltip';
 
 function _Header() {
   const user = __userId();
@@ -84,7 +85,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     <header className="toy-header">
       <div className='toy-header-inner'>
         <div className="toy-logo" onClick={() => goMainPage()}>
-          <HomeRoundedIcon /> <span>Kidnetic</span>
+          <Tooltip title="Główna" arrow>
+          <HomeRoundedIcon /> <span>KIDNETIC</span>
+          </Tooltip>
         </div>
 
 
@@ -121,18 +124,26 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
         <div className="toy-actions">
           <div className="toy-icon" onClick={() => navigate('/contact')}>
-            <ContactMailRoundedIcon />
+            <Tooltip title="Kontakt" arrow>
+            <ContactMailRoundedIcon titleAccess="Kontakt" />
+            </Tooltip>
           </div>
           <div className="toy-icon" onClick={() => navigate('/profile')}>
-            <AccountCircleRoundedIcon />
+            <Tooltip title="Profil" arrow>
+            <AccountCircleRoundedIcon titleAccess="Profil" />
+            </Tooltip>
           </div>
           <div className="toy-icon" onClick={() => navigate('/order')}>
             <Cart />
           </div>
           {user ? (
+            <Tooltip title="Wyloguj" arrow>
             <LogoutRoundedIcon onClick={logout} className="toy-icon" />
+            </Tooltip>
           ) : (
+            <Tooltip title="Zaloguj" arrow>
             <LoginRoundedIcon onClick={() => navigate('/login')} className="toy-icon" />
+            </Tooltip>
           )}
         </div>
 

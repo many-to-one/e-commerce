@@ -81,22 +81,22 @@ class Product(models.Model):
     )
 
     # allegro_id = models.CharField(max_length=100, null=True, blank=True)
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, verbose_name='Nazwa')
     ean = models.CharField(max_length=100, null=True, blank=True)
     image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     img_links = models.JSONField(blank=True, null=True)
-    description = models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True, verbose_name="Opis")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")
     sub_cat = models.JSONField(null=True, blank=True)
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
-    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
-    old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
-    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    stock_qty = models.PositiveIntegerField(default=0)
-    in_stock = models.BooleanField(default=True)
+    old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
+    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
+    stock_qty = models.PositiveIntegerField(default=0, verbose_name="Ilość")
+    in_stock = models.BooleanField(default=True, verbose_name="W sprzedaży")
 
     # Product status and type
     status = models.CharField(choices=STATUS, max_length=50, default="published", null=True, blank=True)
@@ -116,7 +116,7 @@ class Product(models.Model):
 
     # Vendor associated with the product
     # vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="vendor")
-    vendors = models.ManyToManyField(Vendor, blank=True)
+    vendors = models.ManyToManyField(Vendor, blank=True, verbose_name="Sprzedawca")
     
     # Unique short UUIDs for SKU and product
     sku = models.CharField(max_length=150, null=True, blank=True)

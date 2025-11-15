@@ -1,0 +1,92 @@
+.products-page {
+  padding: 30px 20px;
+  max-width: 1280px;
+  margin: auto;
+}
+
+.product-section {
+  margin-bottom: 60px;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+.product-section:hover {
+  transform: scale(1.01);
+}
+
+.product-section h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #FF6B81;
+  text-align: center;
+  font-family: "Poppins", sans-serif;
+  position: relative;
+}
+.product-section h2::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: #FFD166;
+  margin: 10px auto 0;
+  border-radius: 2px;
+}
+
+/* Section-specific themes */
+.section-news {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+}
+.section-discounts {
+  background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+}
+.section-recommended {
+  background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+}
+
+.productCont {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  background: var(--body-bg, #fafafa);
+}
+
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Pagination controls */
+.pagination-controls button {
+  background: #74D0F2;
+  border: none;
+  border-radius: 50%;
+  padding: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.pagination-controls button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+.pagination-controls button:hover:not(:disabled) {
+  background: #57bde0;
+}
+
+@media (max-width: 748px) {
+  .swiper-slide {
+    width: 50% !important;
+  }
+  .productCont {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  .products-page {
+    width: 95%;
+  }
+}

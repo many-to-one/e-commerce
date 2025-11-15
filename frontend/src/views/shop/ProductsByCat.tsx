@@ -97,7 +97,7 @@ const ProductsByCat: React.FC = () => {
                     }}
                     disabled={!prevPage}
                 >
-                    <KeyboardArrowLeftRoundedIcon />
+                    <KeyboardArrowLeftRoundedIcon /> 
                 </button>
 
                 <span>{currentPage}</span>

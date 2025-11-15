@@ -170,18 +170,18 @@ const CheckOut: React.FC = () => {
 
 
   return (
-    <div className='mt-20'>
+    <div className='flexColumnCenter'>
         {cart?.map((order, index) => (
            <div key={index} className='cartItem'>
-                <div>
-                    <div className='flexRowCenter'>
+                <div className='w-400'>
+                    <div className='flexRowCenter w-400'>
                         <img src={order.product.image} alt="" width={100}/>
                         <p>Produkt: {order.product.title}</p>
                     </div>
-                    <div className='flexRowBetween'>
+                    <div className='flexRowBetween w-400'>
                         <p>Cena: {order.price} PLN</p>
                     </div>
-                    <div className='flexRowBetween'>
+                    <div className='flexRowBetween w-400'>
                         <p>Ilość: {order.qty} szt.</p>
                         <p>{order.total} PLN</p>
                     </div>
@@ -191,13 +191,13 @@ const CheckOut: React.FC = () => {
         ))}
         <br />
 
-        <div className='flexRowBetween'>
+        <div className='flexRowBetween w-400'>
             <button onClick={() => navigate('/order')}>
                 Edytuj Koszyk
             </button>
 
             <div 
-                className="flexRowBetween gap-15"
+                className="flexRowBetween gap-15 w-400"
                 // onMouseEnter={() => setIsHovered(true)}
                 // onMouseLeave={() => setIsHovered(false)}
             >
@@ -243,11 +243,11 @@ const CheckOut: React.FC = () => {
         </div>
 
         <br />
-        <div className='flexRowBetween cartItem'>
+        <div className='flexRowBetween cartItem w-400'>
             <p><b>RAZEM DO ZAPŁATY:</b></p>
             <p>{orderPay} PLN</p>
         </div>
-        <div className='flexRowBetween cartItem'>
+        <div className='flexRowBetween cartItem w-400'>
             <p><b>RAZEM DO ZAPŁATY + DOSTAWA:</b></p>
             <p><b>{totalOrderPrice} PLN</b></p>
         </div>

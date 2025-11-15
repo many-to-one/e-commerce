@@ -1,9 +1,7 @@
 #root {
   width: 100vw;
-  max-width: 1280px;
-  /* margin: 10px;
-  padding: 10px; */
-  /* background-color: var(--); */
+  min-height: 100vh;
+  background-color: #ece9e2;
   --pink: #ff6fb5;
   --blue: #5ec8e6;
   --yellow: #ffe873;
@@ -11,6 +9,11 @@
   --white: #fff;
   --gray: #f9f9f9;
   --btn-color: greenyellow;
+  --cart-bg: #e9e8ac;
+  --body-bg: #ece9e2;
+  --promo-bg: #d6d6d6;
+  --header-bg: #4f0000;
+  --category-bg: rgb(164 162 132);
 }
 
 

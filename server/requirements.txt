@@ -50,6 +50,7 @@ msgpack==1.1.0
 num2words==0.5.14
 numpy==2.2.3
 openpyxl==3.1.5
+opencv-python-headless
 packaging==24.2
 pandas==2.2.3
 pillow==11.1.0

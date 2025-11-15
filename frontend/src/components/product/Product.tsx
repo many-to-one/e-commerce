@@ -57,11 +57,11 @@ const Product: React.FC<ProductProps> = ({product}) => {
           ) : (
             <picture>
               <source
-                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200`}
+                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[1]}&w=200&h=200`}
                 type="image/webp"
               />
               <source
-                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[0]}&w=200&h=200&format=jpg`}
+                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[1]}&w=200&h=200&format=jpg`}
                 type="image/jpeg"
               />
               <img
@@ -83,7 +83,13 @@ const Product: React.FC<ProductProps> = ({product}) => {
           )}
     
         </div>
-        <h3>{product.title}</h3>
+        {/* <h3>{product.title}</h3> */}
+        <h3>
+          {product.title.length > 30 
+            ? product.title.slice(0, 30) + "..." 
+            : product.title}
+        </h3>
+
           <div className='price'>
             {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price} PLN</p>}
             <p>{product.price} PLN</p>

@@ -17,7 +17,7 @@
     justify-items: flex-start;
     border: 1px solid gray;
     border-radius: 10px;
-    background-color: rgb(57, 164, 218);
+    background-color: var(--category-bg);
     z-index: 10;
     padding: 10px;
     margin-left: -6vw;
@@ -57,7 +57,7 @@
     height: 90%;
     width: 60%;
     border-radius: 10px;
-    background-color: rgb(235 255 252);
+    background-color: var(--body-bg);
     color: #5a5a5a;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -68,5 +68,6 @@
     width: 92.5vw;
     height: 97vh;
     left: -20%;
+    padding-left: 30px;
   }
 }

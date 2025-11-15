@@ -130,12 +130,12 @@ const Order: React.FC<OrderProps> = () => {
     }
 
   return (
-    <div>
+    <div className='flexColumnCenter'>
         {cart?.map((order, index) => (
            <div key={index}>
                 <div className='cartItem'>
-                    <div>
-                        <div className='flexRowCenter'>
+                    <div className='w-400'>
+                        <div className='flexRowBetween'>
                             <img src={order.product.image} width={100} alt="" />
                             <p>{order.product.title}</p>
                         </div>
@@ -162,11 +162,11 @@ const Order: React.FC<OrderProps> = () => {
            </div>
         ))}
         <br />
-        <div className='flexRowBetween cartItem'>
+        <div className='flexRowBetween cartItem w-400'>
             <p><b>RAZEM DO ZAPŁATY:</b></p>
             <p><b>{orderPay} PLN</b></p>
         </div>
-        <div className='flexRowBetween mt-20'>
+        <div className='flexRowBetween mt-20 w-400'>
             <button onClick={() => navigate('/')}>
                 Wrócz
             </button>

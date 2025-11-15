@@ -52,15 +52,16 @@
 
 /* ---- */
 .product-card {
-  transition: all 0.3s ease;
-  background: var(--white);
-  border-radius: 16px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-  padding: 12px;
-  text-align: center;
-  transition: transform 0.2s;
-  width: 200px;
-  cursor: pointer;
+      transition: all 0.3s ease;
+    /* background: #4e0b0b; */
+    border: 1px solid #a03838;
+    border-radius: 16px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+    /* width: 200px; */
+    cursor: pointer;
 }
 
 .product-card:hover {

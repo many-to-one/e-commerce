@@ -72,7 +72,11 @@ class ProductsView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.filter(
+            in_stock=True,
+            stock_qty__gt=0,
+            )
+        # queryset = Product.objects.all()
         search = self.request.query_params.get('search')
         # print(' ***************** get queryset ++++++++++++++', search)
         if search:
@@ -87,7 +91,11 @@ class PopularProductsView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
     def get_queryset(self):
-        queryset = Product.objects.filter(special_offer=True)
+        queryset = Product.objects.filter(
+            special_offer=True, 
+            in_stock=True,
+            stock_qty__gt=0,
+            )
         return queryset
     
 
@@ -98,7 +106,11 @@ class DiscountProductsView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
     def get_queryset(self):
-        queryset = Product.objects.filter(hot_deal=True)
+        queryset = Product.objects.filter(
+            hot_deal=True,
+            in_stock=True,
+            stock_qty__gt=0,
+            )
         return queryset
     
 
@@ -109,7 +121,11 @@ class NewsProductsView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
     def get_queryset(self):
-        queryset = Product.objects.filter(featured=True)
+        queryset = Product.objects.filter(
+            featured=True,
+            in_stock=True,
+            stock_qty__gt=0,
+            )
         return queryset
 
 
@@ -153,21 +169,6 @@ class ProductDetailsView(APIView):
         })
     
 
-# @method_decorator(cache_page(60 * 60 * 2, cache="default"), name="dispatch")
-# class ProductsByCat(APIView):
-#     pagination_class = StorePagination
-#     permission_classes = (AllowAny, )
-
-#     def get(self, request, id):
-#         category = get_object_or_404(Category, id=id)
-#         products = Product.objects.filter(category=category)      
-#         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
-#         cat_serializer = CategorySerializer(category, context={'request': request})
-#         return Response({
-#             "products": prod_serializer.data,
-#             "category": cat_serializer.data,
-#         })
-
 class ProductsByCat(generics.ListAPIView):
     serializer_class = IconProductSerializer
     pagination_class = StorePagination
@@ -176,7 +177,11 @@ class ProductsByCat(generics.ListAPIView):
     def get_queryset(self):
         category_id = self.kwargs["id"]
         category = get_object_or_404(Category, id=category_id)
-        return Product.objects.filter(category=category)
+        return Product.objects.filter(
+            category=category, 
+            in_stock=True,
+            stock_qty__gt=0,
+            )
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -185,25 +190,6 @@ class ProductsByCat(generics.ListAPIView):
             category, context={"request": request}
         ).data
         return response
-
-    
-
-# class ProductsBySubCat(APIView):
-#     pagination_class = StorePagination
-#     permission_classes = (AllowAny, )
-
-#     def get(self, request, sub_cat):
-#         # sc = eval(f"[{sub_cat}]")
-#         print('************************ ProductsBySubCat *****************************', sub_cat)
-#         from django.db.models import Q
-
-#         products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
-#         print('************************ ProductsBySubCat products*****************************', products)
-#         # products = Product.objects.filter(sub_cat=)      
-#         prod_serializer = ProductSerializer(products, many=True, context={'request': request})
-#         return Response({
-#             "products": prod_serializer.data,
-#         })
     
 
 class ProductsBySubCat(generics.ListAPIView):
@@ -214,7 +200,15 @@ class ProductsBySubCat(generics.ListAPIView):
     def get_queryset(self):
         from django.db.models import Q
         sub_cat = self.kwargs["sub_cat"]
-        products = Product.objects.filter(Q(sub_cat__icontains=sub_cat))
+        # products = Product.objects.filter(
+        #     Q(sub_cat__icontains=sub_cat),
+        #     )
+        products = Product.objects.filter(
+            in_stock=True,
+            stock_qty__gt=0,
+            sub_cat__icontains=sub_cat
+        )
+
         return products
 
     def list(self, request, *args, **kwargs):
@@ -1031,7 +1025,7 @@ class ResizeImageView(APIView):
         width = int(request.query_params.get('w', 200))
         height = int(request.query_params.get('h', 200))
 
-        # print('********** ResizeImageView **********', image_url, width, height)
+        print('********** ResizeImageView **********', image_url, width, height)
 
         if not image_url:
             return Response({'error': 'Missing image URL'}, status=400)

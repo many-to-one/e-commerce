@@ -1,24 +1,22 @@
-:root {
+/* :root {
   --pink: #ff69b4;
   --yellow: #ffe873;
   --blue: #5ec8e6;
   --purple: #b984f6;
   --bg: #fffdf8;
 }
- 
+  */
 .toy-header {
-  /* display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px; */
   position: sticky;
-  top: 0;
+  top: 10px;
   height: 60px;
-  background: linear-gradient(90deg, rgb(57 115 202 / 88%), #74d0f2);
+  /* background: linear-gradient(90deg, rgb(57 115 202 / 88%), #74d0f2); */
+  background: var(--header-bg);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  color: white;
+  color: rgb(255 252 252);
   border-radius: 10px;
+  margin: 10px;
 }
 
 .toy-header-inner {
@@ -38,7 +36,8 @@
 }
 
 .toy-search input {
-  border: none;
+  border: 1px solid rgb(255, 255, 255);
+  /* border: none; */
   padding: 8px 14px;
   border-radius: 20px;
   width: 240px;
@@ -65,13 +64,15 @@
   display: none;
   background: none;
   border: none;
-  color: white;
+  color: rgb(255, 255, 255);
 }
 
 @media (max-width: 768px) {
+
   .toy-header {
     border-radius: 0px;
-    width: 90%;
+    top: 0;
+    margin: 0;
   }
 
   .toy-header-inner {
@@ -96,7 +97,7 @@
   }
 
   .toy-mobile-menu {
-    background: var(--bg);
+    background: var(--white);
     color: #333;
     padding: 12px;
     animation: slideDown 0.3s ease;

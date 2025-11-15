@@ -92,8 +92,8 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean',]
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title', 'ean', 'price', 'stock_qty']
-    list_display = ['sku', 'product_image', 'title', 'ean', 'price', 'stock_qty']
+    list_editable = ['title', 'ean', 'price', 'stock_qty', 'hot_deal']
+    list_display = ['sku', 'product_image', 'title', 'ean', 'price', 'stock_qty', 'hot_deal']
     actions = [apply_discount, 'allegro_export']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
@@ -124,9 +124,11 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
     def save_model(self, request, obj, form, change):
-            
-        if obj.price:
-            obj.price = (obj.price * Decimal('0.8')).quantize(Decimal('0.01'))  # - 20% round to second number after coma (Exp: 12.99PLN)
+
+        # - 20% round to second number after coma (Exp: 12.99PLN)  
+        # if obj.price:
+        #     obj.price = (obj.price * Decimal('0.8')).quantize(Decimal('0.01'))
+
         super().save_model(request, obj, form, change)
 
         vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)

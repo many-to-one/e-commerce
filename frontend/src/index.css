@@ -73,41 +73,18 @@ button:focus-visible {
 } */
 
 
-:root {
-  --pink: #ff6fb5;
-  --blue: #5ec8e6;
-  --yellow: #ffe873;
-  --violet: #b984f6;
-  --white: #fff;
-  --gray: #f9f9f9;
-  --body-bg: #eceff1;
-}
 
 body {
   margin: 0;
-  /* padding-top: 100px; */
   display: flex;
   justify-content: center;
-  /* place-items: center; */
+  width: 100%;
   min-width: 320px;
   font-family: "Poppins", sans-serif;
-  /* background: var(--body-bg); */
   color: #333;
-  height: 100vh;
+  /* height: 100vh; */
 }
 
-/* header {
-  position: sticky;
-  top: 0;
-  background: var(--blue);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px;
-  z-index: 100;
-  color: white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-} */
 
 header .logo {
   font-size: 1.5rem;

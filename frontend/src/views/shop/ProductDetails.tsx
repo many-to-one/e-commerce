@@ -79,7 +79,7 @@ const ProductDetails: React.FC = () => {
 
         try {
             const response = await axios.get(`/api/store/category-products/${catId}`);
-            console.log(`catProducts---------------*****----`, response.data)
+            // console.log(`catProducts---------------*****----`, response.data)
             setProducts(response.data.results)
             setIsLoading(true);
         } catch (error) {
@@ -224,9 +224,9 @@ const ProductDetails: React.FC = () => {
                     <div className='w-50'>
                         <h2>{product?.title}</h2>
                         {/* <p>Brand: {product?.brand}</p> */}
-                        <div className='flexRowCenter'>Cena: {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
-                        <p>Dostawa: {product?.shipping_amount} PLN</p>
-                        <p>Ilość: {product?.stock_qty} szt.</p>
+                        <div className='flexRowStart'><b>Cena:</b> {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
+                        <p><b>Dostawa:</b> {product?.shipping_amount} PLN</p>
+                        <p><b>Ilość:</b> {product?.stock_qty} szt.</p>
                         {product?.product_rating !== null ? (
                             <Likes rating={String(product?.product_rating)}/>
                             ) : (
