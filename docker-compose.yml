@@ -130,14 +130,14 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: eshop_web
-    # command: sh -c "uvicorn backend.asgi:application --host 0.0.0.0 --port ${DJANGO_PORT} --reload"
-    command: >
-      gunicorn backend.asgi:application
-      -k uvicorn.workers.UvicornWorker
-      --bind 0.0.0.0:${DJANGO_PORT}
-      --workers 4
-      --timeout 120
-      --log-level info
+    command: sh -c "uvicorn backend.asgi:application --host 0.0.0.0 --port ${DJANGO_PORT} --reload"
+    # command: >
+    #   gunicorn backend.asgi:application
+    #   -k uvicorn.workers.UvicornWorker
+    #   --bind 0.0.0.0:${DJANGO_PORT}
+    #   --workers 4
+    #   --timeout 120
+    #   --log-level info
 
     volumes:
       - ./server:/app
@@ -151,31 +151,31 @@ services:
 
   
   # Development frontend service
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: react_shop
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #   ports:
-  #     - "5173:5173"
-  #   environment:
-  #     - CHOKIDAR_USEPOLLING=true
-  #   command: npm run dev -- --host 0.0.0.0
-  #   depends_on:
-  #     - web
-
-  #Production frontend service
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: react_shop
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "${REACT_PORT}:${REACT_CONTAINER_PORT}"
-    restart: unless-stopped
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - web
+
+  #Production frontend service
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: react_shop
+  #   ports:
+  #     - "${REACT_PORT}:${REACT_CONTAINER_PORT}"
+  #   restart: unless-stopped
 
 
   redis:

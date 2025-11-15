@@ -1025,7 +1025,7 @@ class ResizeImageView(APIView):
         width = int(request.query_params.get('w', 200))
         height = int(request.query_params.get('h', 200))
 
-        print('********** ResizeImageView **********', image_url, width, height)
+        # print('********** ResizeImageView **********', image_url, width, height)
 
         if not image_url:
             return Response({'error': 'Missing image URL'}, status=400)
