@@ -60,6 +60,7 @@ function Profile() {
         window.location.href = `https://allegro.pl.allegrosandbox.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=http://localhost:5173/allegro-auth-code/${vendor_name}`;
         // PRODUCTION
         window.location.href = `https://allegro.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=http://kidnetic.pl/allegro-auth-code/${vendor_name}`;
+    }
 
 
 //   return (
