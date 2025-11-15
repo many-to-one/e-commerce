@@ -35,7 +35,7 @@ def get_access_token(authorization_code, vendor_name):
     print("Getting access RETSET_CLIENT_SECRET...----------------", vendor.secret_id)
 
     try:
-        data = {'grant_type': 'authorization_code', 'code': authorization_code, 'redirect_uri': f"{REDIRECT_URI}:5173/allegro-auth-code/{vendor_name}"}
+        data = {'grant_type': 'authorization_code', 'code': authorization_code, 'redirect_uri': f"{REDIRECT_URI}/allegro-auth-code/{vendor_name}"}
         response = requests.post(TOKEN_URL, data=data, verify=False,
                                               allow_redirects=True, auth=(vendor.client_id, vendor.secret_id))
 
@@ -82,7 +82,7 @@ def get_next_token(token, vendor_name):
 
     vendor = Vendor.objects.get(name=vendor_name)
     try:
-        data = {'grant_type': 'refresh_token', 'refresh_token': token, 'redirect_uri': f"{REDIRECT_URI}:5173/allegro-auth-code/{vendor_name}"}
+        data = {'grant_type': 'refresh_token', 'refresh_token': token, 'redirect_uri': f"{REDIRECT_URI}/allegro-auth-code/{vendor_name}"}
         get_next_token_response = requests.post(TOKEN_URL, data=data, verify=False,
                                               allow_redirects=True, auth=(vendor.client_id, vendor.secret_id))
         # print("Response get_next_token_response ---------------:", get_next_token_response)
