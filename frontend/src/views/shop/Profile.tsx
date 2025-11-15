@@ -57,9 +57,9 @@ function Profile() {
     const loginAllegro = ( client_id, vendor_name ) => {
         // navigate('/allegro-auth');
         // DEVELOPMENT
-        window.location.href = `https://allegro.pl.allegrosandbox.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=http://localhost:5173/allegro-auth-code/${vendor_name}`;
+        // window.location.href = `https://allegro.pl.allegrosandbox.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=http://localhost:5173/allegro-auth-code/${vendor_name}`;
         // PRODUCTION
-        // window.location.href = `https://allegro.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=https://kidnetic.pl/allegro-auth-code/${vendor_name}`;
+        window.location.href = `https://allegro.pl/auth/oauth/authorize?response_type=code&client_id=${encodeURIComponent(client_id)}&redirect_uri=https://kidnetic.pl/allegro-auth-code/${vendor_name}`;
     }
 
 
