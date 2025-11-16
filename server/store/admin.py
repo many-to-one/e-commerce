@@ -200,13 +200,14 @@ class ProductAdmin(ImportExportModelAdmin):
 
         response = allegro_request("GET", url, name, headers=headers) # params={"limit": 10}
         
-        # print('create_offer_from_product response ----------------', response.text)
+        print('create_offer_from_product response ----------------', response.text)
         return response.json()
 
 
     def create_offer_from_product(self, request, product, url, access_token, vendor_name, producer):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
+        print('create_offer_from_product producer ----------------', producer)
 
         try:
             payload = json.dumps({
