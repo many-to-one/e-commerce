@@ -40,7 +40,7 @@ function Profile() {
     try {
       const response = await axios_.get(`api/store/vendors/${user['email']}`);
       setVendors(response.data.vendors);
-      console.log('DRF vendors response -------------:', response.data);
+      // console.log('DRF vendors response -------------:', response.data);
     } catch (error) {
       console.error('DRF vendors Axios error ----------:', error);
       navigate('/login');
