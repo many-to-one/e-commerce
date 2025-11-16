@@ -48,6 +48,8 @@ PAYU_API_URL = os.environ.get("PAYU_API_URL")
 SITE_URL = os.environ.get("SITE_URL")
 continueUrl = os.environ.get("continueUrl")
 _marketplace = os.environ.get("marketplace")
+WEB_VENDOR = os.environ.get("WEB_VENDOR")
+VENDOR_1 = os.environ.get("VENDOR_1")
 
 class CategoriesView(generics.ListAPIView):
 
@@ -687,8 +689,192 @@ class TestView(APIView):
         return Response({
             'returns': "Url is working"
         })
-
     
+
+
+class PrestaCSVView(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        csv_file = request.FILES.get("file")
+        user_id = request.data["user_id"]
+        user = User.objects.get(id=1)
+
+        if Vendor.objects.exists():
+            pass
+        else:
+            return Response({
+                    "Error": "No vendor",
+                    "Błąd": "Nie ma żadnego sprzedającego",
+                    }, 
+                    status=404
+                )
+        if not csv_file:
+            return Response({"error": "No file uploaded"}, status=400)
+        
+        def safe_decimal(value):
+            try:
+                return Decimal(value)
+            except InvalidOperation:
+                return Decimal('0.00')
+
+        try:
+            file_extension = os.path.splitext(csv_file.name)[1].lower()
+
+            if file_extension == ".csv":
+                df = pd.read_csv(csv_file, sep=";", encoding="utf-8", keep_default_na=False)
+            else:
+                return Response({"error": "Unsupported file format"}, status=400)
+
+
+            for idx, row in df.iterrows():
+                categories = row["Kategorie (x,y,z...)"].split(",")
+                if len(categories) >= 2:
+                    category_, created = Category.objects.get_or_create(
+                        title=categories[1],
+                        category_hierarchy=categories[2:]
+                    )
+
+                images = str(row["Zdjęcia"]).split(",")
+                first_image = images[0].strip() if images else None
+
+                net_price = safe_decimal(row["Cena bez podatku. (netto)"])
+                gross_price = net_price * Decimal("1.23")
+
+                print(len(row["Nazwa"]), row["Nazwa"])
+
+                product, created_product = Product.objects.get_or_create(
+                    title=row["Nazwa"],
+                    ean=row["EAN"],
+                    image = first_image,
+                    img_links=images,
+                    description=row["Opis"],
+                    price=gross_price,   # <-- includes 23% VAT
+                    hurt_price=safe_decimal(row["Cena hurtowa"]),
+                    stock_qty=row["Ilość"],
+                    sku=row["Kod dostawcy"],
+                    shipping_amount=safe_decimal(9.99),
+                    category=category_,
+                    sub_cat=categories[2:],
+                )
+                all_vendors = Vendor.objects.all()
+                product.vendors.add(*all_vendors)
+
+                product.save()
+
+            return Response({"message": "CSV processed successfully"}, status=201)
+
+        
+        except Exception as e:
+            # Log full error and traceback
+            import traceback
+            error_message = traceback.format_exc()
+            print(f"Error: {error_message}")
+            return Response({"error": str(e)}, status=500) 
+
+
+class PrestaUpdateCSVView(APIView):
+
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        csv_file = request.FILES.get("file")
+        user_id = request.data["user_id"]
+        user = User.objects.get(id=1)
+
+        if Vendor.objects.exists():
+            pass
+        else:
+            return Response({
+                    "Error": "No vendor",
+                    "Błąd": "Nie ma żadnego sprzedającego",
+                    }, 
+                    status=404
+                )
+        if not csv_file:
+            return Response({"error": "No file uploaded"}, status=400)
+        
+        def safe_decimal(value):
+            try:
+                return Decimal(value)
+            except InvalidOperation:
+                return Decimal('0.00')
+
+        try:
+            file_extension = os.path.splitext(csv_file.name)[1].lower()
+
+            if file_extension == ".csv":
+                df = pd.read_csv(csv_file, sep=";", encoding="utf-8", keep_default_na=False)
+            else:
+                return Response({"error": "Unsupported file format"}, status=400)
+
+
+            for idx, row in df.iterrows():
+                categories = row["Kategorie (x,y,z...)"].split(",")
+                if len(categories) >= 2:
+                    category_, created = Category.objects.get_or_create(
+                        title=categories[1],
+                        category_hierarchy=categories[2:]
+                    )
+
+                images = str(row["Zdjęcia"]).split(",")
+                first_image = images[0].strip() if images else None
+
+                net_price = safe_decimal(row["Cena bez podatku. (netto)"])
+                gross_price = net_price * Decimal("1.23")
+
+                print(len(row["Nazwa"]), row["Nazwa"])
+
+                product = Product.objects.filter(ean=row["EAN"]).first()
+                if product:
+                    # update only selected fields
+                    product.title = row["Nazwa"]
+                    product.ean = row["EAN"]
+                    product.image = first_image
+                    product.img_links = images
+                    product.description = row["Opis"]
+                    product.price = gross_price   # <-- includes 23% VAT
+                    product.hurt_price = safe_decimal(row["Cena hurtowa"])
+                    product.stock_qty = row["Ilość"]
+                    product.sku = row["Kod dostawcy"]
+                    product.shipping_amount = safe_decimal(9.99)
+                    product.category = category_
+                    product.sub_cat = categories[2:]
+
+                    product.save()
+                else:
+                    product = Product.objects.create(
+                        title=row["Nazwa"],
+                        ean=row["EAN"],
+                        image=first_image,
+                        img_links=images,
+                        description=row["Opis"],
+                        price=gross_price,   # <-- includes 23% VAT
+                        hurt_price=safe_decimal(row["Cena hurtowa"]),
+                        stock_qty=row["Ilość"],
+                        sku=row["Kod dostawcy"],
+                        shipping_amount=safe_decimal(9.99),
+                        category=category_,   # <-- comma added here
+                        sub_cat=categories[2:],
+                    )
+
+                    all_vendors = Vendor.objects.all()
+                    product.vendors.add(*all_vendors)
+                    product.save()
+
+
+            return Response({"message": "CSV proccessed successfully"}, status=201)
+
+        
+        except Exception as e:
+            # Log full error and traceback
+            import traceback
+            error_message = traceback.format_exc()
+            print(f"Error: {error_message}")
+            return Response({"error": str(e)}, status=500) 
+        
+
 
 class ProductCSVView(APIView):
 

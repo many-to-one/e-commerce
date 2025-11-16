@@ -37,7 +37,8 @@ class Category(models.Model):
         return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.image.url))
 
     def __str__(self):
-        return f'{self.title} - {self.allegro_cat_id}'
+        # return f'{self.title} - {self.allegro_cat_id}' ## allegro
+        return self.title ## kecja
     
     # Returns the count of products in this category
     def product_count(self):
@@ -81,9 +82,9 @@ class Product(models.Model):
     )
 
     # allegro_id = models.CharField(max_length=100, null=True, blank=True)
-    title = models.CharField(max_length=100, verbose_name='Nazwa')
+    title = models.CharField(max_length=255, verbose_name='Nazwa')
     ean = models.CharField(max_length=100, null=True, blank=True)
-    image = models.FileField(upload_to="products", blank=True, null=True, default="default.jpg")
+    image = models.FileField(upload_to="products", max_length=1000, blank=True, null=True, default="default.jpg")
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True, verbose_name="Opis")
@@ -92,6 +93,7 @@ class Product(models.Model):
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena')
+    hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")

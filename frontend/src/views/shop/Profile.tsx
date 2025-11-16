@@ -103,6 +103,8 @@ return (
         <p>Adres e-mail: {user['email']}</p>
         <p>Imię i nazwisko: {user['first_name']} {user['last_name']}</p>
 
+        <hr />
+
         {user['user_id'] === 1 && (
           <button
             className='Cursor fileUpload'
@@ -111,6 +113,30 @@ return (
             Importuj oferty allegro
           </button>
         )}
+
+        <hr />
+
+        {user['user_id'] === 1 && (
+          <button
+            className='Cursor fileUpload'
+            onClick={() => navigate('/upload-files-kecja')}
+          >
+            Importuj oferty kecji
+          </button>
+        )}
+
+        <hr />
+
+        {user['user_id'] === 1 && (
+          <button
+            className='Cursor fileUpload'
+            onClick={() => navigate('/update-files-kecja')}
+          >
+            Aktualizuj oferty kecji
+          </button>
+        )}
+
+        <hr />
 
         {vendors.length > 0 && (
           <div className='flexColumnCenter'>

@@ -94,7 +94,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           {!isMobile && (
             <div className="Cursor Cat showCat" 
                     onMouseEnter={() => setShowCategories(true)} 
-                    onMouseLeave={() => setShowCategories(false)} 
+                    onMouseLeave={() => setShowCategories(true)} 
                   > 
                     <ArticleRoundedIcon /> Kategorie 
                     {showCategories && (

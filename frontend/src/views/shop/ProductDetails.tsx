@@ -175,7 +175,8 @@ const ProductDetails: React.FC = () => {
                                             {/* <img src={image} alt="" className="galleryImage" key={index} onMouseOver={() => updateMainImg(image)} /> */}
                                             <picture>
                                                 <source
-                                                    srcSet={`${image}.jpeg`}
+                                                    // srcSet={`${image}.jpeg`}
+                                                    srcSet={`${image}`}
                                                     type="image/webp"
                                                 />
                                                 <img

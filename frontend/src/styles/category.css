@@ -8,7 +8,7 @@
 }
 
 .categoryTitles {
-    position: absolute;
+    /* position: absolute;
     top: 50;
     left: 150px;
     width: 75vw;
@@ -20,7 +20,25 @@
     background-color: var(--category-bg);
     z-index: 10;
     padding: 10px;
+    margin-left: -6vw; */
+
+    position: absolute;
+    top: 50px;              /* add px unit */
+    left: 150px;
+    width: 75vw;
+    max-height: 70vh;       /* or any fixed height you want */
+    overflow-y: auto;       /* enables vertical scroll */
+    display: flex;
+    flex-direction: column;
+    justify-items: flex-start;
+    border: 1px solid gray;
+    border-radius: 10px;
+    background-color: var(--category-bg);
+    z-index: 10;
+    padding: 10px;
     margin-left: -6vw;
+
+
   }
   
   .categoryCard {

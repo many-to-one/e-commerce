@@ -92,8 +92,8 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title','ean', 'price', 'stock_qty', 'hot_deal']
-    list_display = ['sku', 'product_image', 'title', 'ean', 'price', 'stock_qty', 'hot_deal']
+    list_editable = ['title','ean', 'price', 'stock_qty', 'hot_deal', 'in_stock']
+    list_display = ['sku', 'product_image', 'in_stock', 'title', 'ean', 'price', 'hurt_price', 'stock_qty', 'hot_deal']
     actions = [apply_discount, 'allegro_export']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
@@ -178,13 +178,13 @@ class ProductAdmin(ImportExportModelAdmin):
             # print('allegro_export producer ----------------', producer)
         
             for product in queryset:
-               # product_vendors = product.vendors.all()
-               # if vendor in product_vendors:
+               product_vendors = product.vendors.all()
+               if vendor in product_vendors:
                #     print('if vendor in product_vendors ----------------', vendor)
-               #     self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+                   self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
-                 self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+                #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
 
 
     def responsible_producers(self, access_token, name):

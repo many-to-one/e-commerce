@@ -31,6 +31,8 @@ import ProductsBySubCat from './views/shop/ProductsBySubCat';
 import AllegroAuth from './views/admin/AllegroAuth';
 import Contact from './views/shop/Contact';
 import ContactInfo from './views/shop/ContactInfo';
+import UploadKecja from './views/admin/UploadKecja';
+import UpdateKecja from './views/admin/UpdateKecja';
 
 
 function App() {
@@ -72,6 +74,8 @@ function AppContent() {
         <Route path='/profile' element={<Profile />} />
         <Route path='/orders-history' element={<OrderHistory />} />
         <Route path='/upload-files' element={<UploadAllegro />} />
+        <Route path='/upload-files-kecja' element={<UploadKecja />} />
+        <Route path='/update-files-kecja' element={<UpdateKecja />} />
         <Route path='/initial-return' element={<InitialReturn />} />
         <Route path='/returns' element={<Returns />} />
         {/* <Route path='/allegro-auth-code-:vendorName' element={<AllegroAuth />} /> */}

@@ -103,6 +103,7 @@
     animation: slideDown 0.3s ease;
   }
 
+
   .toy-mobile-link {
     display: flex;
     align-items: center;
@@ -115,11 +116,21 @@
     color: var(--pink);
   }
 
+  /* .toy-mobile-categories {
+    background: #fff6fc;
+    border-radius: 10px;
+    padding: 10px;
+  } */
+
   .toy-mobile-categories {
     background: #fff6fc;
     border-radius: 10px;
     padding: 10px;
-  }
+
+    max-height: 70vh;     /* or any fixed height you want */
+    overflow-y: auto;     /* enables vertical scroll */
+}
+
 
   @keyframes slideDown {
     from {
