@@ -129,40 +129,43 @@ class ProductAdmin(ImportExportModelAdmin):
         # - 20% round to second number after coma (Exp: 12.99PLN)  
         # if obj.price:
         #     obj.price = (obj.price * Decimal('0.8')).quantize(Decimal('0.01'))
+        print('*********************save_model*******************')
 
-        super().save_model(request, obj, form, change)
+        pass
 
-        # vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        obj.vendors.set(vendors)
+        # super().save_model(request, obj, form, change)
 
-        # print("---- selected_vendors obj ----", obj)
+        # # vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
+        # vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+        # obj.vendors.set(vendors)
 
-        selected_vendors = obj.vendors.all().order_by('id')
-        # print("---- selected_vendors main ----", selected_vendors)
-        for vendor in selected_vendors:
-            # print("---- selected_vendors ----", vendor.name)
-            try:
-                access_token = vendor.access_token
+        # # print("---- selected_vendors obj ----", obj)
 
-                offers = self.get_offers(access_token, vendor.name)
-                self.get_me(access_token, vendor.name) # To verify access token is valid
-                # print("---- selected_offers ----", offers.text)
+        # selected_vendors = obj.vendors.all().order_by('id')
+        # # print("---- selected_vendors main ----", selected_vendors)
+        # for vendor in selected_vendors:
+        #     # print("---- selected_vendors ----", vendor.name)
+        #     try:
+        #         access_token = vendor.access_token
 
-                for offer in offers.json()['offers']:
-                    # print('price_change MATCH ----------------', offer['external']['id'])
-                    if offer['external'] is not None:
-                        if str(offer['external']['id']) == str(obj.sku):
-                            # print('offer[id]----------------', offer['id'])
+        #         offers = self.get_offers(access_token, vendor.name)
+        #         self.get_me(access_token, vendor.name) # To verify access token is valid
+        #         # print("---- selected_offers ----", offers.text)
 
-                            self.allegro_price_change(request, access_token, vendor.name, offer['id'], obj.price)
-                            self.allegro_stock_change(request, access_token, vendor.name, offer['id'], obj.stock_qty)
-                            self.allegro_title_change(request, access_token, vendor.name, offer['id'], obj.title)
-                            offers = []
-                    else:
-                        continue
-            except:
-                continue
+        #         for offer in offers.json()['offers']:
+        #             # print('price_change MATCH ----------------', offer['external']['id'])
+        #             if offer['external'] is not None:
+        #                 if str(offer['external']['id']) == str(obj.sku):
+        #                     # print('offer[id]----------------', offer['id'])
+
+        #                     self.allegro_price_change(request, access_token, vendor.name, offer['id'], obj.price)
+        #                     self.allegro_stock_change(request, access_token, vendor.name, offer['id'], obj.stock_qty)
+        #                     self.allegro_title_change(request, access_token, vendor.name, offer['id'], obj.title)
+        #                     offers = []
+        #             else:
+        #                 continue
+        #     except:
+        #         continue
     
     
     def allegro_update(self, request, queryset):
