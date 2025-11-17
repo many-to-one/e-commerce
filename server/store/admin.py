@@ -94,7 +94,8 @@ class ProductAdmin(ImportExportModelAdmin):
     list_filter = ['sku', 'vendors', 'stock_qty']
     list_editable = ['title','ean', 'price', 'stock_qty', 'hot_deal', 'in_stock']
     list_display = ['sku', 'product_image', 'in_stock', 'title', 'ean', 'price', 'hurt_price', 'stock_qty', 'hot_deal']
-    actions = [apply_discount, 'allegro_export']
+    # exclude = ('vendors',) 
+    actions = [apply_discount, 'allegro_export', 'allegro_update']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
@@ -131,7 +132,8 @@ class ProductAdmin(ImportExportModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-        vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
+        # vendors = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         obj.vendors.set(vendors)
 
         # print("---- selected_vendors obj ----", obj)
@@ -144,7 +146,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 access_token = vendor.access_token
 
                 offers = self.get_offers(access_token, vendor.name)
-                # self.get_me(access_token, vendor.name) # To verify access token is valid
+                self.get_me(access_token, vendor.name) # To verify access token is valid
                 # print("---- selected_offers ----", offers.text)
 
                 for offer in offers.json()['offers']:
@@ -153,15 +155,44 @@ class ProductAdmin(ImportExportModelAdmin):
                         if str(offer['external']['id']) == str(obj.sku):
                             # print('offer[id]----------------', offer['id'])
 
-                            self.allegro_price_change(access_token, vendor.name, offer['id'], obj.price)
-                            self.allegro_stock_change(access_token, vendor.name, offer['id'], obj.stock_qty)
-                            self.allegro_title_change(access_token, vendor.name, offer['id'], obj.title)
+                            self.allegro_price_change(request, access_token, vendor.name, offer['id'], obj.price)
+                            self.allegro_stock_change(request, access_token, vendor.name, offer['id'], obj.stock_qty)
+                            self.allegro_title_change(request, access_token, vendor.name, offer['id'], obj.title)
                             offers = []
                     else:
                         continue
             except:
                 continue
+    
+    
+    def allegro_update(self, request, queryset):
 
+        # print('allegro_export request.user ----------------', request.user)
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+        # for vendor in vendors:
+        #     print('allegro_export vendors ----------------', vendors)
+
+        for vendor in vendors:
+            # print('check vendor ----------------', vendor)
+            access_token = vendor.access_token
+            producer = self.responsible_producers(access_token, vendor.name)
+            # print('allegro_export producer ----------------', producer)
+        
+            for product in queryset:
+               product_vendors = product.vendors.all()
+               if vendor in product_vendors:
+
+                    offers = self.get_offers(access_token, vendor.name)
+                    self.get_me(access_token, vendor.name) # To verify access token is valid
+                    # print("---- selected_offers ----", offers.text)
+
+                    for offer in offers.json()['offers']:
+                        print('price_change MATCH ----------------', offer)
+                        if offer['external'] is not None:
+                            if str(offer['external']['id']) == str(product.sku):
+                                url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+                                self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
+    allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
 
 
     def allegro_export(self, request, queryset):
@@ -173,7 +204,7 @@ class ProductAdmin(ImportExportModelAdmin):
         #     print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
-            print('check vendor ----------------', vendor)
+            # print('check vendor ----------------', vendor)
             access_token = vendor.access_token
             producer = self.responsible_producers(access_token, vendor.name)
             # print('allegro_export producer ----------------', producer)
@@ -182,10 +213,11 @@ class ProductAdmin(ImportExportModelAdmin):
                product_vendors = product.vendors.all()
                if vendor in product_vendors:
                #     print('if vendor in product_vendors ----------------', vendor)
-                   self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+                   self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer)
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
                 #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+    allegro_export.short_description = "🔄 Eksportuj oferty do Allegro"
 
 
     def responsible_producers(self, access_token, name):
@@ -201,47 +233,84 @@ class ProductAdmin(ImportExportModelAdmin):
 
         response = allegro_request("GET", url, name, headers=headers) # params={"limit": 10}
         
-        print('create_offer_from_product response ----------------', response.text)
+        # print('create_offer_from_product response ----------------', response.text)
         return response.json()
 
 
-    def create_offer_from_product(self, request, product, url, access_token, vendor_name, producer):
+    def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
-        print('create_offer_from_product producer ----------------', producer)
+        print('create_offer_from_product method ----------------', method)
 
         try:
-            payload = json.dumps({
-                "external": {
-                    "id": f"{product.sku}" 
-                },
-                "productSet": [
-                    {
-                    "product": {
-                        "id": product.ean,
-                        "idType": "GTIN"
+
+            if method == "PATCH":
+                payload = json.dumps({
+                    "name": f"{product.title}",
+                    "external": {
+                        "id": f"{product.sku}" 
                     },
-                    "responsibleProducer": {
-                        "type": "ID",
-                        "id": producer["responsibleProducers"][0]['id']
+                    "productSet": [
+                        {
+                        "product": {
+                            "id": product.ean,
+                            "idType": "GTIN"
+                        },
+                        "responsibleProducer": {
+                            "type": "ID",
+                            "id": producer["responsibleProducers"][0]['id']
+                        },
+                        },
+                    ],
+                    "sellingMode": {
+                        "price": {
+                        "amount": str(product.price),
+                        "currency": "PLN"
+                        }
                     },
+                    "stock": {
+                        "available": product.stock_qty
                     },
-                ],
-                "sellingMode": {
-                    "price": {
-                    "amount": str(product.price),
-                    "currency": "PLN"
-                    }
-                },
-                "stock": {
-                    "available": product.stock_qty
-                },
-                'delivery': {
-                    'shippingRates': {
-                        'name': 'Paczkomat 1szt'
-                    }
-                },
-            })
+                    # 'delivery': {
+                    #     'shippingRates': {
+                    #         'name': 'Paczkomat 1szt'
+                    #     }
+                    # },
+                })
+
+            else:   
+                payload = json.dumps({
+                    "name": f"{product.title}",
+                    "external": {
+                        "id": f"{product.sku}" 
+                    },
+                    "productSet": [
+                        {
+                        "product": {
+                            "id": product.ean,
+                            "idType": "GTIN"
+                        },
+                        "responsibleProducer": {
+                            "type": "ID",
+                            "id": producer["responsibleProducers"][0]['id']
+                        },
+                        },
+                    ],
+                    "sellingMode": {
+                        "price": {
+                        "amount": str(product.price),
+                        "currency": "PLN"
+                        }
+                    },
+                    "stock": {
+                        "available": product.stock_qty
+                    },
+                    'delivery': {
+                        'shippingRates': {
+                            'name': 'Paczkomat 1szt'
+                        }
+                    },
+                })
 
             headers = {
             'Accept': 'application/vnd.allegro.public.v1+json',
@@ -251,14 +320,17 @@ class ProductAdmin(ImportExportModelAdmin):
             }
 
             # response = requests.request("POST", url, headers=headers, data=payload)
-            response = allegro_request("POST", url, vendor_name, headers=headers, data=payload)
-            print('create_offer_from_product response ----------------', response.text)
+            response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
+            # print('create_offer_from_product response ----------------', response)
+            # print('create_offer_from_product response text ----------------', response.text)
+            if response.status_code == 200:
+                    self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
-                    self.message_user(request, f"✅ Wystawiłeś ofertę {product.ean} allegro dla {vendor_name}", level='success')
+                    self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')
             elif response.status_code == 401:
                 self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
             else:
-                self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='error')
+                self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
             return response
         except requests.exceptions.HTTPError as err:
             self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
@@ -299,7 +371,7 @@ class ProductAdmin(ImportExportModelAdmin):
         return response
 
 
-    def allegro_price_change(self, access_token, vendor_name, offer_id, new_price):
+    def allegro_price_change(self, request, access_token, vendor_name, offer_id, new_price):
 
         try:
             url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
@@ -327,7 +399,7 @@ class ProductAdmin(ImportExportModelAdmin):
             raise SystemExit(err)
         
 
-    def allegro_stock_change(self, access_token, vendor_name, offer_id, quantity):
+    def allegro_stock_change(self, request, access_token, vendor_name, offer_id, quantity):
 
         try:
             url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
@@ -349,11 +421,27 @@ class ProductAdmin(ImportExportModelAdmin):
             response = allegro_request("PATCH", url, vendor_name, headers=headers, data=json.dumps(payload))
             # print('allegro_price_change response ----------------', response.text)
 
+            if response.status_code == 200:
+                self.message_user(
+                    request,
+                    f"✅ Konto {vendor_name}; Ilość została poprawnie zmieniona (offer {offer_id})",
+                    level="success"
+                )
+            else:
+                # parse Allegro error response
+                errors = response.json().get("errors", [])
+                for err in errors:
+                    self.message_user(
+                        request,
+                        f"⚠️ Błąd edycji ilości dla konta {vendor_name} (oferta {offer_id}): {err.get('userMessage')}",
+                        level="error"
+                    )
+
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
         
 
-    def allegro_title_change(self, access_token, vendor_name, offer_id, title):
+    def allegro_title_change(self, request, access_token, vendor_name, offer_id, title):
 
         try:
             url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
@@ -370,7 +458,24 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.patch(url, headers=headers, data=json.dumps(payload))
             response = allegro_request("PATCH", url, vendor_name, headers=headers, data=json.dumps(payload))
-            # print('allegro_price_change response ----------------', response.text)
+            print('allegro_title_change response ----------------', response)
+            print('allegro_title_change response ----------------', response.text)
+
+            if response.status_code == 200:
+                self.message_user(
+                    request,
+                    f"✅ Konto {vendor_name}; Tytuł oferty został poprawnie zmieniony (offer {offer_id})",
+                    level="success"
+                )
+            else:
+                # parse Allegro error response
+                errors = response.json().get("errors", [])
+                for err in errors:
+                    self.message_user(
+                        request,
+                        f"⚠️ Błąd edycji tytułu dla konta {vendor_name} (oferta {offer_id}): {err.get('userMessage')}",
+                        level="error"
+                    )
 
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
@@ -539,9 +644,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
                     is_smart = delivery.get('smart')
 
-                    print('buyer_info delivery ----------------', delivery)
-                    print('buyer_info delivery_cost ----------------', delivery_cost)
-                    print('buyer_info is_smart ----------------', is_smart)
+                    # print('buyer_info delivery ----------------', delivery)
+                    # print('buyer_info delivery_cost ----------------', delivery_cost)
+                    # print('buyer_info is_smart ----------------', is_smart)
 
 
                     # print('company ----------------', company.get('name', ''))

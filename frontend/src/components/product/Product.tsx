@@ -17,11 +17,11 @@ const Product: React.FC<ProductProps> = ({product}) => {
   // console.log('Product props', product)
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (product.gallery.length === 1 ) {
+  // useEffect(() => {
+  //   if (product.gallery.length === 1 ) {
 
-    }
-  }, [])
+  //   }
+  // }, [])
 
 
   // const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
