@@ -124,14 +124,14 @@ class ProductAdmin(ImportExportModelAdmin):
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
 
-    def save_model(self, request, obj, form, change):
+#    def save_model(self, request, obj, form, change):
 
         # - 20% round to second number after coma (Exp: 12.99PLN)  
         # if obj.price:
         #     obj.price = (obj.price * Decimal('0.8')).quantize(Decimal('0.01'))
-        print('*********************save_model*******************')
+#        print('*********************save_model*******************')
 
-        pass
+#        pass
 
         # super().save_model(request, obj, form, change)
 
