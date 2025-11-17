@@ -501,7 +501,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
         for vendor in vendors:
             try:
-                url = "https://{ALLEGRO_API_URL}/order/events"
+                url = f"https://{ALLEGRO_API_URL}/order/events"
                 headers = {
                     'Accept': 'application/vnd.allegro.public.v1+json',
                     'Authorization': f'Bearer {vendor.access_token}'
