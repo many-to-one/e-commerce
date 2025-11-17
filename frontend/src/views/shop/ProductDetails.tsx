@@ -225,7 +225,7 @@ const ProductDetails: React.FC = () => {
                     <div className='w-50'>
                         <h2>{product?.title}</h2>
                         {/* <p>Brand: {product?.brand}</p> */}
-                        <div className='flexRowStart'><b>Cena:</b> {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price} PLN</div>
+                        <div className='flexRowStart'><b>Cena:</b> {product?.old_price !== '0.00' && <p className='oldPrice'>{product?.old_price} PLN</p> } {product?.price_brutto} PLN</div>
                         <p><b>Dostawa:</b> {product?.shipping_amount} PLN</p>
                         <p><b>Ilość:</b> {product?.stock_qty} szt.</p>
                         {product?.product_rating !== null ? (

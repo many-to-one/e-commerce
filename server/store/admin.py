@@ -92,8 +92,8 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title','ean', 'price', 'stock_qty', 'hot_deal', 'in_stock']
-    list_display = ['sku', 'product_image', 'in_stock', 'title', 'ean', 'price', 'hurt_price', 'stock_qty', 'hot_deal']
+    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock']
+    list_display = ['sku', 'product_image', 'in_stock', 'title', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'price_zysk', 'price_zysk_percent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [apply_discount, 'allegro_export', 'allegro_update']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]

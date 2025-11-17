@@ -7,6 +7,7 @@ type ProductType = {
     title: string,
     brand: string,
     price: string,
+    price_brutto: string,
     old_price: string,
     description: string,
     hot_deal: boolean,

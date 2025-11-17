@@ -24,8 +24,8 @@ const Product: React.FC<ProductProps> = ({product}) => {
   // }, [])
 
 
-  // const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
-  const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
+  const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
+  // const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
   // console.log('thumb-------', thumb)
 
   return (
@@ -92,7 +92,7 @@ const Product: React.FC<ProductProps> = ({product}) => {
 
           <div className='price'>
             {product.old_price !== '0.00' && <p className='oldPrice'>{product.old_price} PLN</p>}
-            <p>{product.price} PLN</p>
+            <p>{product.price_brutto} PLN</p>
           </div>
         {product.hot_deal  && <HotSail />}  
         {product.product_rating !== null ? (

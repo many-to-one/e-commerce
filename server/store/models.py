@@ -1,4 +1,5 @@
 import datetime
+from decimal import ROUND_HALF_UP, Decimal
 import os
 from django.db import models
 from django.utils.html import mark_safe
@@ -92,8 +93,8 @@ class Product(models.Model):
     sub_cat = models.JSONField(null=True, blank=True)
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
-    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena')
-    hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa')
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena netto')
+    hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
@@ -136,6 +137,41 @@ class Product(models.Model):
 
     # def get_vendors(self):
     #     return ", ".join([v.name for v in self.vendors.all()])
+
+    @property
+    def price_brutto(self):
+        if self.price is None:
+            return None
+        return (self.price * (1 + self.tax_rate / 100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+    
+    price_brutto.fget.short_description = "Cena brutto" 
+
+    
+    @property
+    def price_zysk(self):
+        if self.price is None or self.hurt_price is None:
+            return None
+        price_br = (self.price * (1 + self.tax_rate / 100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        return price_br - self.hurt_price
+    
+    price_zysk.fget.short_description = "Zysk (PLN)"   # label in admin
+    
+    @property
+    def price_zysk_percent(self):
+        if self.price is None or self.hurt_price in (None, Decimal("0.00")):
+            return None
+        price_br = (self.price * (1 + self.tax_rate / 100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        zysk = price_br - self.hurt_price
+        return (zysk / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    price_zysk_percent.fget.short_description = "Zysk (%)"
+
 
     # Returns an HTML image tag for the product's image
     def product_image(self):
