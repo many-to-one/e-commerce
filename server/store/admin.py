@@ -155,6 +155,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
                             self.allegro_price_change(access_token, vendor.name, offer['id'], obj.price)
                             self.allegro_stock_change(access_token, vendor.name, offer['id'], obj.stock_qty)
+                            self.allegro_title_change(access_token, vendor.name, offer['id'], obj.title)
                             offers = []
                     else:
                         continue
@@ -296,26 +297,6 @@ class ProductAdmin(ImportExportModelAdmin):
         # print('get_offers access_token ----------------', access_token)
         # print('get_offers response ----------------', response.text)
         return response
-        
-
-    # def price_change(self, request, queryset):
-
-    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-
-    #     for product in queryset:  # Loop through selected products
-    #         product_price = product.price 
-    #         # print('product_price MATCH ----------------', product_price) 
-
-    #         for vendor in vendors:
-    #             access_token = vendor.access_token
-    #             offers = self.get_offers(access_token, vendor.name)
-
-    #             for offer in offers.json()['offers']:
-    #                 # print('price_change MATCH ----------------', offer['external'])
-    #                 if offer['external'] is not None:
-    #                     if str(offer['external']['id']) == str(product.sku):
-    #                         # print('offer[id]----------------', offer['id'])
-    #                         self.allegro_price_change(access_token, vendor.name, offer['id'], product_price)
 
 
     def allegro_price_change(self, access_token, vendor_name, offer_id, new_price):
@@ -370,6 +351,30 @@ class ProductAdmin(ImportExportModelAdmin):
 
         except requests.exceptions.HTTPError as err:
             raise SystemExit(err)
+        
+
+    def allegro_title_change(self, access_token, vendor_name, offer_id, title):
+
+        try:
+            url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer_id}"
+
+            payload = {
+                "name": title,
+            }
+
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Content-Type": "application/vnd.allegro.public.v1+json"
+            }
+
+            # response = requests.patch(url, headers=headers, data=json.dumps(payload))
+            response = allegro_request("PATCH", url, vendor_name, headers=headers, data=json.dumps(payload))
+            # print('allegro_price_change response ----------------', response.text)
+
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
+        
 
 class TagAdmin(ImportExportModelAdmin):
     list_display = ['title', 'category', 'active']
@@ -477,7 +482,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
     def get_buyer_info(self, order_id, access_token, vendor_name):
 
         try:
-            url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}"
+            url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{order_id}"
             headers = {
                 'Accept': 'application/vnd.allegro.public.v1+json',
                 'Authorization': f'Bearer {access_token}'
@@ -496,7 +501,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
         for vendor in vendors:
             try:
-                url = "https://api.allegro.pl.allegrosandbox.pl/order/events"
+                url = "https://{ALLEGRO_API_URL}/order/events"
                 headers = {
                     'Accept': 'application/vnd.allegro.public.v1+json',
                     'Authorization': f'Bearer {vendor.access_token}'
