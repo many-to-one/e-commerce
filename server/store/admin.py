@@ -351,9 +351,9 @@ class ProductAdmin(ImportExportModelAdmin):
 
         # response = requests.request("GET", url, headers=headers)
         response = allegro_request("POST", url, name, headers=headers)
-        # print('get_me NAME ----------------', name)
-        # print('get_me access_token ----------------', access_token)
-        # print('get_me response ----------------', response.text)
+        print('get_me NAME ----------------', name)
+        print('get_me access_token ----------------', access_token)
+        print('get_me response ----------------', response.text)
         return response
 
 

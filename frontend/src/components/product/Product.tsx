@@ -14,7 +14,7 @@ interface ProductProps {
 
 const Product: React.FC<ProductProps> = ({product}) => {
 
-  // console.log('Product props', product)
+  console.log('Product props', product)
   const navigate = useNavigate();
 
   // useEffect(() => {
@@ -24,8 +24,8 @@ const Product: React.FC<ProductProps> = ({product}) => {
   // }, [])
 
 
-  const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
-  // const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
+  // const thumb = product.thumbnail?.replace('http://', 'http://'); // Development
+  const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
   // console.log('thumb-------', thumb)
 
   return (
