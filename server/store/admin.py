@@ -192,7 +192,8 @@ class ProductAdmin(ImportExportModelAdmin):
                     # print("---- selected_offers ----", offers.text)
 
                     for offer in offers.json()['offers']:
-                        # print('price_change MATCH ----------------', offer)
+                        print('price_change MATCH ----------------', offer)
+                        print('price_change [external][id]  ----------------', offer['external']['id'])
                         if offer['external'] is not None:
                             if str(offer['external']['id']) == str(product.sku):
                                 print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
