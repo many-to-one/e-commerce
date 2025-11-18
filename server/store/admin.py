@@ -182,9 +182,11 @@ class ProductAdmin(ImportExportModelAdmin):
             print('allegro_export producer ----------------', producer)
         
             for product in queryset:
+               print('allegro_export product ----------------', product)
                product_vendors = product.vendors.all()
+               print('allegro_export product_vendors ----------------', product_vendors)
                if vendor in product_vendors:
-
+                    print('allegro_export if vendor in product_vendors ----------------', vendor)
                     offers = self.get_offers(access_token, vendor.name)
                     self.get_me(access_token, vendor.name) # To verify access token is valid
                     # print("---- selected_offers ----", offers.text)
@@ -193,6 +195,7 @@ class ProductAdmin(ImportExportModelAdmin):
                         # print('price_change MATCH ----------------', offer)
                         if offer['external'] is not None:
                             if str(offer['external']['id']) == str(product.sku):
+                                print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
                                 url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
                                 self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
     allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
