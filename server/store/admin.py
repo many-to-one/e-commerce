@@ -172,14 +172,14 @@ class ProductAdmin(ImportExportModelAdmin):
 
         # print('allegro_export request.user ----------------', request.user)
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        # for vendor in vendors:
-        #     print('allegro_export vendors ----------------', vendors)
+        for vendor in vendors:
+            print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
-            # print('check vendor ----------------', vendor)
+            print('check vendor ----------------', vendor)
             access_token = vendor.access_token
             producer = self.responsible_producers(access_token, vendor.name)
-            # print('allegro_export producer ----------------', producer)
+            print('allegro_export producer ----------------', producer)
         
             for product in queryset:
                product_vendors = product.vendors.all()
@@ -190,7 +190,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     # print("---- selected_offers ----", offers.text)
 
                     for offer in offers.json()['offers']:
-                        print('price_change MATCH ----------------', offer)
+                        # print('price_change MATCH ----------------', offer)
                         if offer['external'] is not None:
                             if str(offer['external']['id']) == str(product.sku):
                                 url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
@@ -324,8 +324,8 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.request("POST", url, headers=headers, data=payload)
             response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
-            # print('create_offer_from_product response ----------------', response)
-            # print('create_offer_from_product response text ----------------', response.text)
+            print(f'create_offer_from_product {method} response ----------------', response)
+            print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
                     self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
