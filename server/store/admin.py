@@ -194,11 +194,11 @@ class ProductAdmin(ImportExportModelAdmin):
                     for offer in offers.json()['offers']:
                         print('price_change MATCH ----------------', offer)
                         print('price_change [external][id]  ----------------', offer['external']['id'])
-                        if offer['external'] is not None:
-                            if str(offer['external']['id']) == str(product.sku):
-                                print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
-                                url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                                self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
+                        # if offer['external'] is not None:
+                        #     if str(offer['external']['id']) == str(product.sku):
+                        #         print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
+                        #         url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+                        #         self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
     allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
 
 
@@ -372,9 +372,9 @@ class ProductAdmin(ImportExportModelAdmin):
 
         # response = requests.request("GET", url, headers=headers)
         response = allegro_request("GET", url, name, headers=headers)
-        # print('get_offers NAME ----------------', name)
-        # print('get_offers access_token ----------------', access_token)
-        # print('get_offers response ----------------', response.text)
+        print('get_offers NAME ----------------', name)
+        print('get_offers access_token ----------------', access_token)
+        print('get_offers response ----------------', response.text)
         return response
 
 
