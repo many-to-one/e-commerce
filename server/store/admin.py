@@ -271,7 +271,12 @@ class ProductAdmin(ImportExportModelAdmin):
                     ],
                     "sellingMode": {
                         "price": {
-                        "amount": str(product.price),
+                        # "amount": str(product.price),
+                        "amount": str(
+                            (product.price * (1 + product.tax_rate / 100)).quantize(
+                                Decimal("0.01"), rounding=ROUND_HALF_UP
+                            )
+                        ),
                         "currency": "PLN"
                         }
                     },
@@ -372,9 +377,10 @@ class ProductAdmin(ImportExportModelAdmin):
 
         # response = requests.request("GET", url, headers=headers)
         response = allegro_request("GET", url, name, headers=headers)
-        print('get_offers NAME ----------------', name)
-        print('get_offers access_token ----------------', access_token)
-        print('get_offers response ----------------', response.text)
+        print('Trace-Id ---------------', response.headers.get("Trace-Id"))
+        # print('get_offers NAME ----------------', name)
+        # print('get_offers access_token ----------------', access_token)
+        # print('get_offers response ----------------', response.text)
         return response
 
 
