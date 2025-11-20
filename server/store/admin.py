@@ -139,18 +139,24 @@ class ProductAdmin(ImportExportModelAdmin):
         offset = 0
         limit = 1000
 
-        url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
-
         while True:
-            offers_url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
-            response = allegro_request('GET', url, vendor_name, headers=headers)
+            url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
+            response = allegro_request("GET", url, vendor_name, headers=headers)
             data = response.json()
+
             offers = data.get("offers", [])
             all_offers.extend(offers)
 
+            # jeśli mniej niż limit → ostatnia strona
             if len(offers) < limit:
-                break  # nie ma już więcej wyników
+                break
+
             offset += limit
+
+            # dodatkowy bezpiecznik: jeśli offset > totalCount albo > 10000, przerwij
+            total_count = data.get("totalCount")
+            if total_count and offset >= total_count:
+                break
 
         return all_offers
     
