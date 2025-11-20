@@ -168,8 +168,41 @@ class ProductAdmin(ImportExportModelAdmin):
         #         continue
     
     
-    def allegro_update(self, request, queryset):
+    # def allegro_update(self, request, queryset):
 
+    #     # print('allegro_export request.user ----------------', request.user)
+    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+    #     for vendor in vendors:
+    #         print('allegro_export vendors ----------------', vendors)
+
+    #     for vendor in vendors:
+    #         print('check vendor ----------------', vendor)
+    #         access_token = vendor.access_token
+    #         producer = self.responsible_producers(access_token, vendor.name)
+    #         print('allegro_export producer ----------------', producer)
+        
+    #         for product in queryset:
+    #            print('allegro_export product ----------------', product)
+    #            product_vendors = product.vendors.all()
+    #            print('allegro_export product_vendors ----------------', product_vendors)
+    #            if vendor in product_vendors:
+    #                 print('allegro_export if vendor in product_vendors ----------------', vendor)
+    #                 offers = self.get_offers(access_token, vendor.name)
+    #                 self.get_me(access_token, vendor.name) # To verify access token is valid
+    #                 # print("---- selected_offers ----", offers.text)
+
+    #                 for offer in offers.json()['offers']:
+    #                     print('price_change MATCH ----------------', offer)
+    #                     print('price_change [external][id]  ----------------', offer['external']['id'])
+    #                     if offer['external'] is not None:
+    #                         if str(offer['external']['id']) == str(product.sku):
+    #                             print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
+    #                             url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+    #                             self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
+    # allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
+
+
+    def allegro_update(self, request, queryset):
         # print('allegro_export request.user ----------------', request.user)
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         for vendor in vendors:
@@ -178,28 +211,17 @@ class ProductAdmin(ImportExportModelAdmin):
         for vendor in vendors:
             print('check vendor ----------------', vendor)
             access_token = vendor.access_token
-            producer = self.responsible_producers(access_token, vendor.name)
-            print('allegro_export producer ----------------', producer)
+            # producer = self.responsible_producers(access_token, vendor.name)
+            # print('allegro_export producer ----------------', producer)
         
             for product in queryset:
-               print('allegro_export product ----------------', product)
-               product_vendors = product.vendors.all()
-               print('allegro_export product_vendors ----------------', product_vendors)
-               if vendor in product_vendors:
-                    print('allegro_export if vendor in product_vendors ----------------', vendor)
-                    offers = self.get_offers(access_token, vendor.name)
-                    self.get_me(access_token, vendor.name) # To verify access token is valid
-                    # print("---- selected_offers ----", offers.text)
-
-                    for offer in offers.json()['offers']:
-                        print('price_change MATCH ----------------', offer)
-                        print('price_change [external][id]  ----------------', offer['external']['id'])
-                        if offer['external'] is not None:
-                            if str(offer['external']['id']) == str(product.sku):
-                                print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
-                                url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                                self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
+                url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
+                offer = allegro_request('GET', url, vendor.name)
+                edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+                self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+    
     allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
+
 
 
     def allegro_export(self, request, queryset):
@@ -225,6 +247,7 @@ class ProductAdmin(ImportExportModelAdmin):
             #     print('allegro_export ----------------', product.ean)
                 #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
     allegro_export.short_description = "🔄 Eksportuj oferty do Allegro"
+
 
 
     def responsible_producers(self, access_token, name):
@@ -263,10 +286,10 @@ class ProductAdmin(ImportExportModelAdmin):
                             "id": product.ean,
                             "idType": "GTIN"
                         },
-                        "responsibleProducer": {
-                            "type": "ID",
-                            "id": producer["responsibleProducers"][0]['id']
-                        },
+                        # "responsibleProducer": {
+                        #     "type": "ID",
+                        #     "id": producer["responsibleProducers"][0]['id']
+                        # },
                         },
                     ],
                     "sellingMode": {
@@ -325,10 +348,10 @@ class ProductAdmin(ImportExportModelAdmin):
                 })
 
             headers = {
-            'Accept': 'application/vnd.allegro.public.v1+json',
-            'Content-Type': 'application/vnd.allegro.public.v1+json',
-            'Accept-Language': 'pl-PL',
-            'Authorization': f'Bearer {access_token}'
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Content-Type': 'application/vnd.allegro.public.v1+json',
+                'Accept-Language': 'pl-PL',
+                'Authorization': f'Bearer {access_token}'
             }
 
             # response = requests.request("POST", url, headers=headers, data=payload)
