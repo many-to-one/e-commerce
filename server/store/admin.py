@@ -155,7 +155,7 @@ class ProductAdmin(ImportExportModelAdmin):
         return all_offers
     
 
-    def sync_allegro_offers(self, request, queryset=None):
+    def sync_allegro_offers(self, request, queryset):
 
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
 
@@ -168,9 +168,9 @@ class ProductAdmin(ImportExportModelAdmin):
                 'Authorization': f'Bearer {access_token}'
             }
             try:
-                products = Product.objects.all()
+                # products = Product.objects.all()
                 offers = self.fetch_all_offers(vendor.name, headers)
-                product_map = {obj.sku: obj for obj in products}
+                product_map = {obj.sku: obj for obj in queryset}
 
                 for offer in offers:
                     external = offer.get("external")
