@@ -111,6 +111,11 @@ def allegro_request(method, url, vendor_name, **kwargs):
     kwargs["headers"] = headers
 
     response = requests.request(method, url, **kwargs)
+    print(f' VENDOR NAME #########{vendor_name} ----------------', vendor_name)
+    print(f' URL #########{url} ----------------', url)
+    print(f' METHOD #########{method} ----------------', method)
+    print(f' RESPONSE #########{response} ----------------', response)
+    print(f' RESPONSE TEXT #########{response} ----------------', response.text)
 
     if response.status_code == 401:
         # Refresh token

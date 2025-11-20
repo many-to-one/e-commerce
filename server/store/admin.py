@@ -205,20 +205,20 @@ class ProductAdmin(ImportExportModelAdmin):
     def allegro_update(self, request, queryset):
         # print('allegro_export request.user ----------------', request.user)
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        for vendor in vendors:
-            print('allegro_export vendors ----------------', vendors)
 
         for vendor in vendors:
-            print('check vendor ----------------', vendor)
+            # print('check vendor ----------------', vendor)
             access_token = vendor.access_token
             # producer = self.responsible_producers(access_token, vendor.name)
             # print('allegro_export producer ----------------', producer)
         
             for product in queryset:
                 url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
-                offer = allegro_request('GET', url, vendor.name)
-                edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+                offers = allegro_request('GET', url, vendor.name)
+                print('allegro_update offers ----------------', offers)
+                for offer in offers.json()['offers']:
+                    edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
     
     allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
 
@@ -270,7 +270,7 @@ class ProductAdmin(ImportExportModelAdmin):
     def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
-        print('create_offer_from_product method ----------------', method)
+        # print('create_offer_from_product method ----------------', method)
 
         try:
 
@@ -356,8 +356,8 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.request("POST", url, headers=headers, data=payload)
             response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
-            print(f'create_offer_from_product {method} response ----------------', response)
-            print(f'create_offer_from_product {method} response text ----------------', response.text)
+            # print(f'create_offer_from_product {method} response ----------------', response)
+            # print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
                     self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
