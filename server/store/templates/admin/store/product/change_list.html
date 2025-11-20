@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+<li>
+    <a href="{% url 'sync_allegro_offers' %}" class="button">
+        🔄 Synchronizuj z ofertami Allegro
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}

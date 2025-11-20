@@ -76,6 +76,21 @@ class Product(models.Model):
         ("published", "Product is published"),
     )
 
+    # ALLEGRO_STATUS = (
+    #     ("ACTIVE", "Product aktywny"),
+    #     ("INACTIVE", "Produkt nieaktywny"), 
+    #     ("ACTIVATING", "Aukcja planowana lub w czasie wystawiania"),
+    #     ("ENDED", "Aukcja zakończona"),
+    # )
+
+    ALLEGRO_STATUS = (
+        ("ACTIVE", "✅"),
+        ("INACTIVE", "⛔"),
+        ("ACTIVATING", "⏳"),
+        ("ENDED", "🏁"),
+    )
+
+
     PRODUCT_TYPE = (
         ("regular", "Regular"),
         ("auction", "Auction"),
@@ -99,11 +114,14 @@ class Product(models.Model):
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
     stock_qty = models.PositiveIntegerField(default=0, verbose_name="Ilość")
-    in_stock = models.BooleanField(default=True, verbose_name="W sprzedaży")
+    in_stock = models.BooleanField(default=True, verbose_name="Sklep")
 
     # Product status and type
     status = models.CharField(choices=STATUS, max_length=50, default="published", null=True, blank=True)
     type = models.CharField(choices=PRODUCT_TYPE, max_length=50, default="regular")
+
+    allegro_status = models.CharField(choices=ALLEGRO_STATUS, max_length=50, default="published", verbose_name="allegro status", null=True, blank=True)
+    allegro_in_stock = models.BooleanField(default=False, verbose_name="allegro")
     
     # Product flags (featured, hot deal, special offer, digital)
     featured = models.BooleanField(default=False, verbose_name='Nowości')

@@ -7,10 +7,10 @@ from .models import Product
 from django.conf import settings
 
 
-# @receiver(post_save, sender=Product)
-# @receiver(post_delete, sender=Product)
-# def clear_products_cache(sender, **kwargs):
+@receiver(post_save, sender=Product)
+@receiver(post_delete, sender=Product)
+def clear_products_cache(sender, **kwargs):
 
-#     print("**** cache request called ****")
-#     cache.clear()
+    print("**** cache request called ****")
+    cache.clear()
 

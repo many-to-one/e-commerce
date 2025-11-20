@@ -93,21 +93,30 @@ class ProductAdmin(ImportExportModelAdmin):
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
     list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock']
-    list_display = ['sku', 'product_image', 'in_stock', 'title', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'price_zysk', 'price_zysk_percent', 'hot_deal']
+    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'price_zysk', 'price_zysk_percent', 'hot_deal']
     # exclude = ('vendors',) 
-    actions = [apply_discount, 'allegro_export', 'allegro_update']
+    actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 100
     # prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
 
+    change_list_template = "admin/store/product/change_list.html"
+
+    class Media:
+        css = {
+            "all": ("admin/css/custom_styles/my.css",)
+        }
+
     offers = []
 
-    # def product_image(self, obj):
-    #     gallery = obj.gallery().first()
-    #     if gallery and gallery.image:  # assuming Gallery model has 'image' field
-    #         return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', gallery.thumbnail.url)
-    #     return format_html('<span style="color: #999;">No image</span>')
+    def title_warning(self, obj):
+        if len(obj.title or "") > 75:
+            return format_html('<span style="color:red;">⚠️ {} znaków</span>', len(obj.title))
+        return ""
+    title_warning.short_description = "Ostrzeżenie"
+
+    title_warning.short_description = "Tytuł"
 
     def product_image(self, obj):  # assuming Gallery model has 'image' field
         if obj.thumbnail:
@@ -122,6 +131,82 @@ class ProductAdmin(ImportExportModelAdmin):
             # Only show the vendors for current user and marketplace
             kwargs["queryset"] = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
         return super().formfield_for_manytomany(db_field, request, **kwargs)
+    
+
+    def fetch_all_offers(self, vendor_name, headers):
+
+        all_offers = []
+        offset = 0
+        limit = 1000
+
+        url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
+
+        while True:
+            offers_url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}",
+            response = allegro_request('GET', url, vendor_name, headers=headers)
+            data = response.json()
+            offers = data.get("offers", [])
+            all_offers.extend(offers)
+
+            if len(offers) < limit:
+                break  # nie ma już więcej wyników
+            offset += limit
+
+        return all_offers
+    
+
+    def sync_allegro_offers(self, request, queryset=None):
+
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+
+        for vendor in vendors:
+            # print('check vendor ----------------', vendor)
+            access_token = vendor.access_token
+
+            headers = {
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Authorization': f'Bearer {access_token}'
+            }
+            try:
+                products = Product.objects.all()
+                offers = self.fetch_all_offers(vendor.name, headers)
+                product_map = {obj.sku: obj for obj in products}
+
+                for offer in offers:
+                    external = offer.get("external")
+                    if not external:
+                        continue
+
+                    sku = external.get("id")
+                    product = product_map.get(sku)
+                    if not product:
+                        continue
+
+                    status = offer.get("publication", {}).get("status")
+                    if status == "ACTIVE":
+                        product.allegro_in_stock = True
+                        price_brutto = Decimal(
+                            offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+                        )
+
+                        # netto = brutto / 1.23
+                        price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                        product.price = price_netto
+                    else:
+                        product.allegro_in_stock = False
+                    product.allegro_status = status
+
+                    product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
+
+                self.message_user(request, f"Twoje oferty zostały zaktualizowane", level="success")
+
+                if "errors" in offers:
+                    self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
+            except Exception as e:
+                self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
+
+    sync_allegro_offers.short_description = "🔄 Synchronizuj z Allegro"
 
 
 #    def save_model(self, request, obj, form, change):
@@ -166,40 +251,11 @@ class ProductAdmin(ImportExportModelAdmin):
         #                 continue
         #     except:
         #         continue
+
+
     
+    # def get
     
-    # def allegro_update(self, request, queryset):
-
-    #     # print('allegro_export request.user ----------------', request.user)
-    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-    #     for vendor in vendors:
-    #         print('allegro_export vendors ----------------', vendors)
-
-    #     for vendor in vendors:
-    #         print('check vendor ----------------', vendor)
-    #         access_token = vendor.access_token
-    #         producer = self.responsible_producers(access_token, vendor.name)
-    #         print('allegro_export producer ----------------', producer)
-        
-    #         for product in queryset:
-    #            print('allegro_export product ----------------', product)
-    #            product_vendors = product.vendors.all()
-    #            print('allegro_export product_vendors ----------------', product_vendors)
-    #            if vendor in product_vendors:
-    #                 print('allegro_export if vendor in product_vendors ----------------', vendor)
-    #                 offers = self.get_offers(access_token, vendor.name)
-    #                 self.get_me(access_token, vendor.name) # To verify access token is valid
-    #                 # print("---- selected_offers ----", offers.text)
-
-    #                 for offer in offers.json()['offers']:
-    #                     print('price_change MATCH ----------------', offer)
-    #                     print('price_change [external][id]  ----------------', offer['external']['id'])
-    #                     if offer['external'] is not None:
-    #                         if str(offer['external']['id']) == str(product.sku):
-    #                             print('allegro_export allegro sku and product sku match ----------------', str(offer['external']['id']), str(product.sku))
-    #                             url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-    #                             self.create_offer_from_product(request, 'PATCH', product, url, access_token, vendor.name, producer)
-    # allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
 
 
     def allegro_update(self, request, queryset):
@@ -209,8 +265,6 @@ class ProductAdmin(ImportExportModelAdmin):
         for vendor in vendors:
             # print('check vendor ----------------', vendor)
             access_token = vendor.access_token
-            # producer = self.responsible_producers(access_token, vendor.name)
-            # print('allegro_export producer ----------------', producer)
 
             headers = {
                 'Accept': 'application/vnd.allegro.public.v1+json',
@@ -388,29 +442,7 @@ class ProductAdmin(ImportExportModelAdmin):
             'Authorization': f'Bearer {access_token}'
         }
 
-        # response = requests.request("GET", url, headers=headers)
         response = allegro_request("GET", url, name, headers=headers)
-        print('get_me NAME ----------------', name)
-        print('get_me access_token ----------------', access_token)
-        print('get_me response ----------------', response.text)
-        return response
-
-
-    def get_offers(self, access_token, name):
-
-        url = f"https://{ALLEGRO_API_URL}/sale/offers"
-
-        headers = {
-            'Accept': 'application/vnd.allegro.public.v1+json',
-            'Authorization': f'Bearer {access_token}'
-        }
-
-        # response = requests.request("GET", url, headers=headers)
-        response = allegro_request("GET", url, name, headers=headers)
-        print('Trace-Id ---------------', response.headers.get("Trace-Id"))
-        # print('get_offers NAME ----------------', name)
-        # print('get_offers access_token ----------------', access_token)
-        # print('get_offers response ----------------', response.text)
         return response
 
 

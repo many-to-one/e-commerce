@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import *
-from .allegro_views.views import exchange_token_view, AllegroOrderAdminView
+from .allegro_views.views import exchange_token_view, AllegroOrderAdminView, ProductAdminView
 from .allegro_views.vendors import *
 
 urlpatterns = [
@@ -34,5 +34,5 @@ urlpatterns = [
     path('vendors/<str:email>', user_vendors, name='vendors'),
 
     path('admin/sync-allegro-orders/', AllegroOrderAdminView.as_view(), name='sync_allegro_orders'),
-    # path('contact/', ContactView.as_view(), name='contact'),
+    path('admin/sync-allegro-offers/', ProductAdminView.as_view(), name='sync_allegro_offers'),
 ]

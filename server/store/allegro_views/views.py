@@ -111,11 +111,12 @@ def allegro_request(method, url, vendor_name, **kwargs):
     kwargs["headers"] = headers
 
     response = requests.request(method, url, **kwargs)
-    print(f' VENDOR NAME #########{vendor_name} ----------------', vendor_name)
-    print(f' URL #########{url} ----------------', url)
-    print(f' METHOD #########{method} ----------------', method)
-    print(f' RESPONSE #########{response} ----------------', response)
-    print(f' RESPONSE TEXT #########{response} ----------------', response.text)
+    print(f' TRACE ID #########', response.headers.get("Trace-Id"))
+    print(f' VENDOR NAME ######### {vendor_name}')
+    print(f' URL ######### {url}')
+    print(f' METHOD ######### {method}')
+    print(f' RESPONSE ######### {response}')
+    print(f' RESPONSE TEXT ######### {response.text}')
 
     if response.status_code == 401:
         # Refresh token
@@ -141,6 +142,19 @@ class AllegroOrderAdminView(View):
 
         messages.success(request, "✅ Synchronizacja Allegro zakończona.")
         return redirect('/admin/store/allegroorder/')
+    
+
+@method_decorator(staff_member_required, name='dispatch')
+class ProductAdminView(View):
+    def get(self, request):
+        from store.admin import ProductAdmin
+        from store.models import Product
+
+        admin_instance = ProductAdmin(Product, admin_site=None)
+        admin_instance.sync_allegro_offers(request, queryset=None)
+
+        messages.success(request, "✅ Synchronizacja Allegro zakończona.")
+        return redirect('/admin/store/product/')
     
 
 
