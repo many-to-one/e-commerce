@@ -211,10 +211,17 @@ class ProductAdmin(ImportExportModelAdmin):
             access_token = vendor.access_token
             # producer = self.responsible_producers(access_token, vendor.name)
             # print('allegro_export producer ----------------', producer)
+
+            headers = {
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Content-Type': 'application/vnd.allegro.public.v1+json',
+                'Accept-Language': 'pl-PL',
+                'Authorization': f'Bearer {access_token}'
+            }
         
             for product in queryset:
                 url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
-                offers = allegro_request('GET', url, vendor.name)
+                offers = allegro_request('GET', url, vendor.name, headers=headers)
                 print('allegro_update offers ----------------', offers)
                 for offer in offers.json()['offers']:
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
