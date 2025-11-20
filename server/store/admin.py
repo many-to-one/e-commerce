@@ -142,7 +142,7 @@ class ProductAdmin(ImportExportModelAdmin):
         url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
 
         while True:
-            offers_url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}",
+            offers_url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
             response = allegro_request('GET', url, vendor_name, headers=headers)
             data = response.json()
             offers = data.get("offers", [])
@@ -168,9 +168,9 @@ class ProductAdmin(ImportExportModelAdmin):
                 'Authorization': f'Bearer {access_token}'
             }
             try:
-                # products = Product.objects.all()
+                products = Product.objects.all()
                 offers = self.fetch_all_offers(vendor.name, headers)
-                product_map = {obj.sku: obj for obj in queryset}
+                product_map = {obj.sku: obj for obj in products}
 
                 for offer in offers:
                     external = offer.get("external")
