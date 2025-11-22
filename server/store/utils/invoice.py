@@ -200,7 +200,7 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     # Seller info
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
     c.drawString(2 * cm, height - 4.5 * cm, str(user.full_name or ""))
-    c.drawString(2 * cm, height - 5 * cm, f"Adres: {str(vendor.address or "")}" )
+    c.drawString(2 * cm, height - 5 * cm, f"{str(vendor.address or "")}" ) # Adres:
     c.drawString(2 * cm, height - 5.5 * cm, f"NIP: {str(vendor.nip or "")}" )
     c.drawString(2 * cm, height - 6 * cm, f"Telefon: {str(user.phone or "")}" )
     c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
@@ -399,7 +399,7 @@ def generate_correction_invoice_allegro(invoice, buyer_info, user, products, _ma
     # c.drawString(2 * cm, height - 7 * cm, invoice.main_invoice.vendor.address)
     # c.drawString(2 * cm, height - 7.5 * cm, f"NIP {invoice.main_invoice.vendor.nip}")
     c.drawString(2 * cm, height - 6.5 * cm, str(user.full_name or ""))
-    c.drawString(2 * cm, height - 7 * cm, f"Adres: {str(invoice.main_invoice.vendor.address or '')}")
+    c.drawString(2 * cm, height - 7 * cm, f"{str(invoice.main_invoice.vendor.address or '')}") # Adres:
     c.drawString(2 * cm, height - 7.5 * cm, f"NIP: {str(invoice.main_invoice.vendor.nip or '')}")
     c.drawString(2 * cm, height - 8 * cm, f"Telefon: {str(user.phone or '')}")
     c.drawString(2 * cm, height - 8.5 * cm, f"Email: {str(invoice.main_invoice.vendor.email or '')}")
@@ -535,7 +535,7 @@ def generate_invoice_webstore(invoice, vendor, user, buyer_info, products): # ta
     # print(' ----------- generate_invoice_webstore vendor email -------------', vendor.email)
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
     c.drawString(2 * cm, height - 4.5 * cm, str(user.full_name or ""))
-    c.drawString(2 * cm, height - 5 * cm, f"Adres: {str(vendor.address or "")}" )
+    c.drawString(2 * cm, height - 5 * cm, f"{str(vendor.address or "")}" ) # Adres:
     c.drawString(2 * cm, height - 5.5 * cm, f"NIP: {str(vendor.nip or "")}" )
     c.drawString(2 * cm, height - 6 * cm, f"Telefon: {str(user.phone or "")}" )
     c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
@@ -686,7 +686,7 @@ def generate_correction_invoice_webstore(invoice, buyer_info, user, products, _m
     # c.drawString(2 * cm, height - 8 * cm, str(user.phone or ""))
     # c.drawString(2 * cm, height - 8.5 * cm, f"NIP {str(invoice.main_invoice.vendor.nip or '')}")
     c.drawString(2 * cm, height - 6.5 * cm, str(user.full_name or ""))
-    c.drawString(2 * cm, height - 7 * cm, f"Adres: {str(invoice.main_invoice.vendor.address or '')}")
+    c.drawString(2 * cm, height - 7 * cm, f"{str(invoice.main_invoice.vendor.address or '')}") # Adres: 
     c.drawString(2 * cm, height - 7.5 * cm, f"NIP: {str(invoice.main_invoice.vendor.nip or '')}")
     c.drawString(2 * cm, height - 8 * cm, f"Telefon: {str(user.phone or '')}")
     c.drawString(2 * cm, height - 8.5 * cm, f"Email: {str(invoice.main_invoice.vendor.email or '')}")
