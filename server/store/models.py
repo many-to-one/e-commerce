@@ -507,7 +507,7 @@ class Invoice(models.Model):
 
             current_number = count + 1
             formatted_number = str(current_number).zfill(5)
-            date_part = self.created_at.strftime('%d/%m/%Y')
+            date_part = self.created_at.strftime('%m/%Y')
 
             self.invoice_number = f"FV-{formatted_number}/{date_part}"
 
