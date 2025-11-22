@@ -239,11 +239,14 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
         ])
 
     # Transport (if not Smart)
-    # Transport (if not Smart)
     delivery_cost = float(getattr(invoice.allegro_order, 'delivery_cost', 0) or 0)
     transport_tax_rate = float(getattr(invoice.allegro_order, 'tax_rate', 0) or 0)  # fallback
 
-    if delivery_cost > 0 and not getattr(invoice.allegro_order, 'is_smart', False):
+    # print(' ################################## delivery_cost ################################## ', delivery_cost)
+
+    # if delivery_cost > 0 and not getattr(invoice.allegro_order, 'is_smart', False):
+    if delivery_cost > 0:
+        # print(' ################################## delivery_cost > 0 ################################## ', delivery_cost)
         transport_brutto = delivery_cost
         transport_netto = transport_brutto / (1 + transport_tax_rate / 100) if transport_tax_rate else transport_brutto
         transport_vat = transport_brutto - transport_netto

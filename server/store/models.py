@@ -470,7 +470,7 @@ class AllegroOrderItem(models.Model):
 
 
 class Invoice(models.Model):
-    invoice_number = models.CharField("Numer faktury", max_length=100, unique=True, editable=False)
+    invoice_number = models.CharField("Numer faktury", max_length=100, unique=True, editable=True)
     created_at = models.DateTimeField("Data wygenerowania", auto_now_add=True)
     # generated_at = models.DateTimeField("Data wygenerowania", null=True, blank=True)
     shop_order = models.ForeignKey("CartOrder", on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie sklepu")

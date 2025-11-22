@@ -734,7 +734,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     # print('company ----------------', company.get('name', ''))
                     # print('buyer_zipcode ----------------', buyer.get('address', {}).get('postCode', ''))
 
-                    delivery_cost = float(buyer_info['delivery']['cost']['amount']) or 0.00
+                    # delivery_cost = float(buyer_info['delivery']['cost']['amount']) or 0.00
                     is_smart = buyer_info.get('delivery', {}).get('smart')
 
                     # --- 1. Utwórz/aktualizuj nagłówek zamówienia ---
@@ -967,7 +967,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = (
-        'invoice_number', 'created_at', 'formatted_generated', 'corrected',
+        'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
         'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
     )
 
@@ -1095,7 +1095,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                     pdf_content = generate_invoice_webstore(invoice, vendor, user, buyer_info, products)
                 
                 else:
-                    print(f'{vendor.marketplace}-------------------')
+                    # print(f'{vendor.marketplace}-------------------')
                     # allegro logic
                     buyer_info = {
                         'name': invoice.buyer_name,
