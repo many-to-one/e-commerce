@@ -109,7 +109,10 @@ class Product(models.Model):
     tags = models.CharField(max_length=1000, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena netto')
+    price_brutto = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena brutto')
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
+    zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
+    zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
@@ -156,39 +159,33 @@ class Product(models.Model):
     # def get_vendors(self):
     #     return ", ".join([v.name for v in self.vendors.all()])
 
-    @property
-    def price_brutto(self):
-        if self.price is None:
-            return None
-        return (self.price * (1 + self.tax_rate / 100)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-    
-    price_brutto.fget.short_description = "Cena brutto" 
 
-    
-    @property
-    def price_zysk(self):
-        if self.price is None or self.hurt_price is None:
-            return None
-        price_br = (self.price * (1 + self.tax_rate / 100)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        return price_br - self.hurt_price
-    
-    price_zysk.fget.short_description = "Zysk (PLN)"   # label in admin
-    
-    @property
-    def price_zysk_percent(self):
-        if self.price is None or self.hurt_price in (None, Decimal("0.00")):
-            return None
-        price_br = (self.price * (1 + self.tax_rate / 100)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        zysk = price_br - self.hurt_price
-        return (zysk / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    
-    price_zysk_percent.fget.short_description = "Zysk (%)"
+    # def recalc_products():
+    #     vat_rate = Decimal("23")  # albo pobieraj z obj.tax_rate jeśli różne
+    #     vat_multiplier = Decimal("1") + vat_rate / Decimal("100")
+
+    #     for p in Product.objects.all():
+    #         if p.price is None or p.hurt_price is None:
+    #             continue
+
+    #         # cena brutto = cena netto * (1 + VAT)
+    #         cena_brutto = (p.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    #         # zysk PLN = cena brutto - hurt_price
+    #         zysk_pln = (cena_brutto - p.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    #         # zysk % = (zysk_pln / hurt_price) * 100
+    #         if p.hurt_price > 0:
+    #             zysk_percent = (zysk_pln / p.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    #         else:
+    #             zysk_percent = None
+
+    #         # zapis do pól
+    #         p.price_brutto = cena_brutto
+    #         p.zysk_pln = zysk_pln
+    #         p.zysk_procent = zysk_percent
+    #         p.save(update_fields=["price_brutto", "zysk_pln", "zysk_procent"])
+
 
 
     # Returns an HTML image tag for the product's image
@@ -240,7 +237,48 @@ class Product(models.Model):
         uuid_key = shortuuid.uuid()
         uniqueid = uuid_key[:4]
         self.slug = slugify(self.title) + "-" + str(uniqueid.lower())
-        super(Product, self).save(*args, **kwargs)
+
+        vat_multiplier = Decimal("1") + (self.tax_rate or Decimal("0")) / Decimal("100")
+
+        # Pobierz starą wersję z bazy (jeśli istnieje)
+        old = None
+        if self.pk:
+            try:
+                old = Product.objects.get(pk=self.pk)
+            except Product.DoesNotExist:
+                pass
+
+        # 1️⃣ Jeśli zmienił się zysk w PLN
+        if old and self.zysk_pln != old.zysk_pln and self.hurt_price is not None:
+            cena_brutto = (self.hurt_price + self.zysk_pln).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price_brutto = cena_brutto
+            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        # 2️⃣ Jeśli zmienił się zysk w %
+        elif old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
+            cena_brutto = (self.hurt_price * (Decimal("1") + self.zysk_procent / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price_brutto = cena_brutto
+            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        # 3️⃣ Jeśli zmieniła się cena brutto
+        elif old and self.price_brutto != old.price_brutto and self.hurt_price is not None:
+            cena_brutto = self.price_brutto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if self.hurt_price > 0:
+                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        # 4️⃣ Jeśli zmieniła się cena netto
+        elif old and self.price != old.price and self.hurt_price is not None:
+            cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.price_brutto = cena_brutto
+            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if self.hurt_price > 0:
+                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        super().save(*args, **kwargs)
 
         # if not self.slug or self.slug:
         #     uuid_key = shortuuid.uuid()

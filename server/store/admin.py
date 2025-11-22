@@ -92,8 +92,8 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock']
-    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'price_zysk', 'price_zysk_percent', 'hot_deal']
+    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_pln', 'zysk_procent',]
+    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'zysk_pln', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
@@ -176,34 +176,35 @@ class ProductAdmin(ImportExportModelAdmin):
             try:
                 products = Product.objects.all()
                 offers = self.fetch_all_offers(vendor.name, headers)
-                product_map = {obj.sku: obj for obj in products}
+                # product_map = {obj.sku: obj for obj in products}
 
                 for offer in offers:
                     external = offer.get("external")
                     if not external:
                         continue
-
                     sku = external.get("id")
-                    product = product_map.get(sku)
-                    if not product:
-                        continue
-
                     status = offer.get("publication", {}).get("status")
-                    if status == "ACTIVE":
-                        product.allegro_in_stock = True
-                        price_brutto = Decimal(
-                            offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
-                        )
 
-                        # netto = brutto / 1.23
-                        price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    for product in products:
+                        if product.sku == sku:
+                            if status == "ACTIVE":
+                                product.allegro_in_stock = True
+                                price_brutto = Decimal(
+                                    offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+                                )
 
-                        product.price = price_netto
-                    else:
-                        product.allegro_in_stock = False
-                    product.allegro_status = status
+                                # netto = brutto / 1.23
+                                price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-                    product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
+                                product.price = price_netto
+                            else:
+                                product.allegro_in_stock = False
+                            product.allegro_status = status
+
+                            product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
+
+                        else:
+                            continue
 
                 self.message_user(request, f"Twoje oferty zostały zaktualizowane", level="success")
 
@@ -704,7 +705,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 events = response.json().get('events', [])
 
                 for event in events:
-                    # print('Processing event ----------------', event)
+                    print('Processing event ----------------', event)
                     order = event.get('order') or {}
                     checkout_form = order.get('checkoutForm') or {}
                     checkout_form_id = checkout_form.get('id')
@@ -725,9 +726,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
                     is_smart = delivery.get('smart')
 
-                    # print('buyer_info delivery ----------------', delivery)
-                    # print('buyer_info delivery_cost ----------------', delivery_cost)
-                    # print('buyer_info is_smart ----------------', is_smart)
+                    print(' ######### ######### ######### buyer_info delivery ----------------', delivery)
+                    print(' ######### ######### ######### buyer_info delivery_cost ----------------', delivery_cost)
+                    print(' ######### ######### ######### buyer_info is_smart ----------------', is_smart)
 
 
                     # print('company ----------------', company.get('name', ''))
@@ -753,7 +754,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             'occurred_at': parse_datetime(event['occurredAt']),
                             'type': event['type'],
                             'is_smart': is_smart,
-                            'delivery_cost': 0 if is_smart else delivery_cost,
+                            'delivery_cost': delivery_cost #0 if is_smart else delivery_cost,
                         }
                     )
 

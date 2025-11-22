@@ -199,6 +199,10 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+# To save more than default (1000) fields 
+# in admin.py save() operation,
+# now it 5000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']

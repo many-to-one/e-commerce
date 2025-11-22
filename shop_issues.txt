@@ -1,0 +1,7 @@
+# Zeby uzupełnic nowe pola (zysk_pln. zysk_procent i cena_hurtowa) 
+# we wszystkich produktach modelu Product, została utworzona komenda:
+# python manage.py recalc_products
+# Dlatego była utworzona ścieżka w appce store:
+# store/management/commands/
+# i plik recalc_products.py z odpowiednią zawartością
+# całość: store/management/commands/plik recalc_products.py
