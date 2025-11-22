@@ -751,6 +751,7 @@ class PrestaCSVView(APIView):
                     img_links=images,
                     description=row["Opis"],
                     price=gross_price,   # <-- includes 23% VAT
+                   # tax_rate=safe_decimal("23.00")
                     hurt_price=safe_decimal(row["Cena hurtowa"]),
                     stock_qty=row["Ilość"],
                     sku=row["Kod dostawcy"],
@@ -841,6 +842,7 @@ class PrestaUpdateCSVView(APIView):
                     product.shipping_amount = safe_decimal(9.99)
                     product.category = category_
                     product.sub_cat = categories[2:]
+                   # product.tax_rate = safe_decimal("23.00")
 
                     product.save()
                 else:
@@ -857,6 +859,7 @@ class PrestaUpdateCSVView(APIView):
                         shipping_amount=safe_decimal(9.99),
                         category=category_,   # <-- comma added here
                         sub_cat=categories[2:],
+                       # tax_rate=safe_decimal("23.00")
                     )
 
                     all_vendors = Vendor.objects.all()

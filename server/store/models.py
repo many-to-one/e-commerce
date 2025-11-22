@@ -113,7 +113,7 @@ class Product(models.Model):
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
     zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=23.00)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("23.00"))
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
     stock_qty = models.PositiveIntegerField(default=0, verbose_name="Ilość")
@@ -238,7 +238,12 @@ class Product(models.Model):
         uniqueid = uuid_key[:4]
         self.slug = slugify(self.title) + "-" + str(uniqueid.lower())
 
-        vat_multiplier = Decimal("1") + (self.tax_rate or Decimal("0")) / Decimal("100")
+        # upewnij się, że tax_rate jest Decimal
+        def to_dec(x, default="0"):
+            return x if isinstance(x, Decimal) else Decimal(str(x if x is not None else default))
+
+        self.tax_rate = to_dec(getattr(self, "tax_rate", None), "0")
+        vat_multiplier = Decimal("1") + self.tax_rate / Decimal("100")
 
         # Pobierz starą wersję z bazy (jeśli istnieje)
         old = None
@@ -253,7 +258,10 @@ class Product(models.Model):
             cena_brutto = (self.hurt_price + self.zysk_pln).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
-            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if self.hurt_price > 0:
+                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                self.zysk_procent = Decimal("0.00")  # or None if you prefer
 
         # 2️⃣ Jeśli zmienił się zysk w %
         elif old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
@@ -269,6 +277,8 @@ class Product(models.Model):
             self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             if self.hurt_price > 0:
                 self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                self.zysk_procent = Decimal("0.00")  # or None if you prefer
 
         # 4️⃣ Jeśli zmieniła się cena netto
         elif old and self.price != old.price and self.hurt_price is not None:
@@ -277,6 +287,8 @@ class Product(models.Model):
             self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             if self.hurt_price > 0:
                 self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                self.zysk_procent = Decimal("0.00")  # or None if you prefer
 
         super().save(*args, **kwargs)
 
