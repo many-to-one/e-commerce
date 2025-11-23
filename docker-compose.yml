@@ -143,6 +143,8 @@ services:
 
     volumes:
       - ./server:/app
+      - ./server/media:/app/media
+      - ./server/staticfiles:/app/staticfiles
     ports:
       - "${DJANGO_PORT}:${DJANGO_PORT}"
     env_file:
