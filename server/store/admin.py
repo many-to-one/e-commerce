@@ -71,7 +71,7 @@ class ClientAccessLogAdmin(ImportExportModelAdmin):
 
 class ProductAdminForm(forms.ModelForm):
 
-    vendor = forms.ModelChoiceField(queryset=Vendor.objects.filter(user__is_staff=True))
+    # vendor = forms.ModelChoiceField(queryset=Vendor.objects.filter(user__is_staff=True))
 
     vendors = forms.ModelMultipleChoiceField(
         queryset=Vendor.objects.all(),
@@ -89,7 +89,42 @@ class ProductAdmin(ImportExportModelAdmin):
 
     save_on_top = True
 
+    fieldsets = (
+        ('Podstawowe informacje', {
+            'fields': (
+                'title', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'description', 'category', 'sub_cat', 'tags', 'brand'
+            )
+        }),
+        ('Sprzedawcy', {
+            'fields': ('vendors',)
+        }),
+        ('Ceny i podatki', {
+            'fields': (
+                'price', 'price_brutto', 'hurt_price',
+                'zysk_pln', 'zysk_procent', 'tax_rate',
+                'old_price', 'shipping_amount'
+            )
+        }),
+        ('Stan magazynowy', {
+            'fields': ('stock_qty', 'in_stock')
+        }),
+        ('Status produktu', {
+            'fields': ('status', 'type', 'allegro_status', 'allegro_in_stock')
+        }),
+        ('Flagi produktu', {
+            'fields': ('featured', 'hot_deal', 'special_offer', 'digital')
+        }),
+        ('Statystyki', {
+            'fields': ('views', 'orders', 'saved', 'rating')
+        }),
+        ('Identyfikatory', {
+            'fields': ('pid', 'slug', 'date')
+        }),
+    )
+
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
+    filter_horizontal = ("vendors", "status")
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
     list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_pln', 'zysk_procent',]
