@@ -215,52 +215,6 @@ class ProductAdmin(ImportExportModelAdmin):
             except Exception as e:
                 self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 
-            # try:
-            #     products = Product.objects.all()
-            #     offers = self.fetch_all_offers(vendor.name, headers)
-            #     # product_map = {obj.sku: obj for obj in products}
-
-            #     for offer in offers:
-            #         external = offer.get("external")
-            #         if not external:
-            #             continue
-            #         sku = external.get("id")
-            #         status = offer.get("publication", {}).get("status")
-            #         print(' ######################## SKU ######################## ', sku)
-            #         print(' ######################## status ######################## ', status)
-
-            #         for product in products:
-            #             if product.sku == sku:
-            #                 print(' ######################## product.sku == sku ######################## ', product.sku)
-            #                 if status == "ACTIVE":
-            #                     print(' ######################## status == "ACTIVE" ######################## ', status)
-            #                     product.allegro_in_stock = True
-            #                     price_brutto = Decimal(
-            #                         offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
-            #                     )
-
-            #                     # netto = brutto / 1.23
-            #                     price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-            #                     product.price = price_netto
-            #                     product.price_brutto = price_brutto
-            #                 else:
-            #                     product.allegro_in_stock = False
-            #                 product.allegro_status = status
-
-            #                 product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
-            #                 print(' ######################## allegro_in_stock ######################## ', product.allegro_in_stock)
-
-            #             else:
-            #                 continue
-
-            #     self.message_user(request, f"Twoje oferty zostały zaktualizowane", level="success")
-
-            #     if "errors" in offers:
-            #         self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
-            # except Exception as e:
-            #     self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
-
     sync_allegro_offers.short_description = "🔄 Synchronizuj z Allegro"
 
 
@@ -475,13 +429,14 @@ class ProductAdmin(ImportExportModelAdmin):
             # print(f'create_offer_from_product {method} response ----------------', response)
             # print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
-                    self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
+                self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
-                    self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')
+                product.allegro_in_stock = True
+                self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')
             elif response.status_code == 401:
                 self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
-            else:
-                self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
+            # else:
+            #     self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
             return response
         except requests.exceptions.HTTPError as err:
             self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
