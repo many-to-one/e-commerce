@@ -173,45 +173,93 @@ class ProductAdmin(ImportExportModelAdmin):
                 'Accept': 'application/vnd.allegro.public.v1+json',
                 'Authorization': f'Bearer {access_token}'
             }
+
             try:
                 products = Product.objects.all()
+                product_map = {obj.sku: obj for obj in products}
+
                 offers = self.fetch_all_offers(vendor.name, headers)
-                # product_map = {obj.sku: obj for obj in products}
+
+                # If offers is a dict with errors
+                if isinstance(offers, dict) and "errors" in offers:
+                    self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
+                    return
 
                 for offer in offers:
                     external = offer.get("external")
                     if not external:
                         continue
+
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
+                    product = product_map.get(sku)
 
-                    for product in products:
-                        if product.sku == sku:
-                            if status == "ACTIVE":
-                                product.allegro_in_stock = True
-                                price_brutto = Decimal(
-                                    offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
-                                )
+                    if not product:
+                        continue
 
-                                # netto = brutto / 1.23
-                                price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    if status == "ACTIVE":
+                        product.allegro_in_stock = True
+                        price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
+                        price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-                                product.price = price_netto
-                            else:
-                                product.allegro_in_stock = False
-                            product.allegro_status = status
+                        product.price = price_netto
+                        product.price_brutto = price_brutto
+                    else:
+                        product.allegro_in_stock = False
 
-                            product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
+                    product.allegro_status = status
+                    product.save(update_fields=["allegro_in_stock", "allegro_status", "price", "price_brutto"])
 
-                        else:
-                            continue
+                self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 
-                self.message_user(request, f"Twoje oferty zostały zaktualizowane", level="success")
-
-                if "errors" in offers:
-                    self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
             except Exception as e:
                 self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
+
+            # try:
+            #     products = Product.objects.all()
+            #     offers = self.fetch_all_offers(vendor.name, headers)
+            #     # product_map = {obj.sku: obj for obj in products}
+
+            #     for offer in offers:
+            #         external = offer.get("external")
+            #         if not external:
+            #             continue
+            #         sku = external.get("id")
+            #         status = offer.get("publication", {}).get("status")
+            #         print(' ######################## SKU ######################## ', sku)
+            #         print(' ######################## status ######################## ', status)
+
+            #         for product in products:
+            #             if product.sku == sku:
+            #                 print(' ######################## product.sku == sku ######################## ', product.sku)
+            #                 if status == "ACTIVE":
+            #                     print(' ######################## status == "ACTIVE" ######################## ', status)
+            #                     product.allegro_in_stock = True
+            #                     price_brutto = Decimal(
+            #                         offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+            #                     )
+
+            #                     # netto = brutto / 1.23
+            #                     price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            #                     product.price = price_netto
+            #                     product.price_brutto = price_brutto
+            #                 else:
+            #                     product.allegro_in_stock = False
+            #                 product.allegro_status = status
+
+            #                 product.save(update_fields=["allegro_in_stock", "allegro_status", "price"])
+            #                 print(' ######################## allegro_in_stock ######################## ', product.allegro_in_stock)
+
+            #             else:
+            #                 continue
+
+            #     self.message_user(request, f"Twoje oferty zostały zaktualizowane", level="success")
+
+            #     if "errors" in offers:
+            #         self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
+            # except Exception as e:
+            #     self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 
     sync_allegro_offers.short_description = "🔄 Synchronizuj z Allegro"
 
