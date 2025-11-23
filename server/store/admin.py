@@ -1,3 +1,4 @@
+import time
 from django.contrib import admin
 from django.shortcuts import redirect, render
 from django import forms
@@ -124,7 +125,6 @@ class ProductAdmin(ImportExportModelAdmin):
     )
 
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
-    filter_horizontal = ("vendors", "status")
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
     list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_pln', 'zysk_procent',]
@@ -684,10 +684,10 @@ class InvoiceCorrectionInline(admin.TabularInline):
 
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'invoice_generated', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
+    list_display = ['order_id', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
     list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
     search_fields = ['order_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
-    actions = ['generate_invoice', 'remove_duplicate_invoices']
+    actions = ['generate_invoice', 'remove_duplicate_invoices', 'send_auto_message']
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
     change_list_template = "admin/store/allegroorder/change_list.html"
@@ -743,7 +743,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 events = response.json().get('events', [])
 
                 for event in events:
-                    print('Processing event ----------------', event)
+                    # print('Processing event ----------------', event)
                     order = event.get('order') or {}
                     checkout_form = order.get('checkoutForm') or {}
                     checkout_form_id = checkout_form.get('id')
@@ -764,9 +764,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
                     is_smart = delivery.get('smart')
 
-                    print(' ######### ######### ######### buyer_info delivery ----------------', delivery)
-                    print(' ######### ######### ######### buyer_info delivery_cost ----------------', delivery_cost)
-                    print(' ######### ######### ######### buyer_info is_smart ----------------', is_smart)
+                    # print(' ######### ######### ######### buyer_info delivery ----------------', delivery)
+                    # print(' ######### ######### ######### buyer_info delivery_cost ----------------', delivery_cost)
+                    # print(' ######### ######### ######### buyer_info is_smart ----------------', is_smart)
 
 
                     # print('company ----------------', company.get('name', ''))
@@ -961,6 +961,65 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
 
     remove_duplicate_invoices.short_description = "🧹 Usuń zdublowane faktury"
+
+
+    @admin.action(description="🧾 Wiadomość do klienta")
+    def send_auto_message(self, request, queryset):
+
+        message = Message.objects.get(title='Wiadomość po opłaceniu')
+        url = f"https://{ALLEGRO_API_URL}/messaging/messages"
+        
+        for q in queryset:
+
+            headers = {
+                "Authorization": f"Bearer {q.vendor.access_token}",
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Content-Type": "application/vnd.allegro.public.v1+json"
+            }
+
+            payload = {
+                "recipient": {
+                    "login": f"{q.buyer_login}"
+                },
+                "order": {
+                    "id": f"{q.order_id}"
+                    },
+                "text": f"{message.text}",
+                "attachments": []
+            }
+
+            try:
+                response = allegro_request("POST", url, q.vendor.name, headers=headers, data=json.dumps(payload))
+
+                if response.status_code == 201:
+                    self.message_user(
+                        request,
+                        f"✅ Wiadomość została wysłana",
+                        level="success"
+                    )
+                    q.message_sent = True
+                    q.save(update_fields=['message_sent'])
+                else:
+                    # parse Allegro error response
+                    errors = response.json().get("errors", [])
+                    for err in errors:
+                        self.message_user(
+                            request,
+                            f"⚠️ Błąd wysłania wiadomości: {err}",
+                            level="error"
+                        )
+
+                time.sleep(0.5) 
+
+            except requests.exceptions.HTTPError as err:
+                errors = response.json().get("errors", [])
+                for err in errors:
+                    self.message_user(
+                        request,
+                        f"⚠️ Błąd wysłania wiadomości: {err}",
+                        level="error"
+                    )
+                raise SystemExit(err)
 
 
 # @admin.register(InvoiceCorrection)
@@ -2116,3 +2175,4 @@ admin.site.register(ReturnItem, ReturnItemAdmin)
 # admin.site.register(Notification, NotificationAdmin)
 admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)
 admin.site.register(ClientAccessLog, ClientAccessLogAdmin)
+admin.site.register(Message)

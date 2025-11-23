@@ -1,3 +1,10 @@
 # Permissions deny to edit files:
 ls -l (check permissions)
 sudo chmod -R 777 /path/to/file or directory or . (777 - read, wtite, execute)
+
+# ngnix
+cd /etc/nginx/sites-available/
+
+sudo ln -s /etc/nginx/sites-available/yourdomain.conf /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx

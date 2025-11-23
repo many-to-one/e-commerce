@@ -5,11 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+<style>
+  #loading-spinner {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+  }
+
+  .spinner {
+    border: 8px solid #f3f3f3;       /* jasne tło */
+    border-top: 8px solid #3498db;   /* kolor akcentu */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
 <body>
     
     {% extends "admin/change_list.html" %}
 
     {% block content %}
+    <div id="loading-spinner">
+        <div class="spinner"></div>
+    </div>
     <div class="object-tools">
         <ul class="object-tools">
         <li>
@@ -23,6 +50,18 @@
     {% endblock %}
 
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        const actionForm = document.querySelector("form[action]");
+        const spinner = document.getElementById("loading-spinner");
+
+        if (actionForm && spinner) {
+            actionForm.addEventListener("submit", function() {
+            spinner.style.display = "block";
+            });
+        }
+        });
+    </script>
 
 </body>
 </html>

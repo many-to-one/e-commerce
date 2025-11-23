@@ -442,6 +442,8 @@ class AllegroOrder(models.Model):
     type = models.CharField("Typ zdarzenia", max_length=50)
     invoice_generated = models.BooleanField("Faktura wygenerowana", default=False)
     stock_updated = models.BooleanField("Stan magazynowy zaktualizowany", default=False)
+    message = models.ForeignKey("Message", on_delete=models.CASCADE, verbose_name="Auto Widomość", null=True, blank=True)
+    message_sent = models.BooleanField("Wiadomość", default=False)
 
     class Meta:
         verbose_name = "Zamówienie Allegro"
@@ -467,6 +469,18 @@ class AllegroOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.offer_name} x {self.quantity}"
+    
+
+class Message(models.Model):
+    title = models.CharField("Tytuł", max_length=155, null=True, blank=True)
+    text = models.CharField("Tekst wiadomości", max_length=2000, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Auto wiadomość"
+        verbose_name_plural = "Auto wiadomości"
+
+    def __str__(self):
+        return f"{self.id}"
 
 
 class Invoice(models.Model):
