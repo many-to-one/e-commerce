@@ -725,8 +725,13 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         vendors = Vendor.objects.filter(marketplace='allegro.pl')
 
         for vendor in vendors:
+
+            last_order = AllegroOrder.objects.filter(vendor=vendor).order_by('-id').first()
+            if last_order:
+                url = f"https://{ALLEGRO_API_URL}/order/events?from={last_order.event_id}&type=READY_FOR_PROCESSING"
+            else:
+                url = f"https://{ALLEGRO_API_URL}/order/events?type=READY_FOR_PROCESSING"
             try:
-                url = f"https://{ALLEGRO_API_URL}/order/events"
                 headers = {
                     'Accept': 'application/vnd.allegro.public.v1+json',
                     'Authorization': f'Bearer {vendor.access_token}'

@@ -422,6 +422,7 @@ class Cart(models.Model):
     class Meta:
         verbose_name = "Koszyk"
         verbose_name_plural = "Koszyki"
+
     
 
 class AllegroOrder(models.Model):
