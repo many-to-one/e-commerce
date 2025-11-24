@@ -282,7 +282,7 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
 
     # Total text
     c.drawString(2*cm, height - 17*cm, f"Razem do zapłaty: {total_brutto:.2f} PLN")
-    c.drawString(2*cm, height - 17.5*cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
+    # c.drawString(2*cm, height - 17.5*cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
 
     c.save()
     pdf_content = buffer.getvalue()
@@ -620,7 +620,7 @@ def generate_invoice_webstore(invoice, vendor, user, buyer_info, products): # ta
 
     # Total
     c.drawString(2 * cm, height - 17 * cm, f"Razem do zapłaty: {total_brutto:.2f} PLN")
-    c.drawString(2 * cm, height - 17.5 * cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
+    # c.drawString(2 * cm, height - 17.5 * cm, f"Słownie złotych: ({num2words(total_brutto, lang='pl')} PLN)")
 
     # Signatures
     # c.drawString(2 * cm, height - 21 * cm, "_______________________________")
