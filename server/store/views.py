@@ -70,7 +70,7 @@ class CategoriesView(generics.ListAPIView):
 #     permission_classes = (AllowAny, )
 
 
-class VendorContact(generics.ListAPIView):
+class VendorContact(generics.ListAPIView): #RetrieveAPIView
 
     serializer_class = VendorSerializer
     permission_classes = (AllowAny, )
@@ -85,7 +85,7 @@ class VendorContact(generics.ListAPIView):
 
 
 # @method_decorator(cache_page(60 * 5), name='dispatch') # 5 min cache
-class ProductsView(generics.RetrieveAPIView):
+class ProductsView(generics.ListAPIView):
     serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny, )
