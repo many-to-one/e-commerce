@@ -18,9 +18,10 @@ from django.http import HttpResponse
 
 from .utils.payu import get_client_ip, payu_authenticate, to_grosze
 from vendor.models import Vendor
+from vendor.serializer import VendorSerializer
 
-from .serializers import CartCheckSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer
-from .models import Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem
+from .serializers import CartCheckSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer, AddressSerializer
+from .models import Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
 from .store_pagination import StorePagination
 
 from decimal import Decimal, InvalidOperation
@@ -49,6 +50,8 @@ SITE_URL = os.environ.get("SITE_URL")
 continueUrl = os.environ.get("continueUrl")
 _marketplace = os.environ.get("marketplace")
 WEB_VENDOR = os.environ.get("WEB_VENDOR")
+# WEB_VENDOR_EMAIL = os.environ.get("WEB_VENDOR_EMAIL")
+# WEB_VENDOR_PHONE = os.environ.get("WEB_VENDOR_PHONE")
 VENDOR_1 = os.environ.get("VENDOR_1")
 
 class CategoriesView(generics.ListAPIView):
@@ -67,8 +70,22 @@ class CategoriesView(generics.ListAPIView):
 #     permission_classes = (AllowAny, )
 
 
+class VendorContact(generics.ListAPIView):
+
+    serializer_class = VendorSerializer
+    permission_classes = (AllowAny, )
+
+    def get_queryset(self):
+        user = User.objects.get(is_superuser=True)
+        print(user)
+        queryset = Vendor.objects.filter(user=user, marketplace=_marketplace)
+        print(queryset)
+        return queryset
+
+
+
 # @method_decorator(cache_page(60 * 5), name='dispatch') # 5 min cache
-class ProductsView(generics.ListAPIView):
+class ProductsView(generics.RetrieveAPIView):
     serializer_class = IconProductSerializer
     pagination_class = StorePagination
     permission_classes = (AllowAny, )

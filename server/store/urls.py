@@ -35,4 +35,6 @@ urlpatterns = [
 
     path('admin/sync-allegro-orders/', AllegroOrderAdminView.as_view(), name='sync_allegro_orders'),
     path('admin/sync-allegro-offers/', ProductAdminView.as_view(), name='sync_allegro_offers'),
+
+    path('vendor-contact', VendorContact.as_view(), name='vendor-contact'),
 ]

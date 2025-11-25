@@ -233,6 +233,7 @@ class ProductAdmin(ImportExportModelAdmin):
                         continue
 
                     if status == "ACTIVE":
+                        print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
                         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -2181,3 +2182,4 @@ admin.site.register(ReturnItem, ReturnItemAdmin)
 admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)
 admin.site.register(ClientAccessLog, ClientAccessLogAdmin)
 admin.site.register(Message)
+admin.site.register(Address)
