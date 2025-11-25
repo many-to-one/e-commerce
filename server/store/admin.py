@@ -172,7 +172,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
         all_offers = []
         offset = 0
-        limit = 1000
+        limit = 10000
 
         while True:
             url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
