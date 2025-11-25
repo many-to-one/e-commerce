@@ -222,6 +222,8 @@ class ProductAdmin(ImportExportModelAdmin):
                     self.message_user(request, f"⚠️ {offers['errors'][0]['message']}", level="error")
                     return
 
+                count = 0 
+
                 for offer in offers:
                     external = offer.get("external")
                     if not external:
@@ -233,8 +235,9 @@ class ProductAdmin(ImportExportModelAdmin):
 
                     if not product:
                         continue
-
+                    
                     if status == "ACTIVE":
+                        count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
@@ -242,6 +245,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
                         product.price = price_netto
                         product.price_brutto = price_brutto
+                        print(f' ################### "count" ################### ', count)
                     else:
                         product.allegro_in_stock = False
 
