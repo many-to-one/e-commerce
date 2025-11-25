@@ -212,10 +212,10 @@ class ProductAdmin(ImportExportModelAdmin):
             try:
                 products = Product.objects.all()
                 product_map = {obj.sku: obj for obj in products}
-                print(f' ################### "product_map" ################### ', product_map)
+                print(f' ################### "product_map" ################### ', {len(product_map)})
 
                 offers = self.fetch_all_offers(vendor.name, headers)
-                print(f' ################### "offers" ################### ', offers)
+                print(f' ################### "offers" ################### ', {len(offers)})
 
                 # If offers is a dict with errors
                 if isinstance(offers, dict) and "errors" in offers:
