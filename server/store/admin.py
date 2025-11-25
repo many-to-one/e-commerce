@@ -168,33 +168,63 @@ class ProductAdmin(ImportExportModelAdmin):
         return super().formfield_for_manytomany(db_field, request, **kwargs)
     
 
-    def fetch_all_offers(self, vendor_name, headers):
+    # def fetch_all_offers(self, vendor_name, headers):
 
+    #     all_offers = []
+    #     offset = 0
+    #     limit = 1000
+
+    #     while True:
+    #         url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
+    #         response = allegro_request("GET", url, vendor_name, headers=headers)
+    #         data = response.json()
+
+    #         offers = data.get("offers", [])
+    #         all_offers.extend(offers)
+
+    #         # jeśli mniej niż limit → ostatnia strona
+    #         if len(offers) < limit:
+    #             break
+
+    #         offset += limit
+
+    #         # dodatkowy bezpiecznik: jeśli offset > totalCount albo > 10000, przerwij
+    #         total_count = data.get("totalCount")
+    #         if total_count and offset >= total_count:
+    #             break
+
+    #     return all_offers
+    
+
+    def fetch_all_offers(self, vendor_name, headers):
         all_offers = []
         offset = 0
-        limit = 10000
+        limit = 1000
 
         while True:
-            url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
+            url = (
+                f"https://{ALLEGRO_API_URL}/sale/offers"
+                f"?limit={limit}&offset={offset}"
+                f"&publication.status=ACTIVE"
+                f"&publication.marketplace=allegro-pl"
+            )
             response = allegro_request("GET", url, vendor_name, headers=headers)
             data = response.json()
 
             offers = data.get("offers", [])
             all_offers.extend(offers)
 
-            # jeśli mniej niż limit → ostatnia strona
             if len(offers) < limit:
                 break
 
             offset += limit
 
-            # dodatkowy bezpiecznik: jeśli offset > totalCount albo > 10000, przerwij
             total_count = data.get("totalCount")
             if total_count and offset >= total_count:
                 break
 
         return all_offers
-    
+
 
     def sync_allegro_offers(self, request, queryset):
 
