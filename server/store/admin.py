@@ -212,8 +212,10 @@ class ProductAdmin(ImportExportModelAdmin):
             try:
                 products = Product.objects.all()
                 product_map = {obj.sku: obj for obj in products}
+                print(f' ################### "product_map" ################### ', product_map)
 
                 offers = self.fetch_all_offers(vendor.name, headers)
+                print(f' ################### "offers" ################### ', offers)
 
                 # If offers is a dict with errors
                 if isinstance(offers, dict) and "errors" in offers:
@@ -233,7 +235,7 @@ class ProductAdmin(ImportExportModelAdmin):
                         continue
 
                     if status == "ACTIVE":
-                        print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
+                        # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
                         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
