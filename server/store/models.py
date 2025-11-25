@@ -233,19 +233,25 @@ class Product(models.Model):
     
 
     def save(self, *args, **kwargs):
+        # 🔒 Normalize all numeric fields to Decimal
+        def to_dec(x, default="0"):
+            return x if isinstance(x, Decimal) else Decimal(str(x if x is not None else default))
 
+        self.hurt_price   = to_dec(getattr(self, "hurt_price", None), "0")
+        self.price        = to_dec(getattr(self, "price", None), "0")
+        self.price_brutto = to_dec(getattr(self, "price_brutto", None), "0")
+        self.zysk_pln     = to_dec(getattr(self, "zysk_pln", None), "0")
+        self.zysk_procent = to_dec(getattr(self, "zysk_procent", None), "0")
+        self.tax_rate     = to_dec(getattr(self, "tax_rate", None), "0")
+
+        # 🔑 Generate slug
         uuid_key = shortuuid.uuid()
         uniqueid = uuid_key[:4]
         self.slug = slugify(self.title) + "-" + str(uniqueid.lower())
 
-        # upewnij się, że tax_rate jest Decimal
-        def to_dec(x, default="0"):
-            return x if isinstance(x, Decimal) else Decimal(str(x if x is not None else default))
-
-        self.tax_rate = to_dec(getattr(self, "tax_rate", None), "0")
         vat_multiplier = Decimal("1") + self.tax_rate / Decimal("100")
 
-        # Pobierz starą wersję z bazy (jeśli istnieje)
+        # 📦 Get old version from DB (if exists)
         old = None
         if self.pk:
             try:
@@ -253,42 +259,33 @@ class Product(models.Model):
             except Product.DoesNotExist:
                 pass
 
-        # 1️⃣ Jeśli zmienił się zysk w PLN
+        # 1️⃣ If zysk_pln changed
         if old and self.zysk_pln != old.zysk_pln and self.hurt_price is not None:
             cena_brutto = (self.hurt_price + self.zysk_pln).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
-            if self.hurt_price > 0:
-                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            else:
-                self.zysk_procent = Decimal("0.00")  # or None if you prefer
+            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
-        # 2️⃣ Jeśli zmienił się zysk w %
+        # 2️⃣ If zysk_procent changed
         elif old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
             cena_brutto = (self.hurt_price * (Decimal("1") + self.zysk_procent / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
             self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-        # 3️⃣ Jeśli zmieniła się cena brutto
+        # 3️⃣ If price_brutto changed
         elif old and self.price_brutto != old.price_brutto and self.hurt_price is not None:
             cena_brutto = self.price_brutto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            if self.hurt_price > 0:
-                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            else:
-                self.zysk_procent = Decimal("0.00")  # or None if you prefer
+            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
-        # 4️⃣ Jeśli zmieniła się cena netto
+        # 4️⃣ If price (netto) changed
         elif old and self.price != old.price and self.hurt_price is not None:
             cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
             self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            if self.hurt_price > 0:
-                self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            else:
-                self.zysk_procent = Decimal("0.00")  # or None if you prefer
+            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
         super().save(*args, **kwargs)
 
