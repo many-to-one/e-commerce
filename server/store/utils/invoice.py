@@ -334,7 +334,7 @@ def post_invoice_to_allegro(vendor, invoice, pdf_content, correction):
 
     response = allegro_request("POST", url, vendor.name, headers=headers, data=json.dumps(payload))
     # response = requests.post(url, headers=headers, data=json.dumps(payload))
-    # print(f"--post_invoice_to_allegro--POST---- {response, response.text}.")
+    print(f"--post_invoice_to_allegro--POST---- {response, response.text}.")
     if response.status_code == 201:
         invoice_id = response.json().get("id")
         res = add_invoice_to_order(invoice_id, invoice, _order_id, access_token, pdf_content, correction)
@@ -354,6 +354,7 @@ def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_conten
 
     headers = {
         'Accept': 'application/vnd.allegro.public.v1+json',
+        'Content-Type': 'application/pdf',
         'Authorization': f'Bearer {access_token}'
     }
 
