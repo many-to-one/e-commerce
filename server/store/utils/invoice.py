@@ -350,7 +350,7 @@ def post_invoice_to_allegro(vendor, invoice, pdf_content, correction):
     return message
 
 def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_content, correction):
-    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{order_id}/invoices/{invoice_id}/file"
+    url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{order_id}/invoices/{invoice_id}/file"
 
     headers = {
         'Accept': 'application/vnd.allegro.public.v1+json',
@@ -359,7 +359,7 @@ def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_conten
 
     response = allegro_request("PUT", url, invoice.vendor.name, headers=headers)
     # response = requests.put(url, headers=headers, data=pdf_content)
-    # print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
+    print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
     if response.status_code == 200:
         invoice.sent_to_buyer = True
         invoice.save()
