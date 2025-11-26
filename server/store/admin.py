@@ -1051,7 +1051,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             level="error"
                         )
 
-                time.sleep(0.5) 
+                time.sleep(1) 
 
             except requests.exceptions.HTTPError as err:
                 errors = response.json().get("errors", [])
@@ -1357,7 +1357,7 @@ class InvoiceAdmin(admin.ModelAdmin):
                 pdf_content = generate_invoice_allegro(invoice, vendor, user, buyer_info, products)
 
                 try:
-                    resp = post_invoice_to_allegro(invoice, pdf_content, False)
+                    resp = post_invoice_to_allegro(vendor, invoice, pdf_content, False)
                     self.message_user(request, f"{resp}")
                 except Exception as e:
                     self.message_user(
@@ -1534,94 +1534,6 @@ class InvoiceAdmin(admin.ModelAdmin):
         return render(request, "admin/invoice_correction.html", context)
 
 
-# @admin.register(InvoiceCorrection)
-# class InvoiceCorrectionAdmin(admin.ModelAdmin):
-#     fieldsets = (
-#         ('Faktura', {
-#             'fields': ('invoice_number', 'created_at', 'sent_to_buyer') #'allegro_order', 
-#         }),
-#         ('Kupujący', {
-#             'fields': ('buyer_name', 'buyer_email', 'buyer_street', 'buyer_zipcode', 'buyer_city', 'buyer_nip')
-#         }),
-#         ('Zamówienie', {
-#             'fields': ('vendor', 'order_items_display', 'delivery_cost_display')
-#         }),
-#     )
-
-#     readonly_fields = (
-#         'invoice_number', 'created_at',
-#         'order_items_display', 'delivery_cost_display' # 'allegro_order', 
-#     )
-
-#     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
-#     search_fields = ['invoice_number', 'buyer_name', 'buyer_email']
-#     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
-#     actions = ['print_invoice_correction_pdf', 'generate_correction_invoice', ]  
-
-#     @admin.action(description="🧾 Wyślij fakturę koregującą do klienta")
-#     def generate_correction_invoice(self, request, queryset):
-#         for invoice in queryset:
-#             vendor = invoice.main_invoice.vendor
-#             print('generate_correction_invoice vendor ----------------', vendor.address)
-
-#             main_invoice_number = invoice.main_invoice.invoice_number
-
-#             # dane kupującego
-#             buyer_info = {
-#                 'name': invoice.buyer_name,
-#                 'street': invoice.buyer_street,
-#                 'zipCode': invoice.buyer_zipcode,
-#                 'city': invoice.buyer_city,
-#                 'taxId': invoice.buyer_nip,
-#             }
-
-#             _main_invoice_products = []
-#             main_invoice_products = invoice.main_invoice.allegro_order.items.all()
-
-#             for item in main_invoice_products:  # invoice.products to lista dictów
-#                 _main_invoice_products.append({
-#                     'offer': {
-#                         'name': item.offer_name,
-#                     },
-#                     'quantity': item.quantity,
-#                     'is_smart': invoice.main_invoice.allegro_order.is_smart,
-#                     'delivery_cost': invoice.main_invoice.allegro_order.delivery_cost,
-#                     'tax_rate': item.tax_rate,
-#                     'price': {
-#                         'amount': item.price_amount,
-#                         'currency': item.price_currency,
-#                     }
-#                 })
-
-
-
-#             # produkty z pozycji zamówienia
-#             products = []
-#             # produkty z JSONField w korekcie
-#             invoice_products = to_decimal_products(invoice.products)
-#             print('invoice_products ----------------', invoice_products)
-#             for item in invoice_products:  # invoice.products to lista dictów
-#                 products.append({
-#                     'offer': {
-#                         'name': item['offer_name'],
-#                     },
-#                     'quantity': item['quantity'],
-#                     'is_smart': invoice.main_invoice.allegro_order.is_smart,
-#                     'delivery_cost': invoice.main_invoice.allegro_order.delivery_cost,
-#                     'tax_rate': item.get('tax_rate', 23),
-#                     'price': {
-#                         'amount': item['price_amount'],
-#                         'currency': item['price_currency'],
-#                     }
-#                 })
-
-#             # generowanie PDF
-#             pdf_content = generate_correction_invoice_allegro(invoice, buyer_info, products, _main_invoice_products)
-
-#             # try:
-#             resp = post_invoice_to_allegro(invoice, pdf_content, True)
-#             self.message_user(request, f"{resp}")
-
 @admin.register(InvoiceCorrection)
 class InvoiceCorrectionAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -1705,7 +1617,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
                 pdf_content = generate_correction_invoice_allegro(
                     invoice, buyer_info, user, products, _main_invoice_products
                 )
-                resp = post_invoice_to_allegro(invoice, pdf_content, True)
+                resp = post_invoice_to_allegro(vendor, invoice, pdf_content, True)
 
             # SEND FV TO CUSTOMER FOR WEBSTORE
             elif getattr(invoice.main_invoice, "shop_order", None):

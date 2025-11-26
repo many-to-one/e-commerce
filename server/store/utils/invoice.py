@@ -18,6 +18,10 @@ import os
 # from staticfiles.backend import settings
 from django.conf import settings
 
+from store.allegro_views.views import allegro_request
+
+ALLEGRO_API_URL = os.getenv("ALLEGRO_API_URL")
+
 def invoice_upload_path(instance, filename):
         # Pobierz aktualną datę
         now = datetime.now()
@@ -295,7 +299,7 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
 
 
 
-def post_invoice_to_allegro(invoice, pdf_content, correction):
+def post_invoice_to_allegro(vendor, invoice, pdf_content, correction):
     """Post the generated invoice to Allegro API."""
 
     _invoice = None
@@ -313,7 +317,7 @@ def post_invoice_to_allegro(invoice, pdf_content, correction):
         _order_id = invoice.allegro_order.order_id
     # print('post_invoice_to_allegro invoice_number ---------', _invoice.invoice_number)
     access_token = invoice.vendor.access_token
-    url = f"https://api.allegro.pl.allegrosandbox.pl/order/checkout-forms/{_order_id}/invoices"
+    url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{_order_id}/invoices" 
 
     payload = {
         "file": {
@@ -328,7 +332,8 @@ def post_invoice_to_allegro(invoice, pdf_content, correction):
         'Authorization': f'Bearer {access_token}'
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    response = allegro_request("POST", url, vendor.name, headers=headers, data=json.dumps(payload))
+    # response = requests.post(url, headers=headers, data=json.dumps(payload))
     # print(f"--post_invoice_to_allegro--POST---- {response, response.text}.")
     if response.status_code == 201:
         invoice_id = response.json().get("id")
