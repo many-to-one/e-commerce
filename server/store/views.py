@@ -387,25 +387,25 @@ class DeliveryCouriersView(APIView):
         })
 
 
-# def payu_authenticate():
-#     auth_url = PAYU_OAUTH_URL
-#     auth_data = {
-#         "grant_type": "client_credentials",
-#         "client_id": PAYU_CLIENT_ID,  # Replace with your actual client_id
-#         "client_secret": PAYU_CLIENT_SECRET  # Replace with your actual client_secret
-#     }
+def payu_authenticate():
+    auth_url = PAYU_OAUTH_URL
+    auth_data = {
+        "grant_type": "client_credentials",
+        "client_id": PAYU_CLIENT_ID,  # Replace with your actual client_id
+        "client_secret": PAYU_CLIENT_SECRET  # Replace with your actual client_secret
+    }
 
-#     try:
-#         auth_response = requests.post(auth_url, data=auth_data)
-#         # auth_response.raise_for_status()
-#         token_data = auth_response.json()
-#         print('*****payu_authenticate Token Data**********', token_data)
-#         access_token = token_data.get("access_token")
-#         if not access_token:
-#             return None
-#         return access_token
-#     except requests.RequestException as e:
-#         return None
+    try:
+        auth_response = requests.post(auth_url, data=auth_data)
+        # auth_response.raise_for_status()
+        token_data = auth_response.json()
+        print('*****payu_authenticate Token Data**********', token_data)
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return None
+        return access_token
+    except requests.RequestException as e:
+        return None
 
 # from decimal import Decimal
 # def to_grosze(value):
@@ -471,7 +471,7 @@ class PayUView(APIView):
 
         # Step 2: Forward order to PayU
         payu_url = f"{PAYU_API_URL}/orders"
-        access_token = 'try payu from .env for test'
+        access_token = payu_authenticate() # 'try payu from .env for test'
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}"
