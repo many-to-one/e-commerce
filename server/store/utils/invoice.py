@@ -357,7 +357,7 @@ def add_invoice_to_order(invoice_id, invoice, order_id, access_token, pdf_conten
         'Authorization': f'Bearer {access_token}'
     }
 
-    response = allegro_request("PUT", url, invoice.vendor.name, headers=headers, data=json.dumps(payload))
+    response = allegro_request("PUT", url, invoice.vendor.name, headers=headers)
     # response = requests.put(url, headers=headers, data=pdf_content)
     # print(f"--add_invoice_to_order--PUT---- {response, response.text}.")
     if response.status_code == 200:
