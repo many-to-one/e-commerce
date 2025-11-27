@@ -213,7 +213,8 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
 
     # Buyer 
     buyer_name = str(buyer_info.get('name') or "")
-    wrapped = simpleSplit(buyer_name, c._fontname, c._fontsize, width=7*cm)  # szerokość pola
+    wrapped = simpleSplit(buyer_name, c._fontname, c._fontsize, 7*cm) # szerokość pola
+
 
     y = height - 4.5 * cm
     for line in wrapped:
