@@ -198,8 +198,8 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     c.drawString(2 * cm, height - 2.5 * cm, f"nr: {getattr(invoice, 'invoice_number', '')}")
 
     # Delivery info
-    c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {allegro_order_occurred}")
-    c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_generated}")
+    c.drawString(11 * cm, height - 2 * cm, f"Data wykonania usługi {allegro_order_occurred}")
+    c.drawString(11 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_generated}")
 
     from reportlab.lib.utils import simpleSplit
 
@@ -212,17 +212,8 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
 
     # Buyer 
-    # buyer_name = str(buyer_info.get('name') or "")
-    # wrapped = simpleSplit(buyer_name, c._fontname, c._fontsize, 7*cm) # szerokość pola
-
-
-    # y = height - 4.5 * cm
-    # for line in wrapped:
-    #     c.drawString(12 * cm, y, line)
-    #     y -= 0.5 * cm  # odstęp między liniami
     c.drawString(11 * cm, height - 4 * cm, "Nabywca:")
     c.drawString(11 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
-    # c.drawString(12 * cm, height - 4.5 * cm, buyer_name)
     c.drawString(11 * cm, height - 5 * cm, f"ul. {buyer_info.get('street','')} {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
     c.drawString(11 * cm, height - 5.5 * cm, f"NIP {buyer_info.get('taxId','')}")
 
