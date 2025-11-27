@@ -447,8 +447,12 @@ class AllegroOrder(models.Model):
         verbose_name = "Zamówienie Allegro"
         verbose_name_plural = "Zamówienia Allegro"
 
+    # def __str__(self):
+    #     return f"{self.order_id}"
+
     def __str__(self):
-        return f"{self.order_id}"
+        # This is what the autocomplete dropdown shows
+        return f"{self.order_id or '—'} · {self.buyer_login or ''} · {self.vendor.name if self.vendor_id else ''}"
 
 
 class AllegroOrderItem(models.Model):

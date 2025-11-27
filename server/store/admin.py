@@ -723,7 +723,15 @@ class InvoiceCorrectionInline(admin.TabularInline):
 class AllegroOrderAdmin(admin.ModelAdmin):
     list_display = ['order_id', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
     list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
-    search_fields = ['order_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
+    # search_fields = ['order_id', 'event_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
+    search_fields = [
+        'order_id',            # search by Allegro order id
+        'event_id',            # search by event id
+        'buyer_login',
+        'buyer_email',
+        'vendor__name',
+        'id',                  # internal PK, useful for exact searches
+    ]
     actions = ['generate_invoice', 'remove_duplicate_invoices', 'send_auto_message']
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
@@ -883,36 +891,36 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                                 )
 
                     # --- 3. Faktura - auto generating ---
-                    # if event['type'] == 'READY_FOR_PROCESSING':
-                    #     invoice_required = invoice.get('required', False)
-                    #     invoice_data = {
-                    #         'created_at': now(),
-                    #         'buyer_email': allegro_order.buyer_email,
-                    #         'vendor': allegro_order.vendor,
-                    #         'is_generated': True,
-                    #     }
+                    if event['type'] == 'READY_FOR_PROCESSING':
+                        invoice_required = invoice.get('required', False)
+                        invoice_data = {
+                            'created_at': now(),
+                            'buyer_email': allegro_order.buyer_email,
+                            'vendor': allegro_order.vendor,
+                            'is_generated': True,
+                        }
 
-                    #     if invoice_required:
-                    #         invoice_data.update({
-                    #             'buyer_name': invoice.get('address', {}).get('company', {}).get('name', allegro_order.buyer_login),
-                    #             'buyer_street': invoice.get('address', {}).get('street', ''),
-                    #             'buyer_zipcode': invoice.get('address', {}).get('zipCode', ''),
-                    #             'buyer_city': invoice.get('address', {}).get('city', ''),
-                    #             'buyer_nip': invoice.get('address', {}).get('company', {}).get('ids', [{}])[0].get('value', 'brak'),
-                    #         })
-                    #     else:
-                    #         invoice_data.update({
-                    #             'buyer_name': allegro_order.buyer_login,
-                    #             'buyer_street': buyer.get('address', {}).get('street', ''),
-                    #             'buyer_zipcode': buyer.get('address', {}).get('postalCode', ''),
-                    #             'buyer_city': buyer.get('address', {}).get('city', ''),
-                    #             'buyer_nip': 'Brak',
-                    #         })
+                        if invoice_required:
+                            invoice_data.update({
+                                'buyer_name': invoice.get('address', {}).get('company', {}).get('name', allegro_order.buyer_login),
+                                'buyer_street': invoice.get('address', {}).get('street', ''),
+                                'buyer_zipcode': invoice.get('address', {}).get('zipCode', ''),
+                                'buyer_city': invoice.get('address', {}).get('city', ''),
+                                'buyer_nip': invoice.get('address', {}).get('company', {}).get('ids', [{}])[0].get('value', 'brak'),
+                            })
+                        else:
+                            invoice_data.update({
+                                'buyer_name': allegro_order.buyer_login,
+                                'buyer_street': buyer.get('address', {}).get('street', ''),
+                                'buyer_zipcode': buyer.get('address', {}).get('postalCode', ''),
+                                'buyer_city': buyer.get('address', {}).get('city', ''),
+                                'buyer_nip': 'Brak',
+                            })
 
-                        # Invoice.objects.update_or_create(
-                        #     allegro_order=allegro_order,
-                        #     defaults=invoice_data
-                        # )
+                        Invoice.objects.update_or_create(
+                            allegro_order=allegro_order,
+                            defaults=invoice_data
+                        )
 
             except Exception as e:
                 self.message_user(
@@ -1105,13 +1113,15 @@ class InvoiceAdmin(admin.ModelAdmin):
         }),
     )
 
-    readonly_fields = (
-        'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
-        'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
-    )
+    # readonly_fields = (
+    #     'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
+    #     'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
+    # )
 
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
     search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
+    # autocomplete_fields = ('allegro_order', 'shop_order')
+    list_editable = ['allegro_order', 'shop_order']
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
     actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction']
     inlines = [InvoiceCorrectionInline]
@@ -1538,7 +1548,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 class InvoiceCorrectionAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Faktura', {
-            'fields': ('invoice_number', 'created_at', 'sent_to_buyer') #'allegro_order', 
+            'fields': ('invoice_number', 'created_at', 'sent_to_buyer', 'allegro_order') #'allegro_order', 
         }),
         ('Kupujący', {
             'fields': ('buyer_name', 'buyer_email', 'buyer_street', 'buyer_zipcode', 'buyer_city', 'buyer_nip')

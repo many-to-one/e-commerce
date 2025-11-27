@@ -201,6 +201,15 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     c.drawString(12 * cm, height - 2 * cm, f"Data wykonania usługi {allegro_order_occurred}")
     c.drawString(12 * cm, height - 2.5 * cm, f"Wystawiona w dniu: {formatted_generated}")
 
+    from reportlab.lib.utils import simpleSplit
+    full_name = str(user.full_name or "")
+    wrapped = simpleSplit(full_name, c._fontname, c._fontsize, width=14*cm)  # szerokość pola
+
+    y = height - 4.5 * cm
+    for line in wrapped:
+        c.drawString(2 * cm, y, line)
+        y -= 0.5 * cm
+
     # Seller info
     c.drawString(2 * cm, height - 4 * cm, "Sprzedawca:")
     c.drawString(2 * cm, height - 4.5 * cm, str(user.full_name or ""))
