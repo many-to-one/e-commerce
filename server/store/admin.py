@@ -732,7 +732,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         'vendor__name',
         'id',                  # internal PK, useful for exact searches
     ]
-    actions = ['generate_invoice', 'remove_duplicate_invoices', 'send_auto_message']
+    actions = ['remove_duplicate_invoices', 'send_auto_message'] # 'generate_invoice',
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
     change_list_template = "admin/store/allegroorder/change_list.html"
@@ -740,11 +740,19 @@ class AllegroOrderAdmin(admin.ModelAdmin):
     invoice_required = None
     invoice_data = {}
 
+    def changelist_view(self, request, extra_context=None):
+        # If no filter is applied, redirect with default filter for READY_FOR_PROCESSING
+        if 'type__exact' not in request.GET:
+            return redirect(f"{request.path}?type__exact=READY_FOR_PROCESSING")
+        return super().changelist_view(request, extra_context=extra_context)
+
     def get_type_display_pl(self, obj):
         mapping = {
             'READY_FOR_PROCESSING': 'Gotowe do realizacji',
             'BOUGHT': 'Zakupione',
+            'BUYER_CANCELLED': 'Anulowane',
             'FILLED_IN': 'Uzupełnione dane kupującego',
+            'FULLFILMENT_STATUS_CHANGED': 'Zmiana statusu',
         }
         return mapping.get(obj.type, obj.type)
     get_type_display_pl.short_description = "Typ zdarzenia"
@@ -910,7 +918,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             })
                         else:
                             invoice_data.update({
-                                'buyer_name': allegro_order.buyer_login,
+                                'buyer_name': f"{buyer.get('firstName', '')} {buyer.get('lastName', '')}", # allegro_order.buyer_login,
                                 'buyer_street': buyer.get('address', {}).get('street', ''),
                                 'buyer_zipcode': buyer.get('address', {}).get('postalCode', ''),
                                 'buyer_city': buyer.get('address', {}).get('city', ''),
