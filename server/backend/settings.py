@@ -32,7 +32,7 @@ _EMAIL_HOST_PASSWORD = os.environ.get('_EMAIL_HOST_PASSWORD')
 # DEBUG = os.environ.get('DEBUG')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True # DEBUG
+DEBUG = False # DEBUG
 
 ALLOWED_HOSTS = [
     h.strip()
