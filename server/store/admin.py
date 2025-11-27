@@ -922,6 +922,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             defaults=invoice_data
                         )
 
+                        allegro_order.invoice_generated = True
+                        allegro_order.save(update_fields=['invoice_generated'])
+
             except Exception as e:
                 self.message_user(
                     request,
@@ -1119,7 +1122,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     )
 
     # readonly_fields = ('created_at',)
-    
+
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
     search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
     autocomplete_fields = ('allegro_order', 'shop_order')
