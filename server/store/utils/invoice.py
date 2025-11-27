@@ -220,11 +220,11 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     # for line in wrapped:
     #     c.drawString(12 * cm, y, line)
     #     y -= 0.5 * cm  # odstęp między liniami
-    c.drawString(10 * cm, height - 4 * cm, "Nabywca:")
-    c.drawString(10 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
+    c.drawString(11 * cm, height - 4 * cm, "Nabywca:")
+    c.drawString(11 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
     # c.drawString(12 * cm, height - 4.5 * cm, buyer_name)
-    c.drawString(10 * cm, height - 5 * cm, f"ul. {buyer_info.get('street','')} {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
-    c.drawString(10 * cm, height - 5.5 * cm, f"NIP {buyer_info.get('taxId','')}")
+    c.drawString(11 * cm, height - 5 * cm, f"ul. {buyer_info.get('street','')} {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
+    c.drawString(11 * cm, height - 5.5 * cm, f"NIP {buyer_info.get('taxId','')}")
 
     # Table setup
     data = [["Lp.", "Nazwa towaru lub usługi", "Jm", "Ilość", "Cena netto", "Wartość netto", "VAT", "Kwota VAT", "Wartość brutto"]]
