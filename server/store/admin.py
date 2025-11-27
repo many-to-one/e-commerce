@@ -1113,13 +1113,13 @@ class InvoiceAdmin(admin.ModelAdmin):
         }),
     )
 
-    # readonly_fields = (
-    #     'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
-    #     'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
-    # )
+    readonly_fields = (
+        'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
+        'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
+    )
 
-    readonly_fields = ('created_at',)
-
+    # readonly_fields = ('created_at',)
+    
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
     search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
     autocomplete_fields = ('allegro_order', 'shop_order')
