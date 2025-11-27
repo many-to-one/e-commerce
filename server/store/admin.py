@@ -1118,9 +1118,11 @@ class InvoiceAdmin(admin.ModelAdmin):
     #     'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
     # )
 
+    readonly_fields = ('created_at',)
+
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
     search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
-    # autocomplete_fields = ('allegro_order', 'shop_order')
+    autocomplete_fields = ('allegro_order', 'shop_order')
     list_editable = ['allegro_order', 'shop_order']
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
     actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction']
