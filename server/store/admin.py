@@ -467,40 +467,48 @@ class ProductAdmin(ImportExportModelAdmin):
     #     return str(soup)
 
 
-
     def sanitize_allegro_description(self, html: str) -> str:
+        """
+        Czyści HTML tak, aby był zgodny z wymaganiami Allegro:
+        - usuwa <img>, <br>, style, class, id
+        - konwertuje <li> na <p> z punktorami
+        - zostawia tylko h1, h2, p, ul, ol
+        """
 
-        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol"}  # conservative per validator message
+        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol"}
 
-        # 1) remove <img ...>
+        # 1) usuń <img ...>
         html = re.sub(r"<img\b[^>]*>", "", html, flags=re.IGNORECASE)
 
-        # 2) replace <br/> with a space
+        # 2) zamień <br/> na spację
         html = re.sub(r"<br\s*/?>", " ", html, flags=re.IGNORECASE)
 
-        # 3) convert <li>...</li> to paragraphs with bullets
+        # 3) konwertuj <li>...</li> na <p>• ...
         def li_to_p(match):
             text = match.group(1).strip()
             return f"<p>• {text}</p>" if text else ""
-        html = re.sub(r"<li[^>]*>(.*?)</li>", li_to_p, html, flags=re.IGNORECASE | re.DOTALL)
+        html = re.sub(r"<li[^>]*>(.*?)</li>", li_to_p, html,
+                    flags=re.IGNORECASE | re.DOTALL)
 
-        # 4) remove remaining tags not in ALLOWED_TAGS (keep their inner text)
+        # 4) usuń atrybuty zezwolonych tagów i rozpakuj niedozwolone
         def strip_disallowed(match):
             tag = match.group(1).lower()
+            inner = match.group(3)
             if tag in ALLOWED_TAGS:
-                return match.group(0)
-            # unwrap the tag: keep inner content only
-            inner = match.group(2)
+                return f"<{tag}>{inner}</{tag}>"
             return inner
-        html = re.sub(r"<([a-zA-Z0-9]+)([^>]*)>(.*?)</\1>", strip_disallowed, html, flags=re.DOTALL)
+        html = re.sub(r"<([a-zA-Z0-9]+)([^>]*)>(.*?)</\1>",
+                    strip_disallowed, html, flags=re.DOTALL)
 
-        # 5) also remove any stray self-closing disallowed tags
-        html = re.sub(r"<(?!h1|h2|p|ul|ol)\b[^>/]+[^>]*/>", "", html, flags=re.IGNORECASE)
+        # 5) usuń samodzielne niedozwolone tagi
+        html = re.sub(r"<(?!h1|h2|p|ul|ol)\b[^>/]+[^>]*/>", "",
+                    html, flags=re.IGNORECASE)
 
-        # 6) tidy multiple spaces
+        # 6) usuń nadmiarowe spacje
         html = re.sub(r"\s{2,}", " ", html)
 
         return html.strip()
+
 
     
 
