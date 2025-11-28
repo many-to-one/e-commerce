@@ -470,9 +470,9 @@ class ProductAdmin(ImportExportModelAdmin):
     def sanitize_allegro_description(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
 
-        # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
+        # usuń wszystkie style, klasy, atrybuty
         for tag in soup.find_all(True):
-            tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
+            tag.attrs = {}
 
         # usuń <div> (rozpakuj zawartość)
         for div in soup.find_all("div"):
@@ -495,10 +495,9 @@ class ProductAdmin(ImportExportModelAdmin):
                     ul.append(li)
             table.replace_with(ul)
 
-        # upewnij się, że <img> są samozamykające
+        # usuń wszystkie <img>
         for img in soup.find_all("img"):
-            img.attrs = {"src": img.get("src")}
-            # BeautifulSoup w trybie html.parser sam zamknie <img />
+            img.decompose()
 
         # zamień <b> na <h2> (bo <b> nie jest dozwolone)
         for b in soup.find_all("b"):
