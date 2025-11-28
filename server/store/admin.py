@@ -469,43 +469,31 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def sanitize_allegro_description(self, html: str) -> str:
         """
-        Czyści HTML tak, aby był zgodny z wymaganiami Allegro:
-        - usuwa <img>, <br>, <table>, <tr>, <td>
-        - usuwa wszystkie atrybuty (style, class, id, itp.)
-        - konwertuje <li> na <p>• ...
-        - zostawia tylko h1, h2, p, ul, ol, li
+        Zamienia <p> na <li> wewnątrz <ul>, usuwa niedozwolone tagi/atrybuty.
         """
-        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol", "li"}
-
         soup = BeautifulSoup(html, "html.parser")
 
-        # usuń całe tabele
-        for table in soup.find_all(["table", "tr", "td", "tbody", "thead", "tfoot"]):
-            table.unwrap()
-
-        # usuń <img> i <br>
-        for tag in soup.find_all(["img", "br"]):
-            tag.decompose()
-
-        # konwersja <li> na <p>• ...
-        for li in soup.find_all("li"):
-            text = li.get_text(strip=True)
-            new_p = soup.new_tag("p")
-            new_p.string = f"• {text}"
-            li.replace_with(new_p)
-
-        # usuń wszystkie atrybuty z dozwolonych tagów
+        # usuń atrybuty z h1/h2/li/ul/ol
         for tag in soup.find_all(True):
-            if tag.name in ALLOWED_TAGS:
+            if tag.name in {"h1", "h2", "li", "ul", "ol"}:
                 tag.attrs = {}
             else:
-                # rozpakuj niedozwolony tag (zostaw sam tekst)
-                tag.unwrap()
+                if tag.name == "p":
+                    # konwersja <p> na <li>
+                    li = soup.new_tag("li")
+                    li.string = tag.get_text(strip=True)
+                    tag.replace_with(li)
+                else:
+                    # rozpakuj inne niedozwolone tagi
+                    tag.unwrap()
 
-        # usuń nadmiarowe spacje
-        cleaned = re.sub(r"\s{2,}", " ", soup.decode())
+        # upewnij się, że wszystkie <li> są w <ul>
+        for li in soup.find_all("li"):
+            if li.parent.name not in {"ul", "ol"}:
+                ul = soup.new_tag("ul")
+                li.wrap(ul)
 
-        return cleaned.strip()
+        return soup.decode().strip()
 
 
     
