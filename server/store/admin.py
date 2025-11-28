@@ -17,6 +17,8 @@ from io import BytesIO, StringIO
 import requests, json, csv
 import zipfile
 import os
+import re
+from html import escape
 from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
@@ -417,52 +419,89 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
 
-    def convert_description_for_allegro(self, html: str) -> str:
-        soup = BeautifulSoup(html, "html.parser")
+    # def convert_description_for_allegro(self, html: str) -> str:
+    #     soup = BeautifulSoup(html, "html.parser")
 
-        # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
-        for tag in soup.find_all(True):
-            tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
+    #     # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
+    #     for tag in soup.find_all(True):
+    #         tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
 
-        # usuń <div> (rozpakuj zawartość)
-        for div in soup.find_all("div"):
-            div.unwrap()
+    #     # usuń <div> (rozpakuj zawartość)
+    #     for div in soup.find_all("div"):
+    #         div.unwrap()
 
-        # zamień <h1>/<h2> na <h2> (bez styli)
-        for h in soup.find_all(["h1", "h2"]):
-            new_h = soup.new_tag("h2")
-            new_h.string = h.get_text(strip=True)
-            h.replace_with(new_h)
+    #     # zamień <h1>/<h2> na <h2> (bez styli)
+    #     for h in soup.find_all(["h1", "h2"]):
+    #         new_h = soup.new_tag("h2")
+    #         new_h.string = h.get_text(strip=True)
+    #         h.replace_with(new_h)
 
-        # zamień <table> na <ul><li>
-        for table in soup.find_all("table"):
-            ul = soup.new_tag("ul")
-            for td in table.find_all("td"):
-                text = td.get_text(strip=True)
-                if text:
-                    li = soup.new_tag("li")
-                    li.string = text
-                    ul.append(li)
-            table.replace_with(ul)
+    #     # zamień <table> na <ul><li>
+    #     for table in soup.find_all("table"):
+    #         ul = soup.new_tag("ul")
+    #         for td in table.find_all("td"):
+    #             text = td.get_text(strip=True)
+    #             if text:
+    #                 li = soup.new_tag("li")
+    #                 li.string = text
+    #                 ul.append(li)
+    #         table.replace_with(ul)
 
-        # upewnij się, że <img> są samozamykające
-        for img in soup.find_all("img"):
-            img.attrs = {"src": img.get("src")}
-            # BeautifulSoup w trybie html.parser sam zamknie <img />
+    #     # upewnij się, że <img> są samozamykające
+    #     for img in soup.find_all("img"):
+    #         img.attrs = {"src": img.get("src")}
+    #         # BeautifulSoup w trybie html.parser sam zamknie <img />
 
-        # zamień <b> na <h2> (bo <b> nie jest dozwolone)
-        for b in soup.find_all("b"):
-            new_h = soup.new_tag("h2")
-            new_h.string = b.get_text(strip=True)
-            b.replace_with(new_h)
+    #     # zamień <b> na <h2> (bo <b> nie jest dozwolone)
+    #     for b in soup.find_all("b"):
+    #         new_h = soup.new_tag("h2")
+    #         new_h.string = b.get_text(strip=True)
+    #         b.replace_with(new_h)
 
-        # zamień <span> na <p>
-        for span in soup.find_all("span"):
-            new_p = soup.new_tag("p")
-            new_p.string = span.get_text(strip=True)
-            span.replace_with(new_p)
+    #     # zamień <span> na <p>
+    #     for span in soup.find_all("span"):
+    #         new_p = soup.new_tag("p")
+    #         new_p.string = span.get_text(strip=True)
+    #         span.replace_with(new_p)
 
-        return str(soup)
+    #     return str(soup)
+
+
+
+    def sanitize_allegro_description(self, html: str) -> str:
+
+        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol"}  # conservative per validator message
+        
+        # 1) remove <img ...>
+        html = re.sub(r"<img\b[^>]*>", "", html, flags=re.IGNORECASE)
+
+        # 2) replace <br/> with a space
+        html = re.sub(r"<br\s*/?>", " ", html, flags=re.IGNORECASE)
+
+        # 3) convert <li>...</li> to paragraphs with bullets
+        def li_to_p(match):
+            text = match.group(1).strip()
+            return f"<p>• {text}</p>" if text else ""
+        html = re.sub(r"<li[^>]*>(.*?)</li>", li_to_p, html, flags=re.IGNORECASE | re.DOTALL)
+
+        # 4) remove remaining tags not in ALLOWED_TAGS (keep their inner text)
+        def strip_disallowed(match):
+            tag = match.group(1).lower()
+            if tag in ALLOWED_TAGS:
+                return match.group(0)
+            # unwrap the tag: keep inner content only
+            inner = match.group(2)
+            return inner
+        html = re.sub(r"<([a-zA-Z0-9]+)([^>]*)>(.*?)</\1>", strip_disallowed, html, flags=re.DOTALL)
+
+        # 5) also remove any stray self-closing disallowed tags
+        html = re.sub(r"<(?!h1|h2|p|ul|ol)\b[^>/]+[^>]*/>", "", html, flags=re.IGNORECASE)
+
+        # 6) tidy multiple spaces
+        html = re.sub(r"\s{2,}", " ", html)
+
+        return html.strip()
+
     
 
     def upload_image(self, url, vendor_name):
@@ -505,6 +544,9 @@ class ProductAdmin(ImportExportModelAdmin):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
+
+        raw_html = product.description_html  # your original HTML content
+        safe_html = self.sanitize_allegro_description(raw_html)
 
         try:
 
@@ -551,7 +593,7 @@ class ProductAdmin(ImportExportModelAdmin):
                                 "items": [
                                     {
                                         "type": "TEXT",
-                                        "content": self.convert_description_for_allegro(product.description)
+                                        "content": safe_html #self.convert_description_for_allegro(product.description)
                                     }
                                 ]
                             }
@@ -598,7 +640,7 @@ class ProductAdmin(ImportExportModelAdmin):
                                 "items": [
                                     {
                                         "type": "TEXT",
-                                        "content": self.convert_description_for_allegro(product.description)
+                                        "content": safe_html #self.convert_description_for_allegro(product.description)
                                     }
                                 ]
                             }
