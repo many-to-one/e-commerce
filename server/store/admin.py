@@ -9,6 +9,8 @@ from django.http import HttpResponse
 from django.utils.dateparse import parse_datetime
 from django.urls import path
 
+from bs4 import BeautifulSoup
+
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO, StringIO
@@ -93,7 +95,7 @@ class ProductAdmin(ImportExportModelAdmin):
     fieldsets = (
         ('Podstawowe informacje', {
             'fields': (
-                'title', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'title', 'allegro_id', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
@@ -255,6 +257,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 count = 0 
 
                 for offer in offers:
+                    id = offer.get("id")
                     external = offer.get("external")
                     if not external:
                         continue
@@ -262,6 +265,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
                     product = product_map.get(sku)
+                    print(f' ################### "id" ################### ', id)
 
                     if not product:
                         continue
@@ -269,6 +273,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     if status == "ACTIVE":
                         count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
+                        product.allegro_id = id
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
                         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -280,7 +285,7 @@ class ProductAdmin(ImportExportModelAdmin):
                         product.allegro_in_stock = False
 
                     product.allegro_status = status
-                    product.save(update_fields=["allegro_in_stock", "allegro_status", "price", "price_brutto"])
+                    product.save(update_fields=["allegro_id", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
 
                 self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 
@@ -407,12 +412,99 @@ class ProductAdmin(ImportExportModelAdmin):
         
         # print('create_offer_from_product response ----------------', response.text)
         return response.json()
+    
+
+
+
+
+    def convert_description_for_allegro(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+
+        # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
+        for tag in soup.find_all(True):
+            tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
+
+        # usuń <div> (rozpakuj zawartość)
+        for div in soup.find_all("div"):
+            div.unwrap()
+
+        # zamień <h1>/<h2> na <h2> (bez styli)
+        for h in soup.find_all(["h1", "h2"]):
+            new_h = soup.new_tag("h2")
+            new_h.string = h.get_text(strip=True)
+            h.replace_with(new_h)
+
+        # zamień <table> na <ul><li>
+        for table in soup.find_all("table"):
+            ul = soup.new_tag("ul")
+            for td in table.find_all("td"):
+                text = td.get_text(strip=True)
+                if text:
+                    li = soup.new_tag("li")
+                    li.string = text
+                    ul.append(li)
+            table.replace_with(ul)
+
+        # upewnij się, że <img> są samozamykające
+        for img in soup.find_all("img"):
+            img.attrs = {"src": img.get("src")}
+            # BeautifulSoup w trybie html.parser sam zamknie <img />
+
+        # zamień <b> na <h2> (bo <b> nie jest dozwolone)
+        for b in soup.find_all("b"):
+            new_h = soup.new_tag("h2")
+            new_h.string = b.get_text(strip=True)
+            b.replace_with(new_h)
+
+        # zamień <span> na <p>
+        for span in soup.find_all("span"):
+            new_p = soup.new_tag("p")
+            new_p.string = span.get_text(strip=True)
+            span.replace_with(new_p)
+
+        return str(soup)
+    
+
+    def upload_image(self, url, vendor_name):
+        """
+        Wysyła pojedynczy URL do Allegro i zwraca link z domeny a.allegroimg.pl
+        """
+        _url = f"https://{ALLEGRO_API_URL}/sale/images"
+
+        headers = {
+            "Accept": "application/vnd.allegro.public.v1+json",
+            "Content-Type": "application/vnd.allegro.public.v1+json",
+        }
+
+        payload = {"url": url}
+
+        # ważne: używaj json=payload zamiast data=payload
+        response = allegro_request("POST", _url, vendor_name, headers=headers, json=payload)
+        data = response.json()
+        print('data ----------------', data)
+
+        # Allegro zwraca {"location": "..."}
+        # return {"url": data["location"]}
+        return data["location"]
+
+
+    def build_images(self, img_links, vendor_name):
+        """
+        Wysyła wszystkie linki z img_links do Allegro i zwraca listę obiektów { "url": ... }
+        """
+        uploaded = []
+        for link in img_links:
+            uploaded.append(self.upload_image(link, vendor_name))
+        print('uploaded ----------------', uploaded)
+        return uploaded
+
+
 
 
     def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
-        # print('create_offer_from_product method ----------------', method)
+        # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
 
         try:
 
@@ -425,7 +517,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     "productSet": [
                         {
                         "product": {
-                            "id": product.ean,
+                            "id": "008421410521", #product.ean,
                             "idType": "GTIN"
                         },
                         # "responsibleProducer": {
@@ -453,6 +545,19 @@ class ProductAdmin(ImportExportModelAdmin):
                     #         'name': 'Paczkomat 1szt'
                     #     }
                     # },
+                    "description": {
+                        "sections": [
+                            {
+                                "items": [
+                                    {
+                                        "type": "TEXT",
+                                        "content": self.convert_description_for_allegro(product.description)
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "images": self.build_images(product.img_links, vendor_name)
                 })
 
             else:   
@@ -464,7 +569,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     "productSet": [
                         {
                         "product": {
-                            "id": product.ean,
+                            "id": "008421410521", #product.ean,
                             "idType": "GTIN"
                         },
                         "responsibleProducer": {
@@ -484,9 +589,22 @@ class ProductAdmin(ImportExportModelAdmin):
                     },
                     'delivery': {
                         'shippingRates': {
-                            'name': 'Paczkomat 1szt'
+                            'name': "Standard" #'Paczkomat 1szt'
                         }
                     },
+                    "description": {
+                        "sections": [
+                            {
+                                "items": [
+                                    {
+                                        "type": "TEXT",
+                                        "content": self.convert_description_for_allegro(product.description)
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "images": self.build_images(product.img_links, vendor_name)
                 })
 
             headers = {
@@ -498,8 +616,8 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.request("POST", url, headers=headers, data=payload)
             response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
-            # print(f'create_offer_from_product {method} response ----------------', response)
-            # print(f'create_offer_from_product {method} response text ----------------', response.text)
+            print(f'create_offer_from_product {method} response ----------------', response)
+            print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
                 self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
@@ -1134,7 +1252,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_display = ['invoice_number', 'is_generated', 'sent_to_buyer', 'buyer_name', 'vendor', 'created_at']
     search_fields = ['invoice_number', 'buyer_name', 'buyer_email', 'shop_order__oid',]
     autocomplete_fields = ('allegro_order', 'shop_order')
-    list_editable = ['allegro_order', 'shop_order']
+    # list_editable = ['allegro_order', 'shop_order']
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
     actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction']
     inlines = [InvoiceCorrectionInline]
