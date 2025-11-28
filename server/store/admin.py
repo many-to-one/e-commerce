@@ -471,7 +471,7 @@ class ProductAdmin(ImportExportModelAdmin):
     def sanitize_allegro_description(self, html: str) -> str:
 
         ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol"}  # conservative per validator message
-        
+
         # 1) remove <img ...>
         html = re.sub(r"<img\b[^>]*>", "", html, flags=re.IGNORECASE)
 
@@ -545,7 +545,7 @@ class ProductAdmin(ImportExportModelAdmin):
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
 
-        raw_html = product.description_html  # your original HTML content
+        raw_html = product.description # your original HTML content
         safe_html = self.sanitize_allegro_description(raw_html)
 
         try:
