@@ -470,44 +470,42 @@ class ProductAdmin(ImportExportModelAdmin):
     def sanitize_allegro_description(self, html: str) -> str:
         """
         Czyści HTML tak, aby był zgodny z wymaganiami Allegro:
-        - usuwa <img>, <br>, style, class, id
-        - konwertuje <li> na <p> z punktorami
-        - zostawia tylko h1, h2, p, ul, ol
+        - usuwa <img>, <br>, <table>, <tr>, <td>
+        - usuwa wszystkie atrybuty (style, class, id, itp.)
+        - konwertuje <li> na <p>• ...
+        - zostawia tylko h1, h2, p, ul, ol, li
         """
+        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol", "li"}
 
-        ALLOWED_TAGS = {"h1", "h2", "p", "ul", "ol"}
+        soup = BeautifulSoup(html, "html.parser")
 
-        # 1) usuń <img ...>
-        html = re.sub(r"<img\b[^>]*>", "", html, flags=re.IGNORECASE)
+        # usuń całe tabele
+        for table in soup.find_all(["table", "tr", "td", "tbody", "thead", "tfoot"]):
+            table.unwrap()
 
-        # 2) zamień <br/> na spację
-        html = re.sub(r"<br\s*/?>", " ", html, flags=re.IGNORECASE)
+        # usuń <img> i <br>
+        for tag in soup.find_all(["img", "br"]):
+            tag.decompose()
 
-        # 3) konwertuj <li>...</li> na <p>• ...
-        def li_to_p(match):
-            text = match.group(1).strip()
-            return f"<p>• {text}</p>" if text else ""
-        html = re.sub(r"<li[^>]*>(.*?)</li>", li_to_p, html,
-                    flags=re.IGNORECASE | re.DOTALL)
+        # konwersja <li> na <p>• ...
+        for li in soup.find_all("li"):
+            text = li.get_text(strip=True)
+            new_p = soup.new_tag("p")
+            new_p.string = f"• {text}"
+            li.replace_with(new_p)
 
-        # 4) usuń atrybuty zezwolonych tagów i rozpakuj niedozwolone
-        def strip_disallowed(match):
-            tag = match.group(1).lower()
-            inner = match.group(3)
-            if tag in ALLOWED_TAGS:
-                return f"<{tag}>{inner}</{tag}>"
-            return inner
-        html = re.sub(r"<([a-zA-Z0-9]+)([^>]*)>(.*?)</\1>",
-                    strip_disallowed, html, flags=re.DOTALL)
+        # usuń wszystkie atrybuty z dozwolonych tagów
+        for tag in soup.find_all(True):
+            if tag.name in ALLOWED_TAGS:
+                tag.attrs = {}
+            else:
+                # rozpakuj niedozwolony tag (zostaw sam tekst)
+                tag.unwrap()
 
-        # 5) usuń samodzielne niedozwolone tagi
-        html = re.sub(r"<(?!h1|h2|p|ul|ol)\b[^>/]+[^>]*/>", "",
-                    html, flags=re.IGNORECASE)
+        # usuń nadmiarowe spacje
+        cleaned = re.sub(r"\s{2,}", " ", soup.decode())
 
-        # 6) usuń nadmiarowe spacje
-        html = re.sub(r"\s{2,}", " ", html)
-
-        return html.strip()
+        return cleaned.strip()
 
 
     
