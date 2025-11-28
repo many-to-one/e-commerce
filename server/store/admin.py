@@ -468,32 +468,51 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
     def sanitize_allegro_description(self, html: str) -> str:
-        """
-        Zamienia <p> na <li> wewnątrz <ul>, usuwa niedozwolone tagi/atrybuty.
-        """
         soup = BeautifulSoup(html, "html.parser")
 
-        # usuń atrybuty z h1/h2/li/ul/ol
+        # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
         for tag in soup.find_all(True):
-            if tag.name in {"h1", "h2", "li", "ul", "ol"}:
-                tag.attrs = {}
-            else:
-                if tag.name == "p":
-                    # konwersja <p> na <li>
+            tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
+
+        # usuń <div> (rozpakuj zawartość)
+        for div in soup.find_all("div"):
+            div.unwrap()
+
+        # zamień <h1>/<h2> na <h2> (bez styli)
+        for h in soup.find_all(["h1", "h2"]):
+            new_h = soup.new_tag("h2")
+            new_h.string = h.get_text(strip=True)
+            h.replace_with(new_h)
+
+        # zamień <table> na <ul><li>
+        for table in soup.find_all("table"):
+            ul = soup.new_tag("ul")
+            for td in table.find_all("td"):
+                text = td.get_text(strip=True)
+                if text:
                     li = soup.new_tag("li")
-                    li.string = tag.get_text(strip=True)
-                    tag.replace_with(li)
-                else:
-                    # rozpakuj inne niedozwolone tagi
-                    tag.unwrap()
+                    li.string = text
+                    ul.append(li)
+            table.replace_with(ul)
 
-        # upewnij się, że wszystkie <li> są w <ul>
-        for li in soup.find_all("li"):
-            if li.parent.name not in {"ul", "ol"}:
-                ul = soup.new_tag("ul")
-                li.wrap(ul)
+        # upewnij się, że <img> są samozamykające
+        for img in soup.find_all("img"):
+            img.attrs = {"src": img.get("src")}
+            # BeautifulSoup w trybie html.parser sam zamknie <img />
 
-        return soup.decode().strip()
+        # zamień <b> na <h2> (bo <b> nie jest dozwolone)
+        for b in soup.find_all("b"):
+            new_h = soup.new_tag("h2")
+            new_h.string = b.get_text(strip=True)
+            b.replace_with(new_h)
+
+        # zamień <span> na <p>
+        for span in soup.find_all("span"):
+            new_p = soup.new_tag("p")
+            new_p.string = span.get_text(strip=True)
+            span.replace_with(new_p)
+
+        return str(soup)
 
 
     
