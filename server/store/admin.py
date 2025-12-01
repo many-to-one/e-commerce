@@ -30,6 +30,10 @@ from store.utils.decimal import *
 from store.models import *
 from store.tasks import *
 
+import aiohttp
+import asyncio
+import json
+
 # Load variables from .env into environment
 load_dotenv()
 
@@ -504,7 +508,7 @@ class ProductAdmin(ImportExportModelAdmin):
         # zamień <h1>/<h2> na <h2> (bez styli)
         for h in soup.find_all(["h1", "h2"]):
             new_h = soup.new_tag("h2")
-            new_h.string = h.get_text(strip=True)
+            new_h.string = "⭐ " + h.get_text(strip=True)
             h.replace_with(new_h)
 
         # zamień <table> na <ul><li>
@@ -514,7 +518,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 text = td.get_text(strip=True)
                 if text:
                     li = soup.new_tag("li")
-                    li.string = text
+                    li.string = f"➡️ {text}"
                     ul.append(li)
             table.replace_with(ul)
 
