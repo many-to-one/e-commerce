@@ -522,6 +522,11 @@ class ProductAdmin(ImportExportModelAdmin):
         for img in soup.find_all("img"):
             img.decompose()
 
+
+        # usuń wszystkie <br>
+        for br in soup.find_all("br"):
+            br.decompose()
+
         # zamień <b> na <h2> (bo <b> nie jest dozwolone)
         for b in soup.find_all("b"):
             new_h = soup.new_tag("h2")
@@ -573,7 +578,6 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
     def update_description(self, request, method, product, url, access_token, vendor_name, producer):
-    # def update_description(self, request, queryset):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
