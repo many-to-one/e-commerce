@@ -438,7 +438,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
                 #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    allegro_export.short_description = "Edytuj opisy ofert"
+    update_products_description.short_description = "📝Edytuj opisy ofert"
 
 
 
