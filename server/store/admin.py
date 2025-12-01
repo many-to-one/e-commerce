@@ -755,7 +755,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     },
                     'delivery': {
                         'shippingRates': {
-                            'name': "Standard" #'Paczkomat 1szt'
+                            'name': "Paczkomat 1szt" #'Paczkomat 1szt'
                         }
                     },
                     "description": {
