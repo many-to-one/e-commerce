@@ -594,7 +594,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 "productSet": [
                     {
                     "product": {
-                        "id": "008421410521", #product.ean,
+                        "id": f"{product.ean}", #product.ean,
                         "idType": "GTIN"
                     },
                     # "responsibleProducer": {
@@ -645,7 +645,7 @@ class ProductAdmin(ImportExportModelAdmin):
             }
 
             # response = requests.request("POST", url, headers=headers, data=payload)
-            response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
+            response = allegro_request('PATCH', url, vendor_name, headers=headers, data=payload)
             print(f'create_offer_from_product {method} response ----------------', response)
             print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
@@ -683,7 +683,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     "productSet": [
                         {
                         "product": {
-                            "id": "008421410521", #product.ean,
+                            "id": f"{product.ean}", #product.ean,
                             "idType": "GTIN"
                         },
                         # "responsibleProducer": {
@@ -735,7 +735,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     "productSet": [
                         {
                         "product": {
-                            "id": "008421410521", #product.ean,
+                            "id": f"{product.ean}", #product.ean,
                             "idType": "GTIN"
                         },
                         "responsibleProducer": {
