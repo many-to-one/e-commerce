@@ -64,6 +64,8 @@ server/.env
 # Ignore Celery logs
 celerybeat-schedule
 celery_worker_*
+server/celerybeat-schedule-shm
+server/celerybeat-schedule-wal
 
 # Ignore Redis data (if stored in the container)
 redis_data/
