@@ -419,7 +419,6 @@ class ProductAdmin(ImportExportModelAdmin):
     def update_products_description(self, request, queryset):
 
         # print('allegro_export request.user ----------------', request.user)
-        url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
         vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
         # for vendor in vendors:
         #     print('allegro_export vendors ----------------', vendors)
@@ -434,6 +433,7 @@ class ProductAdmin(ImportExportModelAdmin):
                product_vendors = product.vendors.all()
                if vendor in product_vendors:
                #     print('if vendor in product_vendors ----------------', vendor)
+                   url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
                    self.update_description(request, 'PATCH', product, url, access_token, vendor.name, producer)
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
@@ -646,13 +646,13 @@ class ProductAdmin(ImportExportModelAdmin):
 
             # response = requests.request("POST", url, headers=headers, data=payload)
             response = allegro_request('PATCH', url, vendor_name, headers=headers, data=payload)
-            print(f'create_offer_from_product {method} response ----------------', response)
-            print(f'create_offer_from_product {method} response text ----------------', response.text)
+            print(f'update_offer_from_product {method} response ----------------', response)
+            print(f'update_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
                 self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
                 product.allegro_in_stock = True
-                self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')
+                self.message_user(request, f"✅ Zakończyłeś edytować ofertę {product.sku} allegro dla {vendor_name}", level='success')
             elif response.status_code == 401:
                 self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
             # else:
