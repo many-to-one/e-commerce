@@ -33,6 +33,7 @@ from store.tasks import *
 import aiohttp
 import asyncio
 import json
+from decimal import Decimal, ROUND_HALF_UP
 
 # Load variables from .env into environment
 load_dotenv()
@@ -420,29 +421,105 @@ class ProductAdmin(ImportExportModelAdmin):
         return response.json()
     
 
+
     def update_products_description(self, request, queryset):
+        vendors = list(Vendor.objects.filter(user=request.user, marketplace='allegro.pl'))
+        products = list(queryset)
 
-        # print('allegro_export request.user ----------------', request.user)
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        # for vendor in vendors:
-        #     print('allegro_export vendors ----------------', vendors)
-
+        tasks_data = []
         for vendor in vendors:
-            # print('check vendor ----------------', vendor)
             access_token = vendor.access_token
             producer = self.responsible_producers(access_token, vendor.name)
-            # print('allegro_export producer ----------------', producer)
+
+            for product in products:
+                product_vendors = list(product.vendors.all())  # ORM call here, safe (sync)
+                if vendor in product_vendors:
+                    url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
+                    # build plain dict with only primitive values
+                    tasks_data.append({
+                        "sku": product.sku,
+                        "title": product.title,
+                        "description": product.description,
+                        "ean": product.ean,
+                        "price": product.price,
+                        "tax_rate": product.tax_rate,
+                        "stock_qty": product.stock_qty,
+                        "img_links": product.img_links,
+                        "url": url,
+                        "access_token": access_token,
+                        "vendor_name": vendor.name,
+                        "producer": producer,
+                    })
+
+        results = asyncio.run(self._run_patch_tasks(request, tasks_data))
+        print("All PATCH results:", results)
+
+
+    async def _run_patch_tasks(self, request, tasks_data):
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                self._patch_offer(session, data, request)
+                for data in tasks_data
+            ]
+            return await asyncio.gather(*tasks, return_exceptions=True)
+
+
+    async def _patch_offer(self, session, data, request):
+        safe_html = self.sanitize_allegro_description(data["description"])
+        payload = json.dumps({
+            "name": data["title"],
+            "external": {"id": data["sku"]},
+            "productSet": [{"product": {"id": data["ean"], "idType": "GTIN"}}],
+            "sellingMode": {"price": {"amount": str(data["price"]), "currency": "PLN"}},
+            "stock": {"available": data["stock_qty"]},
+            "description": {"sections": [{"items": [{"type": "TEXT", "content": safe_html}]}]},
+            "images": self.build_images(data["img_links"], data["vendor_name"])
+        })
+        headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Content-Type': 'application/vnd.allegro.public.v1+json',
+            'Authorization': f'Bearer {data["access_token"]}'
+        }
+
+        async with session.patch(data["url"], headers=headers, data=payload) as response:
+            text = await response.text()
+            print(f'PATCH {data["sku"]} -> {response.status}')
+            if response.status == 200:
+                self.message_user(request, f"✅ Zmieniłeś ofertę {data['sku']} allegro dla {data['vendor_name']}", level='success')
+            elif response.status == 202:
+                self.message_user(request, f"✅ Zakończyłeś edytować ofertę {data['sku']} allegro dla {data['vendor_name']}", level='success')
+            elif response.status == 401:
+                self.message_user(request, f"⚠️ Nie jesteś zalogowany {data['vendor_name']}", level='error')
+            return response.status
+
+
+
+
+    
+
+    # def update_products_description(self, request, queryset):
+
+    #     # print('allegro_export request.user ----------------', request.user)
+    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+    #     # for vendor in vendors:
+    #     #     print('allegro_export vendors ----------------', vendors)
+
+    #     for vendor in vendors:
+    #         # print('check vendor ----------------', vendor)
+    #         access_token = vendor.access_token
+    #         producer = self.responsible_producers(access_token, vendor.name)
+    #         # print('allegro_export producer ----------------', producer)
         
-            for product in queryset:
-               product_vendors = product.vendors.all()
-               if vendor in product_vendors:
-               #     print('if vendor in product_vendors ----------------', vendor)
-                   url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
-                   self.update_description(request, 'PATCH', product, url, access_token, vendor.name, producer)
-                # print('allegro_export vendors ----------------', product_vendors)
-            #     print('allegro_export ----------------', product.ean)
-                #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    update_products_description.short_description = "📝Edytuj opisy ofert"
+    #         for product in queryset:
+    #            product_vendors = product.vendors.all()
+    #            if vendor in product_vendors:
+    #            #     print('if vendor in product_vendors ----------------', vendor)
+    #                url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
+    #                self.update_description(request, 'PATCH', product, url, access_token, vendor.name, producer)
+    #             # print('allegro_export vendors ----------------', product_vendors)
+    #         #     print('allegro_export ----------------', product.ean)
+    #             #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+    # update_products_description.short_description = "📝Edytuj opisy ofert"
 
 
 
@@ -581,90 +658,90 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
 
-    def update_description(self, request, method, product, url, access_token, vendor_name, producer):
+    # def update_description(self, request, method, product, url, access_token, vendor_name, producer):
 
-        # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
-        # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
+    #     # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
+    #     # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
 
-        raw_html = product.description # your original HTML content
-        safe_html = self.sanitize_allegro_description(raw_html)
+    #     raw_html = product.description # your original HTML content
+    #     safe_html = self.sanitize_allegro_description(raw_html)
 
-        try:
-            payload = json.dumps({
-                "name": f"{product.title}",
-                "external": {
-                    "id": f"{product.sku}" 
-                },
-                "productSet": [
-                    {
-                    "product": {
-                        "id": f"{product.ean}", #product.ean,
-                        "idType": "GTIN"
-                    },
-                    # "responsibleProducer": {
-                    #     "type": "ID",
-                    #     "id": producer["responsibleProducers"][0]['id']
-                    # },
-                    },
-                ],
-                "sellingMode": {
-                    "price": {
-                    # "amount": str(product.price),
-                    "amount": str(
-                        (product.price * (1 + product.tax_rate / 100)).quantize(
-                            Decimal("0.01"), rounding=ROUND_HALF_UP
-                        )
-                    ),
-                    "currency": "PLN"
-                    }
-                },
-                "stock": {
-                    "available": product.stock_qty
-                },
-                # 'delivery': {
-                #     'shippingRates': {
-                #         'name': 'Paczkomat 1szt'
-                #     }
-                # },
-                "description": {
-                    "sections": [
-                        {
-                            "items": [
-                                {
-                                    "type": "TEXT",
-                                    "content": safe_html #self.convert_description_for_allegro(product.description)
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "images": self.build_images(product.img_links, vendor_name)
-            })
+    #     try:
+    #         payload = json.dumps({
+    #             "name": f"{product.title}",
+    #             "external": {
+    #                 "id": f"{product.sku}" 
+    #             },
+    #             "productSet": [
+    #                 {
+    #                 "product": {
+    #                     "id": f"{product.ean}", #product.ean,
+    #                     "idType": "GTIN"
+    #                 },
+    #                 # "responsibleProducer": {
+    #                 #     "type": "ID",
+    #                 #     "id": producer["responsibleProducers"][0]['id']
+    #                 # },
+    #                 },
+    #             ],
+    #             "sellingMode": {
+    #                 "price": {
+    #                 # "amount": str(product.price),
+    #                 "amount": str(
+    #                     (product.price * (1 + product.tax_rate / 100)).quantize(
+    #                         Decimal("0.01"), rounding=ROUND_HALF_UP
+    #                     )
+    #                 ),
+    #                 "currency": "PLN"
+    #                 }
+    #             },
+    #             "stock": {
+    #                 "available": product.stock_qty
+    #             },
+    #             # 'delivery': {
+    #             #     'shippingRates': {
+    #             #         'name': 'Paczkomat 1szt'
+    #             #     }
+    #             # },
+    #             "description": {
+    #                 "sections": [
+    #                     {
+    #                         "items": [
+    #                             {
+    #                                 "type": "TEXT",
+    #                                 "content": safe_html #self.convert_description_for_allegro(product.description)
+    #                             }
+    #                         ]
+    #                     }
+    #                 ]
+    #             },
+    #             "images": self.build_images(product.img_links, vendor_name)
+    #         })
 
-            headers = {
-                'Accept': 'application/vnd.allegro.public.v1+json',
-                'Content-Type': 'application/vnd.allegro.public.v1+json',
-                'Accept-Language': 'pl-PL',
-                'Authorization': f'Bearer {access_token}'
-            }
+    #         headers = {
+    #             'Accept': 'application/vnd.allegro.public.v1+json',
+    #             'Content-Type': 'application/vnd.allegro.public.v1+json',
+    #             'Accept-Language': 'pl-PL',
+    #             'Authorization': f'Bearer {access_token}'
+    #         }
 
-            # response = requests.request("POST", url, headers=headers, data=payload)
-            response = allegro_request('PATCH', url, vendor_name, headers=headers, data=payload)
-            print(f'update_offer_from_product {method} response ----------------', response)
-            print(f'update_offer_from_product {method} response text ----------------', response.text)
-            if response.status_code == 200:
-                self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
-            if response.status_code == 202:
-                product.allegro_in_stock = True
-                self.message_user(request, f"✅ Zakończyłeś edytować ofertę {product.sku} allegro dla {vendor_name}", level='success')
-            elif response.status_code == 401:
-                self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
-            # else:
-            #     self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
-            return response
-        except requests.exceptions.HTTPError as err:
-            self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
-            raise SystemExit(err)
+    #         # response = requests.request("POST", url, headers=headers, data=payload)
+    #         response = allegro_request('PATCH', url, vendor_name, headers=headers, data=payload)
+    #         print(f'update_offer_from_product {method} response ----------------', response)
+    #         print(f'update_offer_from_product {method} response text ----------------', response.text)
+    #         if response.status_code == 200:
+    #             self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
+    #         if response.status_code == 202:
+    #             product.allegro_in_stock = True
+    #             self.message_user(request, f"✅ Zakończyłeś edytować ofertę {product.sku} allegro dla {vendor_name}", level='success')
+    #         elif response.status_code == 401:
+    #             self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
+    #         # else:
+    #         #     self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
+    #         return response
+    #     except requests.exceptions.HTTPError as err:
+    #         self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
+    #         raise SystemExit(err)
 
     
 
@@ -1408,13 +1485,13 @@ class InvoiceAdmin(admin.ModelAdmin):
             'fields': ('buyer_name', 'buyer_email', 'buyer_street', 'buyer_zipcode', 'buyer_city', 'buyer_nip')
         }),
         ('Zamówienie', {
-            'fields': ('vendor', 'order_items_display', 'delivery_cost_display', 'order_date')
+            'fields': ('vendor', 'order_items_display', 'shop_order_items_display', 'delivery_cost_display', 'order_date')
         }),
     )
 
     readonly_fields = (
         'created_at', 'formatted_generated', 'corrected', #'invoice_number', 
-        'allegro_order', 'shop_order', 'order_items_display', 'delivery_cost_display', 'order_date',
+        'order_items_display', 'shop_order_items_display', 'delivery_cost_display', 'order_date', #'allegro_order', shop_order
     )
 
     # readonly_fields = ('created_at',)
@@ -1433,26 +1510,44 @@ class InvoiceAdmin(admin.ModelAdmin):
     formatted_generated.short_description = "Data wygenerowania"
 
 
-    # def order_items_display(self, obj):
-    #     items = obj.allegro_order.items.all()
-    #     if not items:
-    #         return "Brak pozycji"
-    #     rows = format_html_join(
-    #         '\n',
-    #         "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-    #         (
-    #             (item.offer_name, f"{item.price_amount:.2f} {item.price_currency}", item.quantity,
-    #              f"{item.price_amount * item.quantity:.2f} {item.price_currency}")
-    #             for item in items
-    #         )
-    #     )
-    #     table = format_html(
-    #         "<table style='border-collapse: collapse;'>"
-    #         "<tr><th>Nazwa</th><th>Cena</th><th>Ilość</th><th>Suma</th></tr>{}</table>",
-    #         rows
-    #     )
-    #     return table
-    # order_items_display.short_description = "Produkty w zamówieniu:"
+
+    def shop_order_items_display(self, obj):
+        # Pobierz pozycje z shop_order
+        items = None
+        if getattr(obj, "shop_order", None):
+            items = obj.shop_order.orderitem.all()
+            print('shop_order_items_display items -----------', items)
+
+        # Jeśli brak → zwróć komunikat
+        if not items or not items.exists():
+            return "Brak pozycji"
+
+        # Renderuj tabelę
+        rows = format_html_join(
+            '\n',
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            (
+                (
+                    getattr(item, "product", getattr(item.product, "title", "")),
+                    f"{getattr(item, 'price_amount', getattr(item, 'price', 0)):.2f} "
+                    f"{getattr(item, 'price_currency', 'PLN')}",
+                    getattr(item, "quantity", getattr(item, "qty", 0)),
+                    f"{(getattr(item, 'price_amount', getattr(item, 'price', 0)) * getattr(item, 'quantity', getattr(item, 'qty', 0))):.2f} "
+                    f"{getattr(item, 'price_currency', 'PLN')}"
+                )
+                for item in items
+            )
+        )
+
+        table = format_html(
+            "<table style='border-collapse: collapse;'>"
+            "<tr><th>Nazwa</th><th>Cena</th><th>Ilość</th><th>Suma</th></tr>{}</table>",
+            rows
+        )
+        return table
+
+    shop_order_items_display.short_description = "Produkty w zamówieniu (Shop):"
+
 
 
     def order_items_display(self, obj):
@@ -2177,10 +2272,36 @@ class CartOrderAdmin(ImportExportModelAdmin):
     search_fields = ['oid', 'full_name', 'email', 'mobile', 'delivery']
     list_editable = ['order_status', 'payment_status', 'delivery_status', 'shipping_label']
     list_filter = ['payment_status', 'order_status', 'delivery_status', 'delivery']
-    list_display = ['oid', 'payment_status', 'order_status', 'delivery', 'shipping_label', 'delivery_status', 'sub_total', 'shipping_amount', 'total', 'date']
+    list_display = ['oid', 'order_items_display', 'payment_status', 'order_status', 'delivery', 'shipping_label', 'delivery_status', 'sub_total', 'shipping_amount', 'total', 'date']
     actions = ['generate_pdf_labels', 'generate_invoice_webstore', 'print_invoice_pdf_webstore']
 
     inlines = [CartOrderItemsInlineAdmin, InvoiceInline, InvoiceCorrectionInline, InvoiceFileInline]
+
+
+    def order_items_display(self, obj):
+        items = obj.orderitem.all()
+        if not items:
+            return "Brak pozycji"
+        
+        rows = format_html_join(
+            '\n',
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            (
+                (
+                    item.product.title,
+                    f"{item.price:.2f} PLN",
+                    item.qty,
+                    f"{(item.price * item.qty):.2f} PLN"
+                )
+                for item in items
+            )
+        )
+        table = format_html(
+            "<table style='border-collapse: collapse;'>"
+            "<tr><th>Nazwa</th><th>Cena</th><th>Ilość</th><th>Suma</th></tr>{}</table>",
+            rows
+        )
+        return table
 
 
     @admin.action(description="🧾Generuj faktury")

@@ -651,7 +651,7 @@ class CartOrder(models.Model):
 
     # vendor = models.ManyToManyField(Vendor, blank=True)
     buyer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="buyer", blank=True)
-    # product = models.ForeignKey('CartOrderItem', on_delete=models.CASCADE, null=True)
+    # product = models.ForeignKey('CartOrderItem', related_name="items", on_delete=models.CASCADE, null=True)
     sub_total = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
     shipping_amount = models.DecimalField(default=0.00, max_digits=12, decimal_places=2)
     # VAT (Value Added Tax) cost
@@ -706,8 +706,11 @@ class CartOrder(models.Model):
         return str(self.oid)
 
     def get_order_items(self):
-        # return CartOrderItem.objects.filter(order=self)
         return CartOrderItem.objects.filter(order=self)
+
+    # def get_order_items(self):
+    #     return CartOrder.objects.filter(order=self)
+    #     # return self.items.all()
     
     def get_payment_status_display(self):
         return dict(self.PAYMENT_STATUS).get(self.payment_status, self.payment_status)    
@@ -869,8 +872,8 @@ class CartOrderItem(models.Model):
         return mark_safe('<img src="%s" width="50" height="50" style="object-fit:cover; border-radius: 6px;" />' % (self.product.image.url))
 
     class Meta:
-        verbose_name = "Zwrotowyj przedmiot"
-        verbose_name_plural = "Zwrotowe przedmioty"
+        verbose_name = "Zamówiony przedmiot"
+        verbose_name_plural = "Zamówione przedmioty"
 
     # Model for Product FAQs
 class ProductFaq(models.Model):
