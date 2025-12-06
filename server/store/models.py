@@ -113,7 +113,7 @@ class Product(models.Model):
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
     zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
-    zysk_after_payments = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='Zysk -dostawa i -3%')
+    zysk_after_payments = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Zysk", help_text='Zysk -dostawa i -3%')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("23.00"))
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
