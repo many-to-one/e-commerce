@@ -136,8 +136,8 @@ class ProductAdmin(ImportExportModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_pln', 'zysk_procent',]
-    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'zysk_pln', 'zysk_procent', 'hot_deal']
+    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_pln', 'zysk_after_payments', 'zysk_procent',]
+    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'zysk_pln', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]

@@ -113,6 +113,7 @@ class Product(models.Model):
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
     zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
+    zysk_after_payments = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='Zysk -dostawa i -3%')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("23.00"))
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
@@ -154,37 +155,6 @@ class Product(models.Model):
         ordering = ['-id']
         verbose_name = "Produkt"
         verbose_name_plural = "Produkty"
-
-
-    # def get_vendors(self):
-    #     return ", ".join([v.name for v in self.vendors.all()])
-
-
-    # def recalc_products():
-    #     vat_rate = Decimal("23")  # albo pobieraj z obj.tax_rate jeśli różne
-    #     vat_multiplier = Decimal("1") + vat_rate / Decimal("100")
-
-    #     for p in Product.objects.all():
-    #         if p.price is None or p.hurt_price is None:
-    #             continue
-
-    #         # cena brutto = cena netto * (1 + VAT)
-    #         cena_brutto = (p.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    #         # zysk PLN = cena brutto - hurt_price
-    #         zysk_pln = (cena_brutto - p.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    #         # zysk % = (zysk_pln / hurt_price) * 100
-    #         if p.hurt_price > 0:
-    #             zysk_percent = (zysk_pln / p.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    #         else:
-    #             zysk_percent = None
-
-    #         # zapis do pól
-    #         p.price_brutto = cena_brutto
-    #         p.zysk_pln = zysk_pln
-    #         p.zysk_procent = zysk_percent
-    #         p.save(update_fields=["price_brutto", "zysk_pln", "zysk_procent"])
 
 
 
@@ -230,6 +200,7 @@ class Product(models.Model):
     
     def size(self):
         return Size.objects.filter(product=self)
+
     
 
     def save(self, *args, **kwargs):
@@ -237,12 +208,34 @@ class Product(models.Model):
         def to_dec(x, default="0"):
             return x if isinstance(x, Decimal) else Decimal(str(x if x is not None else default))
 
-        self.hurt_price   = to_dec(getattr(self, "hurt_price", None), "0")
-        self.price        = to_dec(getattr(self, "price", None), "0")
-        self.price_brutto = to_dec(getattr(self, "price_brutto", None), "0")
-        self.zysk_pln     = to_dec(getattr(self, "zysk_pln", None), "0")
-        self.zysk_procent = to_dec(getattr(self, "zysk_procent", None), "0")
-        self.tax_rate     = to_dec(getattr(self, "tax_rate", None), "0")
+        self.hurt_price             = to_dec(getattr(self, "hurt_price", None), "0")
+        self.price                  = to_dec(getattr(self, "price", None), "0")
+        self.price_brutto           = to_dec(getattr(self, "price_brutto", None), "0")
+        self.zysk_pln               = to_dec(getattr(self, "zysk_pln", None), "0")
+        self.zysk_after_payments    = to_dec(getattr(self, "zysk_pln", None), "0")
+        self.zysk_procent           = to_dec(getattr(self, "zysk_procent", None), "0")
+        self.tax_rate               = to_dec(getattr(self, "tax_rate", None), "0")
+
+        def calculate_delivery_cost(cena_brutto: Decimal, przesylki: int = 1) -> Decimal:
+            """
+            Oblicza koszt dostawy na podstawie ceny brutto i liczby przesyłek.
+            """
+            if cena_brutto < Decimal("30"):
+                return Decimal("0.00")  # poniżej 30 zł np. brak obsługi
+            elif cena_brutto <= Decimal("44.99"):
+                return Decimal("1.59") * przesylki
+            elif cena_brutto <= Decimal("64.99"):
+                return Decimal("3.09") * przesylki
+            elif cena_brutto <= Decimal("99.99"):
+                return Decimal("4.99") * przesylki
+            elif cena_brutto <= Decimal("149.99"):
+                return Decimal("7.59") * przesylki
+            else:
+                # od 150 zł: pierwsza przesyłka 9.99, kolejne 7.59
+                if przesylki == 1:
+                    return Decimal("9.99")
+                else:
+                    return Decimal("9.99") + Decimal("7.59") * (przesylki - 1)
 
         # 🔑 Generate slug
         uuid_key = shortuuid.uuid()
@@ -258,6 +251,18 @@ class Product(models.Model):
                 old = Product.objects.get(pk=self.pk)
             except Product.DoesNotExist:
                 pass
+
+        # --- Nowa logika: zysk po odjęciu 3% i kosztów dostawy ---
+        if self.price_brutto and self.hurt_price:
+            # Odejmij 3% od ceny brutto
+            cena_po_prowizji = (self.price_brutto * Decimal("0.97")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            # Koszt dostawy (zakładamy 1 przesyłkę)
+            delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
+
+            # Zysk po odjęciu prowizji i dostawy
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
 
         # 1️⃣ If zysk_pln changed
         if old and self.zysk_pln != old.zysk_pln and self.hurt_price is not None:
