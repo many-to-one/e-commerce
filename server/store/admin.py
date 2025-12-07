@@ -94,8 +94,8 @@ class ProductAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class ProductAdmin(ImportExportModelAdmin):
-# class ProductAdmin(admin.ModelAdmin):
+# class ProductAdmin(ImportExportModelAdmin):
+class ProductAdmin(admin.ModelAdmin):
 
     save_on_top = True
 
@@ -141,11 +141,9 @@ class ProductAdmin(ImportExportModelAdmin):
     # exclude = ('vendors',) 
     actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description']
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
-    list_per_page = 100
+    list_per_page = 20
     # prepopulated_fields = {"slug": ("title", )}
     form = ProductAdminForm
-
-    change_list_template = "admin/store/product/change_list.html"
 
     class Media:
         css = {
@@ -153,6 +151,8 @@ class ProductAdmin(ImportExportModelAdmin):
         }
 
     offers = []
+
+    change_list_template = "admin/store/product/change_list.html"
 
     def title_warning(self, obj):
         if len(obj.title or "") > 75:
@@ -419,13 +419,15 @@ class ProductAdmin(ImportExportModelAdmin):
         
         # print('create_offer_from_product response ----------------', response.text)
         return response.json()
-    
 
 
-    def update_products_description(self, request, queryset):
-        vendors = list(Vendor.objects.filter(user=request.user, marketplace='allegro.pl'))
-        products = list(queryset)
+    async def update_products_description(self, request, queryset):
+        vendors = Vendor.objects.filter(marketplace='allegro.pl') #list(Vendor.objects.filter(user=request.user, marketplace='allegro.pl'))
+        products = queryset #list(queryset)
 
+        print("update_products_description -----------------:", vendors)
+
+        tasks = []
         tasks_data = []
         for vendor in vendors:
             access_token = vendor.access_token
@@ -433,6 +435,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
             for product in products:
                 product_vendors = list(product.vendors.all())  # ORM call here, safe (sync)
+                print("All PATCH product_vendors:+*****************", product_vendors)
                 if vendor in product_vendors:
                     url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
                     # build plain dict with only primitive values
@@ -450,12 +453,18 @@ class ProductAdmin(ImportExportModelAdmin):
                         "vendor_name": vendor.name,
                         "producer": producer,
                     })
-
+                    print("All PATCH tasks_data:+*****************", tasks_data)
+                    # tasks.append(asyncio.create_task(self._run_patch_tasks(request, tasks_data)))
+        # print("All PATCH tasks_data:+*****************", tasks_data)
         results = asyncio.run(self._run_patch_tasks(request, tasks_data))
+        # results = await asyncio.gather(*tasks)
         print("All PATCH results:", results)
+
+    update_products_description.short_description = "📝Edytuj opisy ofert"
 
 
     async def _run_patch_tasks(self, request, tasks_data):
+        print("_run_patch_tasks CALLED:-----------------------", tasks_data)
         async with aiohttp.ClientSession() as session:
             tasks = [
                 self._patch_offer(session, data, request)
@@ -465,6 +474,7 @@ class ProductAdmin(ImportExportModelAdmin):
 
 
     async def _patch_offer(self, session, data, request):
+        print("_patch_offer CALLED:-------------------")
         safe_html = self.sanitize_allegro_description(data["description"])
         payload = json.dumps({
             "name": data["title"],

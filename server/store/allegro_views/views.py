@@ -1,7 +1,8 @@
+import asyncio
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
@@ -14,6 +15,9 @@ import json
 import os
 from dotenv import load_dotenv
 
+import aiohttp
+import asyncio
+
 # from store.models import Invoice
 from vendor.models import Vendor
 
@@ -22,6 +26,7 @@ from vendor.models import Vendor
 load_dotenv()
 
 # Access them like normal environment variables
+ALLEGRO_API_URL = os.getenv("ALLEGRO_API_URL")
 ALL_GRO_API_URL = os.getenv("ALL_GRO_API_URL")
 AUTH_URL = os.getenv("AUTH_URL")
 TOKEN_URL = os.getenv("TOKEN_URL")
@@ -98,7 +103,38 @@ def get_next_token(token, vendor_name):
 # import requests
 # from django.conf import settings
 
+async def async_allegro_request(method, url, vendor, **kwargs):
+    print("allegro_request CALLED:-----------------------")
+    """
+    Wrapper for Allegro API requests that auto-refreshes token on 401.
+    """
+
+    # Ensure Authorization header
+    headers = kwargs.pop("headers", {})
+    headers["Authorization"] = f"Bearer {vendor.access_token}"
+    kwargs["headers"] = headers
+
+    response = requests.request(method, url, **kwargs)
+    # print(f' TRACE ID #########', response.headers.get("Trace-Id"))
+    # print(f' VENDOR NAME ######### {vendor_name}')
+    # print(f' URL ######### {url}')
+    # print(f' METHOD ######### {method}')
+    # print(f' RESPONSE ######### {response}')
+    # print(f' RESPONSE TEXT ######### {response.text}')
+
+    if response.status_code == 401:
+        # Refresh token
+        new_token = get_next_token(vendor.refresh_token, vendor.name)
+
+        # Retry with new token
+        headers["Authorization"] = f"Bearer {new_token}"
+        kwargs["headers"] = headers
+        response = requests.request(method, url, **kwargs)
+
+    return response
+
 def allegro_request(method, url, vendor_name, **kwargs):
+    print("allegro_request CALLED:-----------------------")
     """
     Wrapper for Allegro API requests that auto-refreshes token on 401.
     """
@@ -156,6 +192,208 @@ class ProductAdminView(View):
         messages.success(request, "✅ Synchronizacja Allegro zakończona.")
         return redirect('/admin/store/product/')
     
+# @method_decorator(staff_member_required, name='dispatch')
+# class EditProductAdminView(View):
+#     def get(self, request):
+#         from store.admin import ProductAdmin
+#         from store.models import Product
+
+#         print("EditProductAdminView POST request received.****************")
+
+#         # pobierz listę ID z POST (np. zaznaczone w adminie)
+#         # ids = request.POST.getlist("ids")  # np. ['1','2','3']
+#         # queryset = Product.objects.filter(pk__in=ids)
+
+#         admin_instance = ProductAdmin(Product, admin_site=None)
+#         admin_instance.update_products_description(request, queryset=None)
+
+#         messages.success(request, "✅ Edytowanie ofert Allegro zakończone.")
+#         return redirect('/admin/store/product/')
+
+
+# @method_decorator(staff_member_required, name='dispatch')
+# class EditProductAdminView(View):
+#     async def get(self, request):
+#         from store.admin import ProductAdmin
+#         from store.models import Product
+
+#         print("EditProductAdminView GET request received.****************")
+
+#         admin_instance = ProductAdmin(Product, admin_site=None)
+#         # zwykła metoda – nie jest async, więc wywołujesz normalnie
+#         admin_instance.update_products_description(request, queryset=None)
+
+#         messages.success(request, "✅ Edytowanie ofert Allegro zakończone.")
+#         return redirect('/admin/store/product/')
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class EditProductAdminView(View):
+    def get(self, request):
+        from store.admin import ProductAdmin
+        from store.models import Product, Vendor
+
+        print("EditProductAdminView GET request received.****************")
+
+        # ✅ Do all ORM queries here (sync context)
+        vendors = list(Vendor.objects.filter(marketplace='allegro.pl'))
+        products = list(Product.objects.filter(allegro_in_stock=True).prefetch_related("vendors"))
+
+        tasks_data = []
+        for vendor in vendors:
+            access_token = vendor.access_token
+            producer = responsible_producers(vendor)
+
+            for product in products:
+                if vendor in product.vendors.all():   # ORM call is safe here
+                    url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
+                    tasks_data.append({
+                        "sku": product.sku,
+                        "title": product.title,
+                        "description": product.description,
+                        "ean": product.ean,
+                        "price": product.price,
+                        "tax_rate": product.tax_rate,
+                        "stock_qty": product.stock_qty,
+                        "img_links": product.img_links,
+                        "url": url,
+                        "access_token": access_token,
+                        "vendor_name": vendor.name,
+                        "producer": producer,
+                    })
+
+        # ✅ Now run async HTTP tasks only (no ORM inside async)
+        results = asyncio.run(_run_patch_tasks(vendor, tasks_data))
+        print("All PATCH results:", results)
+
+        messages.success(request, "✅ Edytowanie ofert Allegro zakończone.")
+        return redirect('/admin/store/product/')
+
+
+async def responsible_producers(vendor):
+    print("responsible_producers CALLED:-----------------------")
+    url = f"https://{ALLEGRO_API_URL}/sale/responsible-producers"
+    headers = {
+        'Accept': 'application/vnd.allegro.public.v1+json',
+        'Authorization': f'Bearer {vendor.access_token}'
+    }
+    response = await async_allegro_request("GET", url, vendor, headers=headers)
+    return response.json()
+
+
+async def _run_patch_tasks(vendor, tasks_data):
+    print("_run_patch_tasks CALLED:-----------------------")
+    # tasks = []
+    # async with aiohttp.ClientSession() as session:
+    #     for data in tasks_data:
+    #         tasks.append(asyncio.create_task(_patch_offer(vendor, session, data))) #asyncio.create_task(get_shipment_id(request, secret, name, deliveryMethod))
+    #     return await asyncio.gather(*tasks, return_exceptions=True)
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            _patch_offer(vendor, session, data)
+            for data in tasks_data
+        ]
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+
+async def _patch_offer(vendor, session, data):
+    print("_patch_offer CALLED:-------------------")
+    safe_html = await sanitize_allegro_description(data["description"])
+    payload = json.dumps({
+        "name": data["title"],
+        "external": {"id": data["sku"]},
+        "productSet": [{"product": {"id": data["ean"], "idType": "GTIN"}}],
+        "sellingMode": {"price": {"amount": str(data["price"]), "currency": "PLN"}},
+        "stock": {"available": data["stock_qty"]},
+        "description": {"sections": [{"items": [{"type": "TEXT", "content": safe_html}]}]},
+        "images": await build_images(vendor, data["img_links"], data["vendor_name"])
+    })
+    headers = {
+        'Accept': 'application/vnd.allegro.public.v1+json',
+        'Content-Type': 'application/vnd.allegro.public.v1+json',
+        'Authorization': f'Bearer {data["access_token"]}'
+    }
+
+    async with session.patch(data["url"], headers=headers, data=payload) as response:
+        text = await response.text()
+        print(f'PATCH {data["sku"]} RESPONSE STATUS###############: {response.status}, BODY#############: {text}')
+        return response.status
+    
+from bs4 import BeautifulSoup
+async def sanitize_allegro_description(html: str) -> str:
+        print("sanitize_allegro_description CALLED:-----------------------")
+        soup = BeautifulSoup(html, "html.parser")
+
+        # usuń wszystkie style, klasy, atrybuty
+        for tag in soup.find_all(True):
+            tag.attrs = {}
+
+        # usuń <div> (rozpakuj zawartość)
+        for div in soup.find_all("div"):
+            div.unwrap()
+
+        # zamień <h1>/<h2> na <h2> (bez styli)
+        for h in soup.find_all(["h1", "h2"]):
+            new_h = soup.new_tag("h2")
+            new_h.string = "⭐ " + h.get_text(strip=True)
+            h.replace_with(new_h)
+
+        # zamień <table> na <ul><li>
+        for table in soup.find_all("table"):
+            ul = soup.new_tag("ul")
+            for td in table.find_all("td"):
+                text = td.get_text(strip=True)
+                if text:
+                    li = soup.new_tag("li")
+                    li.string = f"➡️ {text}"
+                    ul.append(li)
+            table.replace_with(ul)
+
+        # usuń wszystkie <img>
+        for img in soup.find_all("img"):
+            img.decompose()
+
+
+        # usuń wszystkie <br>
+        for br in soup.find_all("br"):
+            br.decompose()
+
+        # zamień <b> na <h2> (bo <b> nie jest dozwolone)
+        for b in soup.find_all("b"):
+            new_h = soup.new_tag("h2")
+            new_h.string = b.get_text(strip=True)
+            b.replace_with(new_h)
+
+        # zamień <span> na <p>
+        for span in soup.find_all("span"):
+            new_p = soup.new_tag("p")
+            new_p.string = span.get_text(strip=True)
+            span.replace_with(new_p)
+
+        return str(soup)
+
+
+async def upload_image(url, vendor):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"https://{ALLEGRO_API_URL}/sale/images",
+                                headers={...},
+                                json={"url": url}) as response:
+            data = await response.json()
+            if "location" not in data:
+                # log the error response for debugging
+                print("Upload image failed:", data)
+                return None
+            return data["location"]
+
+
+
+async def build_images(vendor, img_links, vendor_name):
+    tasks = [upload_image(link, vendor) for link in img_links]
+    uploaded = await asyncio.gather(*tasks, return_exceptions=True)
+    # keep only successful string URLs
+    return [{"url": u} for u in uploaded if isinstance(u, str)]
+
+
 
 
 # def correction_view(self, request, invoice_id):

@@ -43,27 +43,99 @@
             <a href="{% url 'sync_allegro_offers' %}" class="button">
                 🔄 Synchronizuj z ofertami Allegro
             </a>
+            <a href="{% url 'edit_allegro_offers' %}" class="button">
+                🔄 Edytuj oferty Allegro
+            </a>
         </li>
         </ul>
+        <!-- <button id="edit-offers-btn">Edytuj oferty allegro</button> -->
     </div>
     {{ block.super }}
     {% endblock %}
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-        const actionForm = document.querySelector("form[action]");
-        const spinner = document.getElementById("loading-spinner");
+        // document.addEventListener("DOMContentLoaded", function() {
+        // const actionForm = document.querySelector("form[action]");
+        // const spinner = document.getElementById("loading-spinner");
 
-        if (actionForm && spinner) {
-            actionForm.addEventListener("submit", function() {
-            spinner.style.display = "block";
+        // if (actionForm && spinner) {
+        //     actionForm.addEventListener("submit", function() {
+        //     spinner.style.display = "block";
+        //     });
+        // }
+        // });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const btn = document.getElementById("edit-offers-btn");
+            btn.addEventListener("click", function() {
+                console.log("Przycisk edytuj oferty allegro:", btn);
+                // callDjangoAdminFunction("{% url 'edit_allegro_offers' %}");
             });
-        }
         });
-    </script>
+
+        // function test() {
+        //     console.log("Test działa!");
+        //     const btn = document.getElementById("edit-offers-btn");
+        //     btn.addEventListener("click", function() {
+        //         console.log("Przycisk edytuj oferty allegro:", btn);
+        //         callDjangoAdminFunction("{% url 'edit_allegro_offers' %}");
+        //     });
+        // }
+
+      async function callDjangoAdminFunction(urlName) {
+          const spinner = document.getElementById("loading-spinner");
+          spinner.style.display = "block";   // pokaż spinner
+
+          try {
+              // Wywołanie asynchroniczne do Django Admin
+              const response = await fetch(urlName, {
+                  method: "POST",   // lub GET, zależnie od widoku
+                  headers: {
+                      "X-Requested-With": "XMLHttpRequest",
+                      "X-CSRFToken": getCookie("csrftoken") // wymagane dla POST
+                  }
+              });
+
+              if (!response.ok) {
+                  throw new Error("Błąd: " + response.status);
+              }
+
+              const data = await response.json(); // zakładamy, że widok zwraca JSON
+              console.log("Odpowiedź z Django:", data);
+
+              alert("Operacja zakończona sukcesem!");
+          } catch (error) {
+              console.error("Wystąpił błąd:", error);
+              alert("Coś poszło nie tak!");
+          } finally {
+              spinner.style.display = "none"; // ukryj spinner
+          }
+      }
+
+      // Funkcja pomocnicza do pobrania CSRF tokena z ciasteczka
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+              const cookies = document.cookie.split(";");
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.startsWith(name + "=")) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+
+
+   </script>
+
 
 </body>
 </html>
+
+
 
 
