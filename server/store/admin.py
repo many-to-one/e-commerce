@@ -814,7 +814,7 @@ class ProductAdmin(admin.ModelAdmin):
                             }
                         ]
                     },
-                    "images": self.build_images(product.img_links, vendor_name)
+                    # "images": self.build_images(product.img_links, vendor_name)
                 })
 
             else:   
@@ -861,7 +861,7 @@ class ProductAdmin(admin.ModelAdmin):
                             }
                         ]
                     },
-                    "images": self.build_images(product.img_links, vendor_name)
+                    # "images": self.build_images(product.img_links, vendor_name)
                 })
 
             headers = {
