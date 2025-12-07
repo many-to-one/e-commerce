@@ -375,9 +375,15 @@ async def sanitize_allegro_description(html: str) -> str:
 
 async def upload_image(url, vendor):
     async with aiohttp.ClientSession() as session:
-        async with session.post(f"https://{ALLEGRO_API_URL}/sale/images",
-                                headers={...},
-                                json={"url": url}) as response:
+        async with session.post(
+            f"https://{ALLEGRO_API_URL}/sale/images",
+            headers={
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Content-Type": "application/vnd.allegro.public.v1+json",
+                "Authorization": f"Bearer {vendor.access_token}",  # ✅ token dostępu
+            },
+            json={"url": url}
+        ) as response:
             data = await response.json()
             if "location" not in data:
                 # log the error response for debugging
