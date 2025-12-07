@@ -444,7 +444,7 @@ class ProductAdmin(admin.ModelAdmin):
                         "title": product.title,
                         "description": product.description,
                         "ean": product.ean,
-                        "price": product.price,
+                        "price": product.price_brutto,
                         "tax_rate": product.tax_rate,
                         "stock_qty": product.stock_qty,
                         "img_links": product.img_links,
