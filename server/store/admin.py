@@ -1107,7 +1107,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         'vendor__name',
         'id',                  # internal PK, useful for exact searches
     ]
-    actions = ['remove_duplicate_invoices', 'send_auto_message'] # 'generate_invoice',
+    actions = ['remove_duplicate_invoices', 'send_auto_message', 'generate_invoice']
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
     change_list_template = "admin/store/allegroorder/change_list.html"
@@ -1188,8 +1188,11 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     invoice = buyer_info.get('invoice') or {}
                     address = invoice.get('address') or {}
                     company = address.get('company') or {}
-                    ids = company.get('ids') or []
-                    buyer_nip = ids[0].get('value') if ids else 'brak'
+                    if company:
+                        ids = company.get('ids') or []
+                        buyer_nip = ids[0].get('value') if ids else 'brak'
+                    else:
+                        buyer_nip = 'brak'
 
                     line_items = order.get('lineItems') or []
 
