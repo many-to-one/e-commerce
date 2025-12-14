@@ -388,8 +388,13 @@ class ProductAdmin(admin.ModelAdmin):
                                     p.save(update_fields=["prowizja_allegro"])
 
                                     # aktualizacja ceny brutto (uwzględnia prowizję)
-                                    p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                                    p.save(update_fields=["price_brutto"])
+                                    # p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                    # p.save(update_fields=["price_brutto"])
+
+                                    if p.price_brutto < (p.hurt_price + p.prowizja_allegro + p.reach_out + p.allegro_delivery_price + Decimal("5.00")):
+                                        p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                        p.save(update_fields=["price_brutto"])
+
 
                                     # oblicz koszt dostawy na podstawie price_brutto
                                     delivery_cost = self.calculate_delivery_cost(p.price_brutto, przesylki=1).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -418,7 +423,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     
 
-    def fetch_all_offers(self, vendor_name, headers):
+    def fetch_all_offers(self, vendor_name, headers, status):
         all_offers = []
         offset = 0
         limit = 1000
@@ -426,7 +431,7 @@ class ProductAdmin(admin.ModelAdmin):
         while True:
             url = (
                 f"https://{ALLEGRO_API_URL}/sale/offers"
-                f"?limit={limit}&offset={offset}"
+                f"?limit={limit}&offset={status}"
                 f"&publication.status=ACTIVE"
                 f"&publication.marketplace=allegro-pl"
             )
