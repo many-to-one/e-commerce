@@ -95,47 +95,65 @@ class ProductAdminForm(forms.ModelForm):
         fields = '__all__'
 
     
-from django.contrib import admin
+# from django.contrib import admin
 
-class ProfitFilter(admin.SimpleListFilter):
-    title = '💰 Zysk PLN'
-    parameter_name = 'zysk_pln'
+# class ProfitFilter(admin.SimpleListFilter):
+#     title = '💰 Zysk PLN'
+#     parameter_name = 'zysk_pln'
+
+#     def lookups(self, request, model_admin):
+#         return [
+#             ('low', 'Niski (<50 PLN)'),
+#             ('medium', 'Średni (50-200 PLN)'),
+#             ('high', 'Wysoki (>200 PLN)'),
+#         ]
+
+#     def queryset(self, request, queryset):
+#         if self.value() == 'low':
+#             return queryset.filter(zysk_pln__lt=50)
+#         if self.value() == 'medium':
+#             return queryset.filter(zysk_pln__gte=50, zysk_pln__lte=200)
+#         if self.value() == 'high':
+#             return queryset.filter(zysk_pln__gt=200)
+#         return queryset
+
+
+# class CommissionFilter(admin.SimpleListFilter):
+#     title = '📈 Prowizja Allegro'
+#     parameter_name = 'prowizja_allegro'
+
+#     def lookups(self, request, model_admin):
+#         return [
+#             ('low', 'Niska (<5 PLN)'),
+#             ('medium', 'Średnia (5-20 PLN)'),
+#             ('high', 'Wysoka (>20 PLN)'),
+#         ]
+
+#     def queryset(self, request, queryset):
+#         if self.value() == 'low':
+#             return queryset.filter(prowizja_allegro__lt=5)
+#         if self.value() == 'medium':
+#             return queryset.filter(prowizja_allegro__gte=5, prowizja_allegro__lte=20)
+#         if self.value() == 'high':
+#             return queryset.filter(prowizja_allegro__gt=20)
+#         return queryset
+    
+
+class AllegroStockFilter(admin.SimpleListFilter):
+    title = '📦 Allegro w magazynie'
+    parameter_name = 'allegro_in_stock'
 
     def lookups(self, request, model_admin):
         return [
-            ('low', 'Niski (<50 PLN)'),
-            ('medium', 'Średni (50-200 PLN)'),
-            ('high', 'Wysoki (>200 PLN)'),
+            ('true', '✅ Dostępne na Allegro'),
+            ('false', '❌ Niedostępne na Allegro'),
         ]
 
     def queryset(self, request, queryset):
-        if self.value() == 'low':
-            return queryset.filter(zysk_pln__lt=50)
-        if self.value() == 'medium':
-            return queryset.filter(zysk_pln__gte=50, zysk_pln__lte=200)
-        if self.value() == 'high':
-            return queryset.filter(zysk_pln__gt=200)
-        return queryset
-
-
-class CommissionFilter(admin.SimpleListFilter):
-    title = '📈 Prowizja Allegro'
-    parameter_name = 'prowizja_allegro'
-
-    def lookups(self, request, model_admin):
-        return [
-            ('low', 'Niska (<5 PLN)'),
-            ('medium', 'Średnia (5-20 PLN)'),
-            ('high', 'Wysoka (>20 PLN)'),
-        ]
-
-    def queryset(self, request, queryset):
-        if self.value() == 'low':
-            return queryset.filter(prowizja_allegro__lt=5)
-        if self.value() == 'medium':
-            return queryset.filter(prowizja_allegro__gte=5, prowizja_allegro__lte=20)
-        if self.value() == 'high':
-            return queryset.filter(prowizja_allegro__gt=20)
+        if self.value() == 'true':
+            return queryset.filter(allegro_in_stock=True)
+        if self.value() == 'false':
+            return queryset.filter(allegro_in_stock=False)
         return queryset
 
 
@@ -181,7 +199,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
-    list_filter = ['vendors', ProfitFilter, CommissionFilter]
+    list_filter = ['vendors', AllegroStockFilter]
     list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
@@ -192,10 +210,10 @@ class ProductAdmin(admin.ModelAdmin):
         'sync_allegro_offers', 
         'update_products_description', 
         'calculate_allegro_fee',
-        'high_profit_products',  
-        'low_profit_products',
-        'high_commission_products',
-        'low_commission_products',
+        # 'high_profit_products',  
+        # 'low_profit_products',
+        # 'high_commission_products',
+        # 'low_commission_products',
         ]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 20
