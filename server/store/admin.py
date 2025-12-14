@@ -403,10 +403,14 @@ class ProductAdmin(admin.ModelAdmin):
 
 
     def calculate_zysk_after_payments(self, request, queryset):
+
         for p in queryset:
+            reach_out_value = (p.price_brutto * (p.reach_out / 100)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             p.zysk_after_payments = (
                 p.price_brutto
-                - p.reach_out
+                - reach_out_value
                 - p.hurt_price
                 - p.prowizja_allegro
                 - p.allegro_delivery_price
