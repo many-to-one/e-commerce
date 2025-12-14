@@ -406,7 +406,8 @@ class ProductAdmin(admin.ModelAdmin):
                                     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                                     p.save(update_fields=["zysk_after_payments"])
-                            print(f' ################### "offer allegro fee" ################### ', data)
+                            # print(f' ################### "offer allegro fee" ################### ', data)
+                            self.message_user(request, f"✅ Prowizja Allegro obliczona dla produktu SKU: {p.sku}", level="success")
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 

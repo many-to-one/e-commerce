@@ -118,8 +118,8 @@ class Product(models.Model):
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("23.00"))
     reach_out = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("3.00"))
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
-    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
-    allegro_delivery_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
+    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy sklep")
+    allegro_delivery_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy allegro")
     stock_qty = models.PositiveIntegerField(default=0, verbose_name="Ilość")
     in_stock = models.BooleanField(default=True, verbose_name="Sklep")
 
