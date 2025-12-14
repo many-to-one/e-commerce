@@ -431,7 +431,7 @@ class ProductAdmin(admin.ModelAdmin):
         while True:
             url = (
                 f"https://{ALLEGRO_API_URL}/sale/offers"
-                f"?limit={limit}&offset={status}"
+                f"?limit={limit}&offset={offset}"
                 # f"&publication.status=ACTIVE"
                 f"&publication.marketplace=allegro-pl"
             )
