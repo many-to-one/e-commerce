@@ -424,33 +424,60 @@ class ProductAdmin(admin.ModelAdmin):
     
 
     def fetch_all_offers(self, vendor_name, headers):
+    #     all_offers = []
+    #     offset = 0
+    #     limit = 1000
+
+    #     while True:
+    #         url = (
+    #             f"https://{ALLEGRO_API_URL}/sale/offers"
+    #             f"?limit={limit}&offset={offset}"
+    #             # f"&publication.status=ACTIVE"
+    #             f"&publication.marketplace=allegro-pl"
+    #         )
+    #         response = allegro_request("GET", url, vendor_name, headers=headers)
+    #         data = response.json()
+
+    #         offers = data.get("offers", [])
+    #         all_offers.extend(offers)
+
+    #         if len(offers) < limit:
+    #             break
+
+    #         offset += limit
+
+    #         total_count = data.get("totalCount")
+    #         if total_count and offset >= total_count:
+    #             break
+
+    #     return all_offers
+
+        statuses = ["ACTIVE", "INACTIVE", "ENDED", "NOT_LISTED"]
         all_offers = []
-        offset = 0
-        limit = 1000
 
-        while True:
-            url = (
-                f"https://{ALLEGRO_API_URL}/sale/offers"
-                f"?limit={limit}&offset={offset}"
-                # f"&publication.status=ACTIVE"
-                f"&publication.marketplace=allegro-pl"
-            )
-            response = allegro_request("GET", url, vendor_name, headers=headers)
-            data = response.json()
+        for status in statuses:
+            offset = 0
+            while True:
+                url = (
+                    f"https://{ALLEGRO_API_URL}/sale/offers"
+                    f"?limit=100&offset={offset}"
+                    f"&publication.marketplace=allegro-pl"
+                    f"&publication.status={status}"
+                )
+                response = allegro_request("GET", url, vendor_name, headers=headers)
+                data = response.json()
 
-            offers = data.get("offers", [])
-            all_offers.extend(offers)
+                offers = data.get("offers", [])
+                if not offers:
+                    break
 
-            if len(offers) < limit:
-                break
+                all_offers.extend(offers)
+                offset += 100
 
-            offset += limit
-
-            total_count = data.get("totalCount")
-            if total_count and offset >= total_count:
-                break
-
-        return all_offers
+                total_count = data.get("totalCount")
+                if total_count and offset >= total_count:
+                    break
+            return all_offers
 
 
     def sync_allegro_offers(self, request, queryset):
