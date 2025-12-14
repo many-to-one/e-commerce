@@ -190,19 +190,19 @@ class ProductAdmin(admin.ModelAdmin):
 
 
     def high_profit_products(self, request, queryset):
-        return Product.objects.get.all().order_by('-zysk_after_payments')
+        return Product.objects.all().order_by('-zysk_after_payments')
     high_profit_products.short_description = "💰 Zysk od największego"   
 
     def low_profit_products(self, request, queryset):
-        return Product.objects.get.all().order_by('zysk_after_payments')
+        return Product.objects.all().order_by('zysk_after_payments')
     low_profit_products.short_description  = "💸 Zysk od najmniejszego"
 
     def high_commission_products(self, request, queryset):
-        return Product.objects.get.all().order_by('-zysk_after_payments')
+        return Product.objects.all().order_by('-zysk_after_payments')
     high_commission_products.short_description = "📈 Prowizja od największej"   
 
     def low_commission_products(self, request, queryset):
-        return Product.objects.get.all().order_by('zysk_after_payments')
+        return Product.objects.all().order_by('zysk_after_payments')
     low_commission_products.short_description  = "📉 Prowizja od najmniejszej"
 
     def calculate_allegro_fee(self, request, queryset):
