@@ -399,10 +399,10 @@ class ProductAdmin(admin.ModelAdmin):
                                     # oblicz zysk po uwzględnieniu prowizji i kosztów dostawy
                                     p.zysk_after_payments = (
                                         p.price_brutto
+                                        - p.reach_out
                                         - p.hurt_price
                                         - p.prowizja_allegro
                                         - p.allegro_delivery_price
-                                        - p.reach_out
                                     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                                     p.save(update_fields=["zysk_after_payments"])
