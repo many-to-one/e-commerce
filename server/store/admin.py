@@ -423,7 +423,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     
 
-    def fetch_all_offers(self, vendor_name, headers, status):
+    def fetch_all_offers(self, vendor_name, headers):
         all_offers = []
         offset = 0
         limit = 1000
@@ -432,7 +432,7 @@ class ProductAdmin(admin.ModelAdmin):
             url = (
                 f"https://{ALLEGRO_API_URL}/sale/offers"
                 f"?limit={limit}&offset={status}"
-                f"&publication.status=ACTIVE"
+                # f"&publication.status=ACTIVE"
                 f"&publication.marketplace=allegro-pl"
             )
             response = allegro_request("GET", url, vendor_name, headers=headers)
@@ -471,7 +471,7 @@ class ProductAdmin(admin.ModelAdmin):
                 product_map = {obj.sku: obj for obj in products}
                 print(f' ################### "product_map" ################### ', {len(product_map)})
 
-                offers = self.fetch_all_offers(vendor.name, headers, status="ACTIVE")
+                offers = self.fetch_all_offers(vendor.name, headers)
                 print(f' ################### "offers" ################### ', {len(offers)})
 
                 # If offers is a dict with errors
