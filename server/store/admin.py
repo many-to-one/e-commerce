@@ -265,6 +265,14 @@ class ProductAdmin(admin.ModelAdmin):
                             }
                             response = allegro_request("POST", url, vendor.name, headers=headers, json=payload)
                             data = response.json()
+                            commissions = data.get("commissions", [])
+                            if commissions:
+                                fee = commissions[0].get("fee", {})
+                                amount_str = fee.get("amount")
+                                if amount_str:
+                                    amount_decimal = Decimal(amount_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                    p.prowizja_allegro = amount_decimal
+                                    p.save(update_fields=["prowizja_allegro"])
                             print(f' ################### "offer allegro fee" ################### ', data)
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
