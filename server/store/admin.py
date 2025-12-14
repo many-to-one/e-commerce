@@ -196,8 +196,8 @@ class ProductAdmin(admin.ModelAdmin):
             }
 
             try:
-                products = Product.objects.all()
-                for p in products:
+                # products = Product.objects.filter()
+                for p in queryset:
                 # print(f' ################### "product_map" ################### ', {len(product_map)})
                     if p.allegro_in_stock == True:
 
