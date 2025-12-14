@@ -479,6 +479,8 @@ class ProductAdmin(admin.ModelAdmin):
                 count = 0 
 
                 for offer in offers:
+                    print(f' ################### "offer" ################### ', offer)
+
                     id = offer.get("id")
                     external = offer.get("external")
                     if not external:
@@ -495,6 +497,7 @@ class ProductAdmin(admin.ModelAdmin):
                     if status == "ACTIVE":
                         count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
+                        product.title = offer.get("name", product.title)
                         product.allegro_id = id
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
@@ -612,7 +615,7 @@ class ProductAdmin(admin.ModelAdmin):
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
                     self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
     
-    allegro_update.short_description = "📤 Aktualizuj oferty do Allegro"
+    allegro_update.short_description = "♻️ Aktualizuj oferty do Allegro"
 
 
 
@@ -638,7 +641,7 @@ class ProductAdmin(admin.ModelAdmin):
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
                 #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    allegro_export.short_description = "🔄 Eksportuj oferty do Allegro"
+    allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
 
 
 
@@ -698,7 +701,7 @@ class ProductAdmin(admin.ModelAdmin):
         # results = await asyncio.gather(*tasks)
         print("All PATCH results:", results)
 
-    update_products_description.short_description = "♻️ Edytuj opisy ofert"
+    update_products_description.short_description = "📝 Edytuj opisy ofert"
 
 
     async def _run_patch_tasks(self, request, tasks_data):
