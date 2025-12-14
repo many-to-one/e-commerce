@@ -116,8 +116,10 @@ class Product(models.Model):
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
     zysk_after_payments = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Zysk", help_text='Zysk -dostawa i -3%')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("23.00"))
+    reach_out = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("3.00"))
     old_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name="Cena przed obniżką")
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
+    allegro_delivery_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Koszt dostawy")
     stock_qty = models.PositiveIntegerField(default=0, verbose_name="Ilość")
     in_stock = models.BooleanField(default=True, verbose_name="Sklep")
 
@@ -266,7 +268,7 @@ class Product(models.Model):
             delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
 
             # Zysk po odjęciu prowizji i dostawy
-            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # print("Zysk PLN TEST old ------------", old)
         # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)

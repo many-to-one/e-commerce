@@ -268,6 +268,28 @@ class ProductAdmin(admin.ModelAdmin):
     #     return Product.objects.all().order_by('zysk_after_payments')
     # low_commission_products.short_description  = "📉 Prowizja od najmniejszej"
 
+
+    def calculate_delivery_cost(self, cena_brutto: Decimal, przesylki: int = 1) -> Decimal:
+        """
+        Oblicza koszt dostawy na podstawie ceny brutto i liczby przesyłek.
+        """
+        if cena_brutto < Decimal("30"):
+            return Decimal("0.00")  # poniżej 30 zł np. brak obsługi
+        elif cena_brutto <= Decimal("44.99"):
+            return Decimal("1.59") * przesylki
+        elif cena_brutto <= Decimal("64.99"):
+            return Decimal("3.09") * przesylki
+        elif cena_brutto <= Decimal("99.99"):
+            return Decimal("4.99") * przesylki
+        elif cena_brutto <= Decimal("149.99"):
+            return Decimal("7.59") * przesylki
+        else:
+            # od 150 zł: pierwsza przesyłka 9.99, kolejne 7.59
+            if przesylki == 1:
+                return Decimal("9.99")
+            else:
+                return Decimal("9.99") + Decimal("7.59") * (przesylki - 1)
+
     def calculate_allegro_fee(self, request, queryset):
         """
         Oblicza prowizję Allegro na podstawie ceny brutto.
@@ -364,8 +386,26 @@ class ProductAdmin(admin.ModelAdmin):
                                     amount_decimal = Decimal(amount_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                     p.prowizja_allegro = amount_decimal
                                     p.save(update_fields=["prowizja_allegro"])
+
+                                    # aktualizacja ceny brutto (uwzględnia prowizję)
                                     p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                     p.save(update_fields=["price_brutto"])
+
+                                    # oblicz koszt dostawy na podstawie price_brutto
+                                    delivery_cost = self.calculate_delivery_cost(p.price_brutto, przesylki=1).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                    p.allegro_delivery_price = delivery_cost
+                                    p.save(update_fields=["allegro_delivery_price"])
+
+                                    # oblicz zysk po uwzględnieniu prowizji i kosztów dostawy
+                                    p.zysk_after_payments = (
+                                        p.price_brutto
+                                        - p.hurt_price
+                                        - p.prowizja_allegro
+                                        - p.allegro_delivery_price
+                                        - p.reach_out
+                                    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                                    p.save(update_fields=["zysk_after_payments"])
                             print(f' ################### "offer allegro fee" ################### ', data)
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
