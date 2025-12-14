@@ -183,7 +183,7 @@ class ProductAdmin(admin.ModelAdmin):
 
         """
         print('check vendor ----------------', request.user)
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl', name='alfapro')
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl',)
         # print('check vendor ----------------', vendors)
 
         for vendor in vendors:
@@ -205,7 +205,7 @@ class ProductAdmin(admin.ModelAdmin):
                         try:
                             offer_resp = allegro_request("GET", url, vendor.name, headers=headers)
                             offer = offer_resp.json()
-                            # print(f' ################### "offer" ################### ', offer)
+                            print(f' ################### "offer" ################### ', offer)
 
                             # If offers is a dict with errors
                             if isinstance(offer, dict) and "errors" in offer:
