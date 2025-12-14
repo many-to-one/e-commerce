@@ -208,12 +208,9 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_export', 
         'allegro_update', 
         'sync_allegro_offers', 
-        'update_products_description', 
+        'update_products_description',
         'calculate_allegro_fee',
-        # 'high_profit_products',  
-        # 'low_profit_products',
-        # 'high_commission_products',
-        # 'low_commission_products',
+        'calculate_zysk_after_payments', 
         ]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 20
@@ -250,23 +247,6 @@ class ProductAdmin(admin.ModelAdmin):
             # Only show the vendors for current user and marketplace
             kwargs["queryset"] = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
         return super().formfield_for_manytomany(db_field, request, **kwargs)
-
-
-    # def high_profit_products(self, request, queryset):
-    #     return Product.objects.all().order_by('-zysk_after_payments')
-    # high_profit_products.short_description = "💰 Zysk od największego"   
-
-    # def low_profit_products(self, request, queryset):
-    #     return Product.objects.all().order_by('zysk_after_payments')
-    # low_profit_products.short_description  = "💸 Zysk od najmniejszego"
-
-    # def high_commission_products(self, request, queryset):
-    #     return Product.objects.all().order_by('-zysk_after_payments')
-    # high_commission_products.short_description = "📈 Prowizja od największej"   
-
-    # def low_commission_products(self, request, queryset):
-    #     return Product.objects.all().order_by('zysk_after_payments')
-    # low_commission_products.short_description  = "📉 Prowizja od najmniejszej"
 
 
     def calculate_delivery_cost(self, cena_brutto: Decimal, przesylki: int = 1) -> Decimal:
@@ -419,38 +399,28 @@ class ProductAdmin(admin.ModelAdmin):
             except Exception as e:
                 self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 
-    calculate_allegro_fee.short_description = "🔄 Oblicz prowizję Allegro"
+    calculate_allegro_fee.short_description = "🧮 Oblicz prowizję Allegro"
+
+
+    def calculate_zysk_after_payments(self, request, queryset):
+        for p in queryset:
+            p.zysk_after_payments = (
+                p.price_brutto
+                - p.reach_out
+                - p.hurt_price
+                - p.prowizja_allegro
+                - p.allegro_delivery_price
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            p.save(update_fields=["zysk_after_payments"])
+
+            self.message_user(request, f"✅ Prowizja Allegro obliczona dla produktu SKU: {p.sku}", level="success")
+
+    calculate_zysk_after_payments.short_description = "💰 Oblicz zysk po prowizji i dostawie"
 
     
 
     def fetch_all_offers(self, vendor_name, headers):
-    #     all_offers = []
-    #     offset = 0
-    #     limit = 1000
-
-    #     while True:
-    #         url = (
-    #             f"https://{ALLEGRO_API_URL}/sale/offers"
-    #             f"?limit={limit}&offset={offset}"
-    #             # f"&publication.status=ACTIVE"
-    #             f"&publication.marketplace=allegro-pl"
-    #         )
-    #         response = allegro_request("GET", url, vendor_name, headers=headers)
-    #         data = response.json()
-
-    #         offers = data.get("offers", [])
-    #         all_offers.extend(offers)
-
-    #         if len(offers) < limit:
-    #             break
-
-    #         offset += limit
-
-    #         total_count = data.get("totalCount")
-    #         if total_count and offset >= total_count:
-    #             break
-
-    #     return all_offers
 
         statuses = ["ACTIVE", "INACTIVE", "ENDED", "NOT_LISTED"]
         all_offers = []
@@ -642,7 +612,7 @@ class ProductAdmin(admin.ModelAdmin):
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
                     self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
     
-    allegro_update.short_description = "📝 Aktualizuj oferty do Allegro"
+    allegro_update.short_description = "📤 Aktualizuj oferty do Allegro"
 
 
 
@@ -728,7 +698,7 @@ class ProductAdmin(admin.ModelAdmin):
         # results = await asyncio.gather(*tasks)
         print("All PATCH results:", results)
 
-    update_products_description.short_description = "📝Edytuj opisy ofert"
+    update_products_description.short_description = "♻️ Edytuj opisy ofert"
 
 
     async def _run_patch_tasks(self, request, tasks_data):
