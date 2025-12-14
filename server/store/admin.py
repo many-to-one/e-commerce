@@ -78,6 +78,7 @@ class ClientAccessLogAdmin(ImportExportModelAdmin):
     search_fields = ('ip_address', 'user_agent', 'geo_location', 'referer', 'cookies')
     readonly_fields = ('ip_address', 'user_agent', 'device_type', 'operating_system', 'geo_location', 'language', 'referer', 'cookies', 'accessed_at')
 
+        
 
 class ProductAdminForm(forms.ModelForm):
 
@@ -139,7 +140,18 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
-    actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description', 'calculate_allegro_fee',]
+    actions = [
+        apply_discount, 
+        'allegro_export', 
+        'allegro_update', 
+        'sync_allegro_offers', 
+        'update_products_description', 
+        'calculate_allegro_fee',
+        'high_profit_products',  
+        'low_profit_products',
+        'high_commission_products',
+        'low_commission_products',
+        ]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 20
     # prepopulated_fields = {"slug": ("title", )}
@@ -175,7 +187,23 @@ class ProductAdmin(admin.ModelAdmin):
             # Only show the vendors for current user and marketplace
             kwargs["queryset"] = Vendor.objects.filter(user=request.user, marketplace=_marketplace)
         return super().formfield_for_manytomany(db_field, request, **kwargs)
-    
+
+
+    def high_profit_products(self, request, queryset):
+        return Product.objects.get.all().order_by('-zysk_after_payments')
+    high_profit_products.short_description = "💰 Zysk od największego"   
+
+    def low_profit_products(self, request, queryset):
+        return Product.objects.get.all().order_by('zysk_after_payments')
+    low_profit_products.short_description  = "💸 Zysk od najmniejszego"
+
+    def high_commission_products(self, request, queryset):
+        return Product.objects.get.all().order_by('-zysk_after_payments')
+    high_commission_products.short_description = "📈 Prowizja od największej"   
+
+    def low_commission_products(self, request, queryset):
+        return Product.objects.get.all().order_by('zysk_after_payments')
+    low_commission_products.short_description  = "📉 Prowizja od najmniejszej"
 
     def calculate_allegro_fee(self, request, queryset):
         """
