@@ -394,7 +394,7 @@ class ProductAdmin(admin.ModelAdmin):
                                     # oblicz koszt dostawy na podstawie price_brutto
                                     delivery_cost = self.calculate_delivery_cost(p.price_brutto, przesylki=1).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                     p.allegro_delivery_price = delivery_cost
-                                    p.save(update_fields=["allegro_delivery_price"])
+                                    p.save(update_fields=["allegro_delivery_price"]) 
 
                                     # oblicz zysk po uwzględnieniu prowizji i kosztów dostawy
                                     p.zysk_after_payments = (
