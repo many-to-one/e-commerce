@@ -250,17 +250,17 @@ class ProductAdmin(admin.ModelAdmin):
                                     "promotion": offer.get("promotion", {}),
                                     "publication": offer.get("publication", {}),
                                 },
-                                "classifiedsPackages": {
-                                    "basePackage": {
-                                        "id": "e76d443b-c088-4da5-95f7-cc9aaf73bf7b"
-                                    },
-                                    "extraPackages": [
-                                        {
-                                            "id": "bff60277-b92e-46b6-98a4-439f830ac0a1",
-                                            "republish": False
-                                        }
-                                    ]
-                                },
+                                # "classifiedsPackages": {
+                                #     "basePackage": {
+                                #         "id": "e76d443b-c088-4da5-95f7-cc9aaf73bf7b"
+                                #     },
+                                #     "extraPackages": [
+                                #         {
+                                #             "id": "bff60277-b92e-46b6-98a4-439f830ac0a1",
+                                #             "republish": False
+                                #         }
+                                #     ]
+                                # },
                                 "marketplaceId": "allegro-pl"
                             }
                             response = allegro_request("POST", url, vendor.name, headers=headers, json=payload)
