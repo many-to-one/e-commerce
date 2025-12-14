@@ -136,8 +136,8 @@ class ProductAdmin(admin.ModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['sku', 'vendors', 'stock_qty']
-    list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
-    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
+    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
+    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description', 'calculate_allegro_fee',]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
@@ -272,7 +272,8 @@ class ProductAdmin(admin.ModelAdmin):
                                 if amount_str:
                                     amount_decimal = Decimal(amount_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                     p.prowizja_allegro = amount_decimal
-                                    p.save(update_fields=["prowizja_allegro"])
+                                    p.zysk_after_payments = (p.zysk_after_payments + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                    p.save(update_fields=["prowizja_allegro, zysk_after_payments"])
                             print(f' ################### "offer allegro fee" ################### ', data)
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
