@@ -230,6 +230,7 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     c.drawString(11 * cm, y, f"NIP {buyer_info.get('taxId','')}")
 
     # # Buyer 
+    # Kod powyżej zastępuje ten fragment
     # c.drawString(11 * cm, height - 4 * cm, "Nabywca:")
     # c.drawString(11 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
     # c.drawString(11 * cm, height - 5.5 * cm, f"ul. {buyer_info.get('street','')}, {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")

@@ -111,7 +111,7 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Ceny i podatki', {
             'fields': (
-                'price', 'price_brutto', 'hurt_price',
+                'price', 'price_brutto', 'hurt_price', 'prowizja_allegro',
                 'zysk_pln', 'zysk_procent', 'tax_rate',
                 'old_price', 'shipping_amount'
             )
