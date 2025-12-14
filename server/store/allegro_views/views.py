@@ -90,7 +90,7 @@ def get_next_token(token, vendor_name):
         data = {'grant_type': 'refresh_token', 'refresh_token': token, 'redirect_uri': f"{REDIRECT_URI}/allegro-auth-code/{vendor_name}"}
         get_next_token_response = requests.post(TOKEN_URL, data=data, verify=False,
                                               allow_redirects=True, auth=(vendor.client_id, vendor.secret_id))
-        # print("Response get_next_token_response ---------------:", get_next_token_response)
+        print("Response get_next_token_response ---------------:", get_next_token_response)
         tokens = json.loads(get_next_token_response.text)
         vendor.access_token = tokens['access_token']
         vendor.refresh_token = tokens['refresh_token']
@@ -134,7 +134,7 @@ async def async_allegro_request(method, url, vendor, **kwargs):
     return response
 
 def allegro_request(method, url, vendor_name, **kwargs):
-    print("allegro_request CALLED:-----------------------")
+    # print("allegro_request CALLED:-----------------------")
     """
     Wrapper for Allegro API requests that auto-refreshes token on 401.
     """
@@ -147,12 +147,12 @@ def allegro_request(method, url, vendor_name, **kwargs):
     kwargs["headers"] = headers
 
     response = requests.request(method, url, **kwargs)
-    # print(f' TRACE ID #########', response.headers.get("Trace-Id"))
-    # print(f' VENDOR NAME ######### {vendor_name}')
-    # print(f' URL ######### {url}')
-    # print(f' METHOD ######### {method}')
-    # print(f' RESPONSE ######### {response}')
-    # print(f' RESPONSE TEXT ######### {response.text}')
+    print(f' TRACE ID #########', response.headers.get("Trace-Id"))
+    print(f' VENDOR NAME ######### {vendor_name}')
+    print(f' URL ######### {url}')
+    print(f' METHOD ######### {method}')
+    print(f' RESPONSE ######### {response}')
+    print(f' RESPONSE TEXT ######### {response.text}')
 
     if response.status_code == 401:
         # Refresh token
@@ -162,6 +162,18 @@ def allegro_request(method, url, vendor_name, **kwargs):
         headers["Authorization"] = f"Bearer {new_token}"
         kwargs["headers"] = headers
         response = requests.request(method, url, **kwargs)
+
+    elif response.status_code == 403:
+        # Refresh token
+        new_token = get_next_token(vendor.refresh_token, vendor_name)
+
+        # Retry with new token
+        headers["Authorization"] = f"Bearer {new_token}"
+        kwargs["headers"] = headers
+        response = requests.request(method, url, **kwargs)
+
+        print(f' RESPONSE 403 retry ######### {response}')
+        print(f' RESPONSE TEXT 403 retry ######### {response.text}')
 
     return response
 

@@ -139,7 +139,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title','ean', 'price', 'tax_rate', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price', 'tax_rate', 'price_brutto', 'hurt_price', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
-    actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description']
+    actions = [apply_discount, 'allegro_export', 'allegro_update', 'sync_allegro_offers', 'update_products_description', 'calculate_allegro_fee',]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
     list_per_page = 20
     # prepopulated_fields = {"slug": ("title", )}
@@ -177,32 +177,103 @@ class ProductAdmin(admin.ModelAdmin):
         return super().formfield_for_manytomany(db_field, request, **kwargs)
     
 
-    # def fetch_all_offers(self, vendor_name, headers):
+    def calculate_allegro_fee(self, request, queryset):
+        """
+        Oblicza prowizję Allegro na podstawie ceny brutto.
 
-    #     all_offers = []
-    #     offset = 0
-    #     limit = 1000
+        """
+        print('check vendor ----------------', request.user)
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl', name='alfapro')
+        # print('check vendor ----------------', vendors)
 
-    #     while True:
-    #         url = f"https://{ALLEGRO_API_URL}/sale/offers?limit={limit}&offset={offset}"
-    #         response = allegro_request("GET", url, vendor_name, headers=headers)
-    #         data = response.json()
+        for vendor in vendors:
+            print('check vendor ----------------', vendor)
+            access_token = vendor.access_token
 
-    #         offers = data.get("offers", [])
-    #         all_offers.extend(offers)
+            headers = {
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Authorization': f'Bearer {access_token}'
+            }
 
-    #         # jeśli mniej niż limit → ostatnia strona
-    #         if len(offers) < limit:
-    #             break
+            try:
+                products = Product.objects.all()
+                for p in products:
+                # print(f' ################### "product_map" ################### ', {len(product_map)})
+                    if p.allegro_in_stock == True:
 
-    #         offset += limit
+                        url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{p.allegro_id}"
+                        try:
+                            offer_resp = allegro_request("GET", url, vendor.name, headers=headers)
+                            offer = offer_resp.json()
+                            # print(f' ################### "offer" ################### ', offer)
 
-    #         # dodatkowy bezpiecznik: jeśli offset > totalCount albo > 10000, przerwij
-    #         total_count = data.get("totalCount")
-    #         if total_count and offset >= total_count:
-    #             break
+                            # If offers is a dict with errors
+                            if isinstance(offer, dict) and "errors" in offer:
+                                self.message_user(request, f"⚠️ {offer['errors'][0]['message']}", level="error")
+                                return
 
-    #     return all_offers
+                            count = 0 
+
+                            url = f"https://{ALLEGRO_API_URL}/pricing/offer-fee-preview" 
+                            headers = {
+                                'Accept': 'application/vnd.allegro.public.v1+json',
+                                'Content-Type': 'application/vnd.allegro.public.v1+json',
+                                'Authorization': f'Bearer {access_token}'
+                            }
+
+                            # for offer in offers:
+                            print(f' ################### "offer" ################### ', offer)
+                            payload = {
+                                "offer": {
+                                    "id": offer.get("id"),
+                                    "name": offer.get("name"),
+                                    "category": {
+                                        "id": offer.get("category", {}).get("id")
+                                    },
+                                    "parameters": offer.get("parameters", []),
+                                    "images": offer.get("images", []),
+                                    "description": offer.get("description", {}),
+                                    "sellingMode": {
+                                        "format": offer.get("sellingMode", {}).get("format"),
+                                        "price": offer.get("sellingMode", {}).get("price"),
+                                        "minimalPrice": offer.get("sellingMode", {}).get("minimalPrice"),
+                                        "startingPrice": offer.get("sellingMode", {}).get("startingPrice"),
+                                        "netPrice": offer.get("sellingMode", {}).get("netPrice"),
+                                    },
+                                    "stock": offer.get("stock", {}),
+                                    "location": offer.get("location", {}),
+                                    "delivery": offer.get("delivery", {}),
+                                    "afterSalesServices": offer.get("afterSalesServices", {}),
+                                    "payments": offer.get("payments", {}),
+                                    "external": offer.get("external", {}),
+                                    "fundraisingCampaign": offer.get("fundraisingCampaign"),
+                                    "promotion": offer.get("promotion", {}),
+                                    "publication": offer.get("publication", {}),
+                                },
+                                "classifiedsPackages": {
+                                    "basePackage": {
+                                        "id": "e76d443b-c088-4da5-95f7-cc9aaf73bf7b"
+                                    },
+                                    "extraPackages": [
+                                        {
+                                            "id": "bff60277-b92e-46b6-98a4-439f830ac0a1",
+                                            "republish": False
+                                        }
+                                    ]
+                                },
+                                "marketplaceId": "allegro-pl"
+                            }
+                            response = allegro_request("POST", url, vendor.name, headers=headers, json=payload)
+                            data = response.json()
+                            print(f' ################### "offer allegro fee" ################### ', data)
+                        except Exception as e:
+                            self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
+
+            except Exception as e:
+                self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
+
+    calculate_allegro_fee.short_description = "🔄 Oblicz prowizję Allegro"
+
     
 
     def fetch_all_offers(self, vendor_name, headers):
@@ -253,7 +324,7 @@ class ProductAdmin(admin.ModelAdmin):
                 product_map = {obj.sku: obj for obj in products}
                 print(f' ################### "product_map" ################### ', {len(product_map)})
 
-                offers = self.fetch_all_offers(vendor.name, headers)
+                offers = self.fetch_all_offers(vendor.name, headers, status="ACTIVE")
                 print(f' ################### "offers" ################### ', {len(offers)})
 
                 # If offers is a dict with errors
@@ -347,7 +418,30 @@ class ProductAdmin(admin.ModelAdmin):
 
 
     
-    # def get
+    def activate_allegro_products(self, request, queryset):
+        # print('allegro_export request.user ----------------', request.user)
+        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+
+        for vendor in vendors:
+            # print('check vendor ----------------', vendor)
+            access_token = vendor.access_token
+
+            headers = {
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Content-Type': 'application/vnd.allegro.public.v1+json',
+                'Accept-Language': 'pl-PL',
+                'Authorization': f'Bearer {access_token}'
+            }
+        
+            for product in queryset:
+                url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=INACTIVE"
+                offers = allegro_request('GET', url, vendor.name, headers=headers)
+                print('allegro_update offers ----------------', offers)
+                for offer in offers.json()['offers']:
+                    edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+    
+    activate_allegro_products.short_description = "📝 Aktualizuj oferty do Allegro"
     
 
 
@@ -787,7 +881,7 @@ class ProductAdmin(admin.ModelAdmin):
                         "price": {
                         # "amount": str(product.price),
                         "amount": str(
-                            (product.price * (1 + product.tax_rate / 100)).quantize(
+                            (product.price_brutto * (1 + product.tax_rate / 100)).quantize(
                                 Decimal("0.01"), rounding=ROUND_HALF_UP
                             )
                         ),
@@ -797,6 +891,9 @@ class ProductAdmin(admin.ModelAdmin):
                     "stock": {
                         "available": product.stock_qty
                     },
+                    # "publication": {
+                    #     "status": "ACTIVE", 
+                    # },
                     # 'delivery': {
                     #     'shippingRates': {
                     #         'name': 'Paczkomat 1szt'
@@ -837,7 +934,7 @@ class ProductAdmin(admin.ModelAdmin):
                     ],
                     "sellingMode": {
                         "price": {
-                        "amount": str(product.price),
+                        "amount": str(product.price_brutto),
                         "currency": "PLN"
                         }
                     },

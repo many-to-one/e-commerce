@@ -211,11 +211,29 @@ def generate_invoice_allegro(invoice, vendor, user, buyer_info, products):  # ta
     c.drawString(2 * cm, height - 6 * cm, f"Telefon: {str(user.phone or "")}" )
     c.drawString(2 * cm, height - 6.5 * cm, f"E-mail: {str(getattr(vendor, 'email', '') or '')}")
 
-    # Buyer 
+
+    # Buyer
     c.drawString(11 * cm, height - 4 * cm, "Nabywca:")
-    c.drawString(11 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
-    c.drawString(11 * cm, height - 5 * cm, f"ul. {buyer_info.get('street','')}, {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
-    c.drawString(11 * cm, height - 5.5 * cm, f"NIP {buyer_info.get('taxId','')}")
+
+    buyer_name = str(buyer_info.get('name') or "")
+    # Podziel tekst na linie, które mieszczą się w szerokości (np. 8 cm)
+    wrapped_name = simpleSplit(buyer_name, 'DejaVuSans', 10, 8 * cm)
+
+    y = height - 4.5 * cm
+    for line in wrapped_name:
+        c.drawString(11 * cm, y, line)
+        y -= 0.5 * cm  # odstęp między liniami
+
+    # Reszta danych kupującego przesunięta w dół
+    c.drawString(11 * cm, y, f"ul. {buyer_info.get('street','')}, {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
+    y -= 0.5 * cm
+    c.drawString(11 * cm, y, f"NIP {buyer_info.get('taxId','')}")
+
+    # # Buyer 
+    # c.drawString(11 * cm, height - 4 * cm, "Nabywca:")
+    # c.drawString(11 * cm, height - 4.5 * cm, str(buyer_info.get('name') or ""))
+    # c.drawString(11 * cm, height - 5.5 * cm, f"ul. {buyer_info.get('street','')}, {buyer_info.get('zipCode','')} {buyer_info.get('city','')}")
+    # c.drawString(11 * cm, height - 6 * cm, f"NIP {buyer_info.get('taxId','')}")
 
     # Table setup
     data = [["Lp.", "Nazwa towaru lub usługi", "Jm", "Ilość", "Cena netto", "Wartość netto", "VAT", "Kwota VAT", "Wartość brutto"]]

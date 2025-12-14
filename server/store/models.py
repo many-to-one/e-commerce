@@ -111,6 +111,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena netto')
     price_brutto = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena brutto')
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
+    prowizja_allegro = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Prowizja allegro')
     zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")
     zysk_after_payments = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Zysk", help_text='Zysk -dostawa i -3%')
@@ -212,9 +213,13 @@ class Product(models.Model):
         self.price                  = to_dec(getattr(self, "price", None), "0")
         self.price_brutto           = to_dec(getattr(self, "price_brutto", None), "0")
         self.zysk_pln               = to_dec(getattr(self, "zysk_pln", None), "0")
-        self.zysk_after_payments    = to_dec(getattr(self, "zysk_pln", None), "0")
+        self.zysk_after_payments    = to_dec(getattr(self, "zysk_after_payments", None), "0")
         self.zysk_procent           = to_dec(getattr(self, "zysk_procent", None), "0")
         self.tax_rate               = to_dec(getattr(self, "tax_rate", None), "0")
+
+        print("zysk_after_payments ------------", self.zysk_after_payments)  
+        _zysk_after_payments = self.zysk_after_payments 
+        
 
         def calculate_delivery_cost(cena_brutto: Decimal, przesylki: int = 1) -> Decimal:
             """
@@ -263,33 +268,47 @@ class Product(models.Model):
             # Zysk po odjęciu prowizji i dostawy
             self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+        # print("Zysk PLN TEST old ------------", old)
+        # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)
+        # print("Zysk PLN TEST old.zysk_after_payments ------------", old.zysk_after_payments)
+        # print("Zysk PLN TEST zysk_after_payments ------------", self.zysk_after_payments)
 
-        # 1️⃣ If zysk_pln changed
-        if old and self.zysk_pln != old.zysk_pln and self.hurt_price is not None:
-            cena_brutto = (self.hurt_price + self.zysk_pln).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price_brutto = cena_brutto
-            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
+        # # 1️⃣ If zysk changed
+        # if old and _zysk_after_payments != old.zysk_after_payments and self.hurt_price is not None:
+        #     print("Zysk PLN changed------------")
+        #     cena_do_prowizji = (self.hurt_price + _zysk_after_payments ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     print("Zysk PLN cena_do_prowizji ------------", cena_do_prowizji)
+        #     cena_po_prowizji = (cena_do_prowizji * Decimal("1.03")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     print("Zysk PLN cena_po_prowizji ------------", cena_po_prowizji)
+        #     # Koszt dostawy (zakładamy 1 przesyłkę)
+        #     delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
+        #     print("Zysk PLN delivery_cost ------------", delivery_cost)
+        #     self.price_brutto = (cena_po_prowizji + delivery_cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     print("Zysk PLN price_brutto ------------", self.price_brutto)
+        #     self.price = (self.price_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.zysk_after_payments = _zysk_after_payments
+        #     self.zysk_procent = (self.zysk_after_payments / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
+            
 
         # 2️⃣ If zysk_procent changed
-        elif old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
+        if old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
             cena_brutto = (self.hurt_price * (Decimal("1") + self.zysk_procent / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
-            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-        # 3️⃣ If price_brutto changed
-        elif old and self.price_brutto != old.price_brutto and self.hurt_price is not None:
-            cena_brutto = self.price_brutto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
+        # # 3️⃣ If price_brutto changed
+        # elif old and self.price_brutto != old.price_brutto and self.hurt_price is not None:
+        #     cena_brutto = self.price_brutto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
         # 4️⃣ If price (netto) changed
         elif old and self.price != old.price and self.hurt_price is not None:
             cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.price_brutto = cena_brutto
-            self.zysk_pln = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
         super().save(*args, **kwargs)
