@@ -1030,12 +1030,12 @@ class ProductAdmin(admin.ModelAdmin):
                     ],
                     "sellingMode": {
                         "price": {
-                        # "amount": str(product.price),
-                        "amount": str(
-                            (product.price_brutto * (1 + product.tax_rate / 100)).quantize(
-                                Decimal("0.01"), rounding=ROUND_HALF_UP
-                            )
-                        ),
+                        "amount": str(product.price_brutto),
+                        # "amount": str(
+                        #     (product.price_brutto * (1 + product.tax_rate / 100)).quantize(
+                        #         Decimal("0.01"), rounding=ROUND_HALF_UP
+                        #     )
+                        # ),
                         "currency": "PLN"
                         }
                     },
