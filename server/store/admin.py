@@ -363,8 +363,9 @@ class ProductAdmin(admin.ModelAdmin):
                                 if amount_str:
                                     amount_decimal = Decimal(amount_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                     p.prowizja_allegro = amount_decimal
+                                    p.save(update_fields=["prowizja_allegro"])
                                     p.zysk_after_payments = (p.zysk_after_payments + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                                    p.save(update_fields=["prowizja_allegro, zysk_after_payments"])
+                                    p.save(update_fields=["zysk_after_payments"])
                             print(f' ################### "offer allegro fee" ################### ', data)
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
