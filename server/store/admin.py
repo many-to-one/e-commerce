@@ -1033,11 +1033,6 @@ class ProductAdmin(admin.ModelAdmin):
                     "sellingMode": {
                         "price": {
                         "amount": str(product.price_brutto),
-                        # "amount": str(
-                        #     (product.price_brutto * (1 + product.tax_rate / 100)).quantize(
-                        #         Decimal("0.01"), rounding=ROUND_HALF_UP
-                        #     )
-                        # ),
                         "currency": "PLN"
                         }
                     },
@@ -1064,7 +1059,7 @@ class ProductAdmin(admin.ModelAdmin):
                             }
                         ]
                     },               
-                    # "images": self.build_images(product.img_links, vendor_name)
+                    "images": self.build_images(product.img_links, vendor_name)
                 })
 
             else:   
@@ -1111,7 +1106,7 @@ class ProductAdmin(admin.ModelAdmin):
                             }
                         ]
                     },
-                    # "images": self.build_images(product.img_links, vendor_name)
+                    "images": self.build_images(product.img_links, vendor_name)
                 })
 
             headers = {
