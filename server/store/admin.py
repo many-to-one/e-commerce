@@ -514,7 +514,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product.allegro_in_stock = False
 
                     product.allegro_status = status
-                    product.save(update_fields=["allegro_id", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
+                    product.save(update_fields=["title", "allegro_id", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
 
                 self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 
