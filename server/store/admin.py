@@ -1127,7 +1127,7 @@ class ProductAdmin(admin.ModelAdmin):
                 self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')
             elif response.status_code == 401:
                 self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
-            else:
+            elif response.status_code == 422:
                 self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='error')
             return response
         except requests.exceptions.HTTPError as err:
