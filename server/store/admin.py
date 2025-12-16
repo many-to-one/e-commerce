@@ -1007,6 +1007,8 @@ class ProductAdmin(admin.ModelAdmin):
 
         raw_html = product.description # your original HTML content
         safe_html = self.sanitize_allegro_description(raw_html)
+        if safe_html == "":
+            safe_html = product.title
 
         try:
 
@@ -1056,12 +1058,12 @@ class ProductAdmin(admin.ModelAdmin):
                                 "items": [
                                     {
                                         "type": "TEXT",
-                                        "content": safe_html #self.convert_description_for_allegro(product.description)
+                                            "content": safe_html #self.convert_description_for_allegro(product.description)
                                     }
                                 ]
                             }
                         ]
-                    },
+                    },               
                     # "images": self.build_images(product.img_links, vendor_name)
                 })
 
