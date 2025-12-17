@@ -367,8 +367,12 @@ class ProductAdmin(admin.ModelAdmin):
                                     p.prowizja_allegro = amount_decimal
                                     p.save(update_fields=["prowizja_allegro"])
 
-                                    if p.price_brutto < (p.hurt_price + p.prowizja_allegro + p.reach_out + Decimal("5.00")):
-                                        p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                    reach_out_value = (p.price_brutto * (p.reach_out / 100)).quantize(
+                                            Decimal("0.01"), rounding=ROUND_HALF_UP
+                                        )
+
+                                    if p.price_brutto < (p.hurt_price + p.prowizja_allegro + reach_out_value):
+                                        p.price_brutto = (p.price_brutto + p.prowizja_allegro + reach_out_value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                         p.save(update_fields=["price_brutto"])
 
                                     # if p.price_brutto < (p.hurt_price + p.prowizja_allegro + p.reach_out + p.allegro_delivery_price + Decimal("5.00")):
@@ -384,7 +388,7 @@ class ProductAdmin(admin.ModelAdmin):
                                     # oblicz zysk po uwzględnieniu prowizji i kosztów dostawy
                                     p.zysk_after_payments = (
                                         p.price_brutto
-                                        - p.reach_out
+                                        - reach_out_value
                                         - p.hurt_price
                                         - p.prowizja_allegro
                                         # - p.allegro_delivery_price
