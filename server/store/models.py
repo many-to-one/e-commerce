@@ -268,11 +268,7 @@ class Product(models.Model):
             delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
 
             # Zysk po odjęciu prowizji i dostawy
-            # self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-            # Zysk po odjęciu prowizji (dostawa jest uwzględniona w prowizji)
-            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # print("Zysk PLN TEST old ------------", old)
         # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)

@@ -371,13 +371,9 @@ class ProductAdmin(admin.ModelAdmin):
                                             Decimal("0.01"), rounding=ROUND_HALF_UP
                                         )
 
-                                    if p.price_brutto < (p.hurt_price + p.prowizja_allegro + reach_out_value):
+                                    if p.price_brutto < (p.hurt_price + p.prowizja_allegro + reach_out_value + p.allegro_delivery_price + Decimal("5.00")):
                                         p.price_brutto = (p.price_brutto + p.prowizja_allegro + reach_out_value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                                         p.save(update_fields=["price_brutto"])
-
-                                    # if p.price_brutto < (p.hurt_price + p.prowizja_allegro + p.reach_out + p.allegro_delivery_price + Decimal("5.00")):
-                                    #     p.price_brutto = (p.price_brutto + p.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                                    #     p.save(update_fields=["price_brutto"])
 
 
                                     # oblicz koszt dostawy na podstawie price_brutto
@@ -391,7 +387,7 @@ class ProductAdmin(admin.ModelAdmin):
                                         - reach_out_value
                                         - p.hurt_price
                                         - p.prowizja_allegro
-                                        # - p.allegro_delivery_price
+                                        - p.allegro_delivery_price
                                     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                                     p.save(update_fields=["zysk_after_payments"])
@@ -417,7 +413,7 @@ class ProductAdmin(admin.ModelAdmin):
                 - reach_out_value
                 - p.hurt_price
                 - p.prowizja_allegro
-                # - p.allegro_delivery_price
+                - p.allegro_delivery_price
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             p.save(update_fields=["zysk_after_payments"])
