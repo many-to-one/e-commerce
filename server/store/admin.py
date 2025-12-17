@@ -641,7 +641,13 @@ class ProductAdmin(admin.ModelAdmin):
                product_vendors = product.vendors.all()
                if vendor in product_vendors:
                #     print('if vendor in product_vendors ----------------', vendor)
-                   self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer)
+                   resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer)
+                   if resp.status_code == 201:
+                       product.allegro_in_stock = True
+                       product.allegro_status = 'ACTIVE'
+                       product.allegro_id = resp.json().get('id')
+                       product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
+               #
                 # print('allegro_export vendors ----------------', product_vendors)
             #     print('allegro_export ----------------', product.ean)
                 #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
