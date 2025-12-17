@@ -268,7 +268,11 @@ class Product(models.Model):
             delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
 
             # Zysk po odjęciu prowizji i dostawy
-            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            # self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            # Zysk po odjęciu prowizji (dostawa jest uwzględniona w prowizji)
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
 
         # print("Zysk PLN TEST old ------------", old)
         # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)
@@ -293,11 +297,11 @@ class Product(models.Model):
             
 
         # 2️⃣ If zysk_procent changed
-        if old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
-            cena_brutto = (self.hurt_price * (Decimal("1") + self.zysk_procent / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price_brutto = cena_brutto
-            self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        # if old and self.zysk_procent != old.zysk_procent and self.hurt_price is not None:
+        #     cena_brutto = (self.hurt_price * (Decimal("1") + self.zysk_procent / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.price = (cena_brutto / vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.price_brutto = cena_brutto
+        #     self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # # 3️⃣ If price_brutto changed
         # elif old and self.price_brutto != old.price_brutto and self.hurt_price is not None:
@@ -307,11 +311,11 @@ class Product(models.Model):
         #     self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
         # 4️⃣ If price (netto) changed
-        elif old and self.price != old.price and self.hurt_price is not None:
-            cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.price_brutto = cena_brutto
-            self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
+        # elif old and self.price != old.price and self.hurt_price is not None:
+        #     cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.price_brutto = cena_brutto
+        #     self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
         super().save(*args, **kwargs)
 
