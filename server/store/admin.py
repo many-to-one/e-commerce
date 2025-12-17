@@ -413,7 +413,7 @@ class ProductAdmin(admin.ModelAdmin):
                 - reach_out_value
                 - p.hurt_price
                 - p.prowizja_allegro
-                - p.allegro_delivery_price
+                - p.allegro_delivery_price 
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             p.save(update_fields=["zysk_after_payments"])
