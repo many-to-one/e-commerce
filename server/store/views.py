@@ -801,6 +801,21 @@ class PrestaUpdateCSVView(APIView):
         user_id = request.data["user_id"]
         user = User.objects.get(id=1)
 
+        # sprawdzanie checkboxów
+        update_price = request.data.get("price") == "true"
+        update_stock = request.data.get("stock") == "true"
+        update_description = request.data.get("description") == "true"
+
+        # przykładowe użycie
+        # if update_price:
+        #     print("Aktualizujemy ceny *******************")
+        # if update_stock:
+        #     print("Aktualizujemy stany *******************")
+        # if update_description:
+        #     print("Aktualizujemy opisy*******************")
+
+        # return Response({"message": "CSV proccessed successfully"}, status=201)
+
         if Vendor.objects.exists():
             pass
         else:
@@ -846,22 +861,30 @@ class PrestaUpdateCSVView(APIView):
 
                 product = Product.objects.filter(ean=row["EAN"]).first()
                 if product:
-                    # update only selected fields
-                    product.title = row["Nazwa"]
-                    product.ean = row["EAN"]
-                    product.image = first_image
-                    product.img_links = images
-                    product.description = row["Opis"]
-                    product.price = gross_price   # <-- includes 23% VAT
-                    product.hurt_price = safe_decimal(row["Cena hurtowa"])
-                    product.stock_qty = row["Ilość"]
-                    product.sku = row["Kod dostawcy"]
-                    product.shipping_amount = safe_decimal(9.99)
-                    product.category = category_
-                    product.sub_cat = categories[2:]
-                   # product.tax_rate = safe_decimal("23.00")
+                    if update_stock:
+                        print("Aktualizujemy stany *******************")
+                        product.stock_qty = row["Ilość"]
+                        product.save(update_fields=['stock_qty'])
+                    if update_price:
+                        print("Aktualizujemy ceny *******************")
+                        product.price = gross_price   # <-- includes 23% VAT
+                        product.save(update_fields=['price'])
+                    if update_description:
+                        product.title = row["Nazwa"]
+                        product.ean = row["EAN"]
+                        product.image = first_image
+                        product.img_links = images
+                        product.description = row["Opis"]
+                        product.price = gross_price   # <-- includes 23% VAT
+                        product.hurt_price = safe_decimal(row["Cena hurtowa"])
+                        product.stock_qty = row["Ilość"]
+                        product.sku = row["Kod dostawcy"]
+                        product.shipping_amount = safe_decimal(9.99)
+                        product.category = category_
+                        product.sub_cat = categories[2:]
+                        # product.tax_rate = safe_decimal("23.00")
 
-                    product.save()
+                        product.save()
                 else:
                     product = Product.objects.create(
                         title=row["Nazwa"],
