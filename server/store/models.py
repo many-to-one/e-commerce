@@ -129,6 +129,8 @@ class Product(models.Model):
 
     allegro_status = models.CharField(choices=ALLEGRO_STATUS, max_length=50, default="published", verbose_name="allegro status", null=True, blank=True)
     allegro_in_stock = models.BooleanField(default=False, verbose_name="allegro")
+
+    updates = models.BooleanField(default=False, verbose_name="aktualizacje")
     
     # Product flags (featured, hot deal, special offer, digital)
     featured = models.BooleanField(default=False, verbose_name='Nowości')
@@ -270,6 +272,18 @@ class Product(models.Model):
             # Zysk po odjęciu prowizji i dostawy
             self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+        # 4️⃣ If price (netto) changed after Kecja price updates
+        elif old and self.price != old.price and self.hurt_price is not None:
+            cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if cena_brutto > self.price_brutto:
+                self.price_brutto = (cena_brutto - old.price_brutto + self.price_brutto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                self.price_brutto = (self.price_brutto - (cena_brutto - old.price_brutto)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            # Nowa logika zysku po prowizji i dostawie
+            cena_po_prowizji = (self.price_brutto * Decimal("0.97")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
         # print("Zysk PLN TEST old ------------", old)
         # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)
         # print("Zysk PLN TEST old.zysk_after_payments ------------", old.zysk_after_payments)
@@ -306,10 +320,13 @@ class Product(models.Model):
         #     self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         #     self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 
-        # 4️⃣ If price (netto) changed
+        # # 4️⃣ If price (netto) changed after Kecja price updates
         # elif old and self.price != old.price and self.hurt_price is not None:
         #     cena_brutto = (self.price * vat_multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        #     self.price_brutto = cena_brutto
+        #     if cena_brutto > self.price_brutto:
+        #         self.price_brutto = (cena_brutto - old.price_brutto + self.price_brutto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        #     else:
+        #         self.price_brutto = (self.price_brutto - old.price_brutto + cena_brutto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         #     self.zysk_after_payments = (cena_brutto - self.hurt_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         #     self.zysk_procent = (self.zysk_pln / self.hurt_price * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if self.hurt_price > 0 else Decimal("0.00")
 

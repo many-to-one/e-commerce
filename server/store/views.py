@@ -864,11 +864,13 @@ class PrestaUpdateCSVView(APIView):
                     if update_stock:
                         print("Aktualizujemy stany *******************")
                         product.stock_qty = row["Ilość"]
-                        product.save(update_fields=['stock_qty'])
+                        product.updates = True
+                        product.save(update_fields=['stock_qty', 'updates'])
                     if update_price:
                         print("Aktualizujemy ceny *******************")
                         product.price = gross_price   # <-- includes 23% VAT
-                        product.save(update_fields=['price'])
+                        product.updates = True
+                        product.save(update_fields=['price', 'updates'])
                     if update_description:
                         product.title = row["Nazwa"]
                         product.ean = row["EAN"]
@@ -882,6 +884,7 @@ class PrestaUpdateCSVView(APIView):
                         product.shipping_amount = safe_decimal(9.99)
                         product.category = category_
                         product.sub_cat = categories[2:]
+                        product.updates = True
                         # product.tax_rate = safe_decimal("23.00")
 
                         product.save()

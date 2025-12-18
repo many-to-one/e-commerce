@@ -140,7 +140,7 @@ class ProductAdminForm(forms.ModelForm):
     
 
 class AllegroStockFilter(admin.SimpleListFilter):
-    title = '📦 Allegro w magazynie'
+    title = '📦 Allegro asortyment'
     parameter_name = 'allegro_in_stock'
 
     def lookups(self, request, model_admin):
@@ -154,6 +154,24 @@ class AllegroStockFilter(admin.SimpleListFilter):
             return queryset.filter(allegro_in_stock=True)
         if self.value() == 'false':
             return queryset.filter(allegro_in_stock=False)
+        return queryset
+    
+
+class KecjaUpdatesFilter(admin.SimpleListFilter):
+    title = '🔃 Aktualizacje'
+    parameter_name = 'updates'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('true', '✅ Do aktualizacji'),
+            ('false', '❌ Brak aktualizacji'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == 'true':
+            return queryset.filter(updates=True)
+        if self.value() == 'false':
+            return queryset.filter(updates=False)
         return queryset
 
 
@@ -199,7 +217,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
-    list_filter = ['vendors', AllegroStockFilter]
+    list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
     list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
@@ -614,10 +632,14 @@ class ProductAdmin(admin.ModelAdmin):
             for product in queryset:
                 url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
                 offers = allegro_request('GET', url, vendor.name, headers=headers)
-                print('allegro_update offers ----------------', offers)
+                # print('allegro_update offers ----------------', offers)
                 for offer in offers.json()['offers']:
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+                    resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+                    print('allegro_update resp #####################', resp)
+                    if resp.status_code == 200:
+                        product.updates = False
+                        product.save(update_fields=['updates'])
     
     allegro_update.short_description = "♻️ Aktualizuj oferty do Allegro"
 
