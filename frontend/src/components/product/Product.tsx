@@ -28,6 +28,9 @@ const Product: React.FC<ProductProps> = ({product}) => {
   const thumb = product.thumbnail?.replace('http://', 'https://'); // Production
   // console.log('thumb-------', thumb)
 
+  const img1 = product.img_links?.[1];
+  const img0 = product.img_links?.[0];
+
   return (
     <div
       className='product-card product-info' 
@@ -56,28 +59,28 @@ const Product: React.FC<ProductProps> = ({product}) => {
             </picture>
           ) : (
             <picture>
-              <source
-                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[1]}&w=200&h=200`}
-                type="image/webp"
-              />
-              <source
-                srcSet={`${API_BASE_URL}api/store/resize?url=${product.img_links[1]}&w=200&h=200&format=jpg`}
-                type="image/jpeg"
-              />
+              {img1 && (
+                <>
+                  <source
+                    srcSet={`${API_BASE_URL}api/store/resize?url=${img1}&w=200&h=200`}
+                    type="image/webp"
+                  />
+                  <source
+                    srcSet={`${API_BASE_URL}api/store/resize?url=${img1}&w=200&h=200&format=jpg`}
+                    type="image/jpeg"
+                  />
+                </>
+              )}
+
               <img
-                src={product.img_links[0]}
+                src={img0 ?? "/placeholder.png"}
                 alt="Product"
                 width={200}
                 height={200}
                 loading="lazy"
-                // style={{ objectFit: 'cover' }}
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
-                style={{
-                  touchAction: 'pan-y',       // allow vertical page scroll, allow horizontal swipes
-                  // WebkitUserDrag: 'none',
-                  userSelect: 'none',
-                }}
+                style={{ touchAction: "pan-y", userSelect: "none" }}
               />
             </picture>
           )}
