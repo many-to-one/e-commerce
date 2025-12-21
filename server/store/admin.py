@@ -996,7 +996,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     
 
-    def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer, action):
+    def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer, action=None):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
@@ -1012,23 +1012,6 @@ class ProductAdmin(admin.ModelAdmin):
         try:
 
             if method == "PATCH":
-                # if action == "description":
-                #     payload = json.dumps({
-                #         "description": {"description": {
-                #             "sections": [
-                #                 {
-                #                     "items": [
-                #                         {
-                #                             "type": "TEXT",
-                #                                 "content": safe_html if safe_html != "" or safe_html is not None else product.text_description
-                #                         }
-                #                     ]
-                #                 }
-                #             ]
-                #         },  
-                #     },            
-                #     "images": self.build_images(product.img_links, vendor_name) if product.img_links is not None else None
-                #     })
                 if action == "stock_qty":
                     payload = json.dumps({
                         "stock": {
