@@ -630,7 +630,7 @@ class ProductAdmin(admin.ModelAdmin):
                product_vendors = product.vendors.all()
                if vendor in product_vendors:
                #     print('if vendor in product_vendors ----------------', vendor)
-                   resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer)
+                   resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer, action='create')
                    if resp.status_code == 201:
                        product.allegro_in_stock = True
                        product.allegro_status = 'ACTIVE'
