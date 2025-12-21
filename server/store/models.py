@@ -104,6 +104,7 @@ class Product(models.Model):
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     img_links = models.JSONField(blank=True, null=True)
     description = models.TextField(null=True, blank=True, verbose_name="Opis")
+    text_description = models.TextField(max_length=5000,null=True, blank=True, verbose_name="Opis textowy")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="category")
     sub_cat = models.JSONField(null=True, blank=True)
     tags = models.CharField(max_length=1000, null=True, blank=True)

@@ -95,49 +95,6 @@ class ProductAdminForm(forms.ModelForm):
         fields = '__all__'
 
     
-# from django.contrib import admin
-
-# class ProfitFilter(admin.SimpleListFilter):
-#     title = '💰 Zysk PLN'
-#     parameter_name = 'zysk_pln'
-
-#     def lookups(self, request, model_admin):
-#         return [
-#             ('low', 'Niski (<50 PLN)'),
-#             ('medium', 'Średni (50-200 PLN)'),
-#             ('high', 'Wysoki (>200 PLN)'),
-#         ]
-
-#     def queryset(self, request, queryset):
-#         if self.value() == 'low':
-#             return queryset.filter(zysk_pln__lt=50)
-#         if self.value() == 'medium':
-#             return queryset.filter(zysk_pln__gte=50, zysk_pln__lte=200)
-#         if self.value() == 'high':
-#             return queryset.filter(zysk_pln__gt=200)
-#         return queryset
-
-
-# class CommissionFilter(admin.SimpleListFilter):
-#     title = '📈 Prowizja Allegro'
-#     parameter_name = 'prowizja_allegro'
-
-#     def lookups(self, request, model_admin):
-#         return [
-#             ('low', 'Niska (<5 PLN)'),
-#             ('medium', 'Średnia (5-20 PLN)'),
-#             ('high', 'Wysoka (>20 PLN)'),
-#         ]
-
-#     def queryset(self, request, queryset):
-#         if self.value() == 'low':
-#             return queryset.filter(prowizja_allegro__lt=5)
-#         if self.value() == 'medium':
-#             return queryset.filter(prowizja_allegro__gte=5, prowizja_allegro__lte=20)
-#         if self.value() == 'high':
-#             return queryset.filter(prowizja_allegro__gt=20)
-#         return queryset
-    
 
 class AllegroStockFilter(admin.SimpleListFilter):
     title = '📦 Allegro asortyment'
@@ -185,7 +142,7 @@ class ProductAdmin(admin.ModelAdmin):
         ('Podstawowe informacje', {
             'fields': (
                 'title', 'allegro_id', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
-                'description', 'category', 'sub_cat', 'tags', 'brand'
+                'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
         ('Sprzedawcy', {
@@ -218,7 +175,7 @@ class ProductAdmin(admin.ModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
-    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
+    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'hurt_price', 'zysk_after_payments', 'zysk_procent',]
     list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [
@@ -1035,8 +992,8 @@ class ProductAdmin(admin.ModelAdmin):
 
         raw_html = product.description # your original HTML content
         safe_html = self.sanitize_allegro_description(raw_html)
-        if safe_html == "":
-            safe_html = product.title
+        if safe_html == "" or safe_html == None:
+            safe_html = product.text_description
 
         try:
 
