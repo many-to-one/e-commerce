@@ -565,9 +565,9 @@ class ProductAdmin(admin.ModelAdmin):
                 print('allegro_update offers ----------------', offers)
                 for offer in offers.json()['offers']:
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
+                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action='activate')
     
-    activate_allegro_products.short_description = "📝 Aktualizuj oferty do Allegro"
+    activate_allegro_products.short_description = "📝 Aktywuj oferty do Allegro"
     
 
 
@@ -591,9 +591,19 @@ class ProductAdmin(admin.ModelAdmin):
                 offers = allegro_request('GET', url, vendor.name, headers=headers)
                 # print('allegro_update offers ----------------', offers)
                 for offer in offers.json()['offers']:
+                    print('allegro_update offer ----------------', offer)
+                    if offer['sellingMode']['price']['amount'] != str(product.price_brutto):
+                        action = 'price_brutto'
+                    elif offer['stock']['available'] != product.stock_qty:
+                        action = 'stock_qty'
+                    elif offer['name'] != product.title:
+                        action = 'title'
+                    else:
+                        action = 'other'
+                    
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                    resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None)
-                    print('allegro_update resp #####################', resp)
+                    resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action=action)
+                    # print('allegro_update price_brutto #####################', resp)
                     if resp.status_code == 200:
                         product.updates = False
                         product.save(update_fields=['updates'])
@@ -985,67 +995,128 @@ class ProductAdmin(admin.ModelAdmin):
 
     
 
-    def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer):
+    def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer, action):
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
+        print('create_offer_from_product action ----------------', action)
 
         raw_html = product.description # your original HTML content
-        safe_html = self.sanitize_allegro_description(raw_html)
-        if safe_html == "" or safe_html == None:
+        safe_html = ''
+        if raw_html is not None:
+            safe_html = self.sanitize_allegro_description(raw_html)
+        else:
             safe_html = product.text_description
 
         try:
 
             if method == "PATCH":
-                payload = json.dumps({
-                    "name": f"{product.title}",
-                    "external": {
-                        "id": f"{product.sku}" 
-                    },
-                    "productSet": [
-                        {
-                        "product": {
-                            "id": f"{product.ean}", #product.ean,
-                            "idType": "GTIN"
-                        },
-                        # "responsibleProducer": {
-                        #     "type": "ID",
-                        #     "id": producer["responsibleProducers"][0]['id']
-                        # },
-                        },
-                    ],
-                    "sellingMode": {
-                        "price": {
-                        "amount": str(product.price_brutto),
-                        "currency": "PLN"
+                # if action == "description":
+                #     payload = json.dumps({
+                #         "description": {"description": {
+                #             "sections": [
+                #                 {
+                #                     "items": [
+                #                         {
+                #                             "type": "TEXT",
+                #                                 "content": safe_html if safe_html != "" or safe_html is not None else product.text_description
+                #                         }
+                #                     ]
+                #                 }
+                #             ]
+                #         },  
+                #     },            
+                #     "images": self.build_images(product.img_links, vendor_name) if product.img_links is not None else None
+                #     })
+                if action == "stock_qty":
+                    payload = json.dumps({
+                        "stock": {
+                            "available": product.stock_qty
                         }
-                    },
-                    "stock": {
-                        "available": product.stock_qty
-                    },
-                    # "publication": {
-                    #     "status": "ACTIVE", 
-                    # },
-                    # 'delivery': {
-                    #     'shippingRates': {
-                    #         'name': 'Paczkomat 1szt'
-                    #     }
-                    # },
-                    "description": {
-                        "sections": [
+                    })
+                elif action == "price_brutto":
+                    payload = json.dumps({
+                        "sellingMode": {
+                            "price": {
+                            "amount": str(product.price_brutto),
+                            "currency": "PLN"
+                            }
+                        }
+                    })
+                elif action == "title":
+                     payload = json.dumps({
+                        "name": f"{product.title}",
+                    })
+                elif action == "activate":
+                    payload = json.dumps({
+                        "publication": {
+                            "status": "ACTIVE", 
+                        },
+                    })
+                elif action == "deactivate":
+                    payload = json.dumps({
+                        "publication": {
+                            "status": "INACTIVE", 
+                        },
+                    })
+                elif action == "delivery":
+                    payload = json.dumps({
+                        'delivery': {
+                            'shippingRates': {
+                                'name': "Paczkomat 1szt" #'Paczkomat 1szt'
+                            }
+                        }
+                    })
+                else:
+                    payload = json.dumps({
+                        "name": f"{product.title}",
+                        "external": {
+                            "id": f"{product.sku}" 
+                        },
+                        "productSet": [
                             {
-                                "items": [
+                            "product": {
+                                "id": f"{product.ean}", #product.ean,
+                                "idType": "GTIN"
+                            },
+                            # "responsibleProducer": {
+                            #     "type": "ID",
+                            #     "id": producer["responsibleProducers"][0]['id']
+                            # },
+                            },
+                        ],
+                        "sellingMode": {
+                            "price": {
+                            "amount": str(product.price_brutto),
+                            "currency": "PLN"
+                            }
+                        },
+                        "stock": {
+                            "available": product.stock_qty
+                        },
+                        # "publication": {
+                        #     "status": "ACTIVE", 
+                        # },
+                        # 'delivery': {
+                        #     'shippingRates': {
+                        #         'name': 'Paczkomat 1szt'
+                        #     }
+                        # },
+                        "description": {
+                                "sections": [
                                     {
-                                        "type": "TEXT",
-                                            "content": safe_html #self.convert_description_for_allegro(product.description)
+                                        "items": [
+                                            {
+                                                "type": "TEXT", 
+                                                    "content": f"<p>{product.text_description}</p>" if safe_html == "" or safe_html is None else safe_html
+                                            }
+                                        ]
                                     }
                                 ]
-                            }
-                        ]
-                    },               
-                    "images": self.build_images(product.img_links, vendor_name)
-                })
+                            },  
+                                   
+                        "images": self.build_images(product.img_links, vendor_name) if product.img_links is not None else None
+                    })
 
             else:   
                 payload = json.dumps({
@@ -1085,7 +1156,7 @@ class ProductAdmin(admin.ModelAdmin):
                                 "items": [
                                     {
                                         "type": "TEXT",
-                                        "content": safe_html #self.convert_description_for_allegro(product.description)
+                                        "content": safe_html if safe_html != "" or safe_html is not None else product.text_description
                                     }
                                 ]
                             }
@@ -1105,10 +1176,20 @@ class ProductAdmin(admin.ModelAdmin):
             response = allegro_request(method, url, vendor_name, headers=headers, data=payload)
             print(f'create_offer_from_product {method} response ----------------', response)
             print(f'create_offer_from_product {method} response text ----------------', response.text)
+            actions = {
+                'price_brutto': 'cenę',
+                'stock_qty': 'stan magazynowy',
+                'title': 'tytuł',
+                'description': 'opis',
+                'activate': 'aktywowanie',
+                'deactivate': 'dezaktywowanie',
+                'delivery': 'metodę dostawy',
+                'other': 'ofertę',
+            }
             if response.status_code == 200:
                 product.updates = False
                 product.save(update_fields=['updates'])
-                self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
+                self.message_user(request, f"✅ Zmieniłęs {actions[action]} w {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
                 product.allegro_in_stock = True
                 self.message_user(request, f"✅ Wystawiłeś ofertę {product.sku} allegro dla {vendor_name}", level='success')

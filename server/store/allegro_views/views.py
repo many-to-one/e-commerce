@@ -161,7 +161,7 @@ def allegro_request(method, url, vendor_name, **kwargs):
         # Retry with new token
         headers["Authorization"] = f"Bearer {new_token}"
         kwargs["headers"] = headers
-        response = requests.request(method, url, **kwargs)
+        response = requests.request(method, url, vendor_name, **kwargs)
 
     elif response.status_code == 403:
         # Refresh token
