@@ -183,7 +183,8 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_export', 
         'allegro_update', 
         'sync_allegro_offers', 
-        'update_products_description',
+        "activate_allegro_products",
+        # 'update_products_description',
         'calculate_allegro_fee',
         'calculate_zysk_after_payments', 
         ]
@@ -567,7 +568,7 @@ class ProductAdmin(admin.ModelAdmin):
                     edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
                     self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action='activate')
     
-    activate_allegro_products.short_description = "📝 Aktywuj oferty do Allegro"
+    activate_allegro_products.short_description = "✅ Aktywuj oferty do Allegro"
     
 
 
