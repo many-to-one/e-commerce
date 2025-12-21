@@ -1149,6 +1149,8 @@ class ProductAdmin(admin.ModelAdmin):
             print(f'create_offer_from_product {method} response ----------------', response)
             print(f'create_offer_from_product {method} response text ----------------', response.text)
             if response.status_code == 200:
+                product.updates = False
+                product.save(update_fields=['updates'])
                 self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
             if response.status_code == 202:
                 product.allegro_in_stock = True

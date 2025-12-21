@@ -8,3 +8,6 @@ cd /etc/nginx/sites-available/
 sudo ln -s /etc/nginx/sites-available/yourdomain.conf /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
+
+# Chek your vps CPU time still and other parameters
+mpstat -P ALL 1
