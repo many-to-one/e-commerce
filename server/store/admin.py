@@ -162,7 +162,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('status', 'type', 'allegro_status', 'allegro_in_stock')
         }),
         ('Flagi produktu', {
-            'fields': ('featured', 'hot_deal', 'special_offer', 'digital')
+            'fields': ('featured', 'hot_deal', 'special_offer', 'digital', 'updates')
         }),
         ('Statystyki', {
             'fields': ('views', 'orders', 'saved', 'rating')
