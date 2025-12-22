@@ -464,12 +464,19 @@ class Cart(models.Model):
         verbose_name = "Koszyk"
         verbose_name_plural = "Koszyki"
 
+
+def label_upload_path(instance, filename):
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    return f"allegro_labels/{today}/{filename}"
     
 
 class AllegroOrder(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, verbose_name="Sprzedawca")
     event_id = models.CharField("ID zdarzenia", max_length=300, unique=True, null=True, blank=True)
     order_id = models.CharField("ID zamówienia", max_length=300, null=True, blank=True)
+    commandId = models.CharField("ID komendy", max_length=300, null=True, blank=True)
+    shipmentId = models.CharField("ID przesyłki", max_length=300, null=True, blank=True)
+    label_file = models.FileField("Etykieta przewozowa", upload_to=label_upload_path, null=True, blank=True)
     buyer_login = models.CharField("Login kupującego", max_length=100)
     buyer_email = models.EmailField("E-mail kupującego")
     buyer_name = models.CharField("Imię i nazwisko", max_length=100, null=True, blank=True)

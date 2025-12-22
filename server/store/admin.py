@@ -1,4 +1,5 @@
 import time
+from uuid import uuid4
 from django.contrib import admin
 from django.shortcuts import redirect, render
 from django import forms
@@ -175,8 +176,8 @@ class ProductAdmin(admin.ModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
-    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'hurt_price', 'zysk_after_payments', 'zysk_procent',]
-    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'price_brutto', 'hurt_price', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
+    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
+    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'hurt_price', 'price_brutto', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [
         apply_discount, 
@@ -1404,7 +1405,12 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         'vendor__name',
         'id',                  # internal PK, useful for exact searches
     ]
-    actions = ['remove_duplicate_invoices', 'send_auto_message', 'generate_invoice']
+    actions = [
+        'create_allegro_orders',
+        'remove_duplicate_invoices', 
+        'send_auto_message', 
+        'generate_invoice'
+        ]
     inlines = [AllegroOrderItemInline, InvoiceInline, InvoiceCorrectionInline]
 
     change_list_template = "admin/store/allegroorder/change_list.html"
@@ -1443,6 +1449,121 @@ class AllegroOrderAdmin(admin.ModelAdmin):
             return response.json()
         except Exception as e:
                 print(f"Error fetching orders for {order_id}: {e}")
+
+
+    def create_allegro_orders(self, request, queryset):
+        vendors = Vendor.objects.filter(marketplace='allegro.pl')
+
+        for vendor in vendors:
+            url = f"https://{ALLEGRO_API_URL}/shipment-management/delivery-services"
+
+            headers = {
+                'Accept': 'application/vnd.allegro.public.v1+json',
+                'Authorization': f'Bearer {vendor.access_token}'
+            }
+            # response = requests.get(url, headers=headers)
+            response = allegro_request("GET", url, vendor.name, headers=headers)
+
+            if response.status_code == 200:
+                # self.message_user(request, f"✅ Pobrano zamówienia allegro dla {vendor.name}", level='success')
+                for order in queryset:
+                    print('Processing order ----------------', order)
+                    services = response.json().get('services', [])
+                    # print('Processing services ----------------', services)
+                    url_1 = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands"
+                    headers_post = {
+                        "Authorization": f"Bearer {vendor.access_token}",
+                        "Accept": "application/vnd.allegro.public.v1+json",
+                        "Content-Type": "application/vnd.allegro.public.v1+json"
+                    }
+                    payload = {
+                        # "commandId": uuid4().hex,
+                        "input": {
+                            "deliveryMethodId": services[0]['id']['deliveryMethodId'],  # wybierz pierwszą dostępną usługę dostawy int(services['id']['deliveryMethodId']),
+                                "sender":{    # wymagane, dane nadawcy
+                                    "name": vendor.name,    # dane osobowe nadawcy
+                                    "company":vendor.name,    # nazwa firmy
+                                    "street": vendor.address,    # ulica oraz numer budynku
+                                    "postalCode":"10-200",    # kod pocztowy
+                                    "city":"Wschowa",    # miasto
+                                    "countryCode":"PL",    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
+                                    "email": vendor.email,    # adres e-mail
+                                    "phone": vendor.mobile,    # numer telefonu nadawcy
+                                    # "point":"A1234567"    # wymagane, jeśli adresem nadawczym jest punkt odbioru
+                                },
+                                "receiver":{    # wymagane, dane odbiorcy
+                                    "name":"Jan Kowalski",    # dane osobowe odbiorcy
+                                    "company":"Allegro.pl sp. z o.o.",    # nazwa firmy
+                                    "street":"Główna 30",    # ulica oraz numer budynku
+                                    "postalCode":"10-200",    # kod pocztowy
+                                    "city":"Warszawa",    # miasto
+                                    "countryCode":"PL",    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
+                                    "email": order.buyer_email,    # wymagany, adres e-mail. Musisz  przekazać prawidłowy maskowany adres e-mail wygenerowany przez Allegro, np. hamu7udk3p+17454c1b6@allegromail.pl
+                                    "phone":"500600700",    # numer telefonu
+                                    # "point":"A1234567"    # wymagane, jeśli adresem odbiorczym jest punkt odbioru. ID punktu odbioru, pobierzesz z danych zamówienia za pomocą GET /order/checkout-forms
+                                },
+                    }
+                }
+                resp = allegro_request("POST", url_1, vendor.name, headers=headers_post, json=payload)
+                print('Creating shipment resp ----------------', resp, resp.text)
+                if resp.status_code == 200 or resp.status_code == 201:
+                    order.commandId = resp.json().get('commandId')
+                    order.save(update_fields=['commandId'])
+                    ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{order.commandId}"
+                    ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
+                    print('Fetching shipment ship_resp ##################### ', ship_resp, ship_resp.text)
+                    if ship_resp.status_code == 400 or ship_resp.status_code == 401:
+                        self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                    else:
+                        print('Fetching shipment ship_resp ********************* ', ship_resp, ship_resp.text)
+                        order.shipmentId = ship_resp.json().get('shipmentId')
+                        order.save(update_fields=['shipmentId'])
+                        label_url = f"https://{ALLEGRO_API_URL}/shipment-management/label"
+                        label_header = {
+                            "Accept": "application/octet-stream",
+                            "Authorization": f"Bearer {vendor.access_token}",
+                            "Content-Type": "application/vnd.allegro.public.v1+json"
+                        }
+                        payload_label = {
+                            "shipmentIds": [order.shipmentId],
+                            "pageSize": "A6",
+                            "cutLine": False,
+                            "summaryReport": {
+                                "placement": "LAST",
+                                "fields": [
+                                    "WAYBILL",                     # niepusta tablica pól drukowanych w raporcie, dostępne wartości: 
+                                    # order.order_id,                         # WAYBILL, ORDER_ID, BUYER_LOGIN, ITEMS, DIMS_AND_WEIGHT, 
+                                    # order.buyer_login,                  # ADD_LABEL_TEXT,  NOTES_FOR_ORDER, REF_NUMBER, COD, 
+                                                                # INSURANCE
+                                ]
+                            }
+                        }
+                        label_resp = allegro_request("POST", label_url, vendor.name, headers=label_header, json=payload_label)
+                        if label_resp.status_code == 200:
+                            pdf_bytes = label_resp.content  # <-- PDF jako bytes
+
+                            # 2. Zapis PDF w media/labels/
+                            filename = f"label_{order.order_id}.pdf"
+                            order.label_file.save(filename, ContentFile(pdf_bytes))
+                            order.save(update_fields=["label_file"])
+
+                            # 3. Zwrócenie PDF do przeglądarki
+                            response = HttpResponse(pdf_bytes, content_type="application/pdf")
+                            response["Content-Disposition"] = f'inline; filename="{filename}"'
+                            return response
+                            # self.message_user(request, f"✅ Utworzono przesyłkę allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}", level='success')
+                        else:
+                            self.message_user(request, f"⚠️ Błąd pobierania etykiety przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {label_resp.status_code} - {label_resp.text}", level='error')
+                else:
+                    self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                    continue
+                        # self.message_user(request, f"✅ Utworzono przesyłkę allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}", level='success')
+
+            elif response.status_code == 401:
+                self.message_user(request, f"⚠️ Nieprawidłowy token dostępu dla {vendor.name}", level='error')
+                continue
+
+    create_allegro_orders.short_description = "📦 Utwórz przesyłki allegro"
 
 
 

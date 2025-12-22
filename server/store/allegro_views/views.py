@@ -152,7 +152,7 @@ def allegro_request(method, url, vendor_name, **kwargs):
     print(f' URL ######### {url}')
     print(f' METHOD ######### {method}')
     print(f' RESPONSE ######### {response}')
-    print(f' RESPONSE TEXT ######### {response.text}')
+    # print(f' RESPONSE TEXT ######### {response.text}')
 
     if response.status_code == 401:
         # Refresh token
@@ -190,6 +190,18 @@ class AllegroOrderAdminView(View):
 
         messages.success(request, "✅ Synchronizacja Allegro zakończona.")
         return redirect('/admin/store/allegroorder/')
+    
+
+# class AllegroCreateOrderView(View):
+#     def get(self, request):
+#         from store.admin import AllegroOrderAdmin
+#         from store.models import AllegroOrder
+
+#         admin_instance = AllegroOrderAdmin(AllegroOrder, admin_site=None)
+#         admin_instance.create_allegro_orders(request, queryset)
+
+#         messages.success(request, "✅ Tworzenie zamówień Allegro zakończone.")
+#         return redirect('/admin/store/allegroorder/')
     
 
 @method_decorator(staff_member_required, name='dispatch')

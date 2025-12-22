@@ -11,3 +11,8 @@ sudo systemctl reload nginx
 
 # Chek your vps CPU time still and other parameters
 mpstat -P ALL 1
+
+# Ilość CPU
+lscpu lub nproc
+
+
