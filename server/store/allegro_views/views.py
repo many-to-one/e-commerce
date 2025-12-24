@@ -146,7 +146,7 @@ def allegro_request(method, url, vendor_name, **kwargs):
     headers["Authorization"] = f"Bearer {vendor.access_token}"
     kwargs["headers"] = headers
 
-    response = requests.request(method, url, **kwargs)
+    response = requests.request(method, url, vendor_name, **kwargs)
     print(f' TRACE ID #########', response.headers.get("Trace-Id"))
     print(f' VENDOR NAME ######### {vendor_name}')
     print(f' URL ######### {url}')

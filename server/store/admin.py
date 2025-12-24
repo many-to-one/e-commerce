@@ -1469,7 +1469,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 for order in queryset:
                     print('Processing order ----------------', order)
                     services = response.json().get('services', [])
-                    # print('Processing services ----------------', services)
+                    # print('Processing services ///////////////////', services[0]['id']['deliveryMethodId'])
                     url_1 = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands"
                     headers_post = {
                         "Authorization": f"Bearer {vendor.access_token}",
@@ -1509,7 +1509,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 if resp.status_code == 200 or resp.status_code == 201:
                     order.commandId = resp.json().get('commandId')
                     order.save(update_fields=['commandId'])
-                    ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{order.commandId}"
+                    ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{resp.json().get('commandId')}"
                     ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
                     print('Fetching shipment ship_resp ##################### ', ship_resp, ship_resp.text)
                     if ship_resp.status_code == 400 or ship_resp.status_code == 401:
