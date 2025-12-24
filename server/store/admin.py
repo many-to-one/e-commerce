@@ -45,6 +45,21 @@ PAYU_API_URL = os.getenv("PAYU_API_URL")
 _marketplace = os.getenv("marketplace")
 
 
+def dbg(label, value):
+    """Pretty‑print any value safely, even if it's None or deeply nested."""
+    import json
+
+    try:
+        pretty = json.dumps(value, indent=4, ensure_ascii=False)
+    except Exception:
+        pretty = str(value)
+
+    print(f"\n===== DEBUG: {label} =====")
+    print(pretty)
+    print("====================================\n")
+
+
+
 @admin.action(description="Discount") #How to add 20% to the title/description?
 def apply_discount(modeladmin, request, queryset):
     queryset.update(price=F('price') * 0.8) #20%
@@ -144,6 +159,11 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': (
                 'title', 'allegro_id', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
+            )
+        }),
+        ('Parametry', {
+            'fields': (
+                'weight', 'height', 'width', 'depth'
             )
         }),
         ('Sprzedawcy', {
@@ -1394,7 +1414,7 @@ class InvoiceCorrectionInline(admin.TabularInline):
 
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
+    list_display = ['order_id', 'label_tag', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
     list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
     # search_fields = ['order_id', 'event_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
     search_fields = [
@@ -1417,6 +1437,11 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
     invoice_required = None
     invoice_data = {}
+
+    def label_tag(self, obj): 
+        if obj.label_file and obj.label_file.name: 
+            return "✅" 
+        return "—"
 
     def changelist_view(self, request, extra_context=None):
         # If no filter is applied, redirect with default filter for READY_FOR_PROCESSING
@@ -1452,6 +1477,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
 
     def create_allegro_orders(self, request, queryset):
+        # Wymyślić dodawanie numeru przesyłki do zamówienia allegro i zmienić status
         vendors = Vendor.objects.filter(marketplace='allegro.pl')
 
         for vendor in vendors:
@@ -1463,13 +1489,83 @@ class AllegroOrderAdmin(admin.ModelAdmin):
             }
             # response = requests.get(url, headers=headers)
             response = allegro_request("GET", url, vendor.name, headers=headers)
+            # print('create_allegro_orders ######################## ', response, response.text)
 
             if response.status_code == 200:
                 # self.message_user(request, f"✅ Pobrano zamówienia allegro dla {vendor.name}", level='success')
                 for order in queryset:
-                    print('Processing order ----------------', order)
-                    services = response.json().get('services', [])
-                    # print('Processing services ///////////////////', services[0]['id']['deliveryMethodId'])
+                    print('Processing order delivery_method_id  +3+3+3+3+3+3+3+3', order.delivery_method_id)
+                    if order.delivery_method_id is None:
+                        delivery_url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{order.order_id}"
+                        delivery = allegro_request("GET", delivery_url, vendor.name, headers=headers)
+                        delivery_method_id = (
+                            delivery.json()
+                            .get("delivery", {})
+                            .get("method", {})
+                            .get("id")
+                        )
+                        delivery_method_name = (
+                            delivery.json()
+                            .get("delivery", {})
+                            .get("method", {})
+                            .get("name")
+                        )
+                        pickup_point_id = (
+                            delivery.json()
+                            .get("delivery", {})
+                            .get("pickupPoint", {})
+                            .get("id")
+                        )
+                        pickup_point_name = delivery.json().get("delivery", {}).get("pickupPoint", {}).get("name")
+                        order.delivery_method_id = delivery_method_id
+                        order.delivery_method_name = delivery_method_name
+                        order.pickup_point_id = pickup_point_id
+                        order.pickup_point_name = pickup_point_name
+                        order.save(update_fields=['delivery_method_id', 'delivery_method_name', 'pickup_point_id', 'pickup_point_name'])
+
+                        print('Processing delivery ///////////////////', json.dumps(delivery.json(), indent=4, ensure_ascii=False))
+
+                    items = order.items.all()
+
+                    packages = []
+
+                    for item in items:
+                        print('Processing order item ######################## ', item.product.sku, item.quantity)
+                        packages.append({ # wymagane, informacje o paczkach. Maksymalna liczba przesyłek dla przewoźników to: 10. Maksymalna liczba paczek wchodzących w skład jednej przesyłki (dotyczy tylko DPD i WE|DO) to: 10.
+                            "type": "PACKAGE", # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                            "length": {
+                                "value": float(item.product.depth or 0),   # or your mapping
+                                "unit": "CENTIMETER"
+                            },
+                            "width": {
+                                "value": float(item.product.width or 0),
+                                "unit": "CENTIMETER"
+                            },
+                            "height": {
+                                "value": float(item.product.height or 0),
+                                "unit": "CENTIMETER"
+                            },
+                            "weight": {
+                                "value": float(item.product.weight or 0),
+                                "unit": "KILOGRAMS"
+                            },
+                            "items": [
+                                {
+                                    "sku": item.product.sku,
+                                    "quantity": item.quantity
+                                }
+                            ],
+                            "textOnLabel": f"{item.product.sku}, "  # opis na etykiecie paczki
+                        })
+
+                    import re
+
+                    address = "ul. Testowa 1, 67-400 Wschowa"
+                    match = re.search(r"\b\d{2}-\d{3}\b", address)
+
+                    postal_code = match.group(0) if match else None
+                    # print(postal_code)  # 67-400
+
                     url_1 = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands"
                     headers_post = {
                         "Authorization": f"Bearer {vendor.access_token}",
@@ -1479,12 +1575,12 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     payload = {
                         # "commandId": uuid4().hex,
                         "input": {
-                            "deliveryMethodId": services[0]['id']['deliveryMethodId'],  # wybierz pierwszą dostępną usługę dostawy int(services['id']['deliveryMethodId']),
+                            "deliveryMethodId": order.delivery_method_id,  
                                 "sender":{    # wymagane, dane nadawcy
                                     "name": vendor.name,    # dane osobowe nadawcy
                                     "company":vendor.name,    # nazwa firmy
                                     "street": vendor.address,    # ulica oraz numer budynku
-                                    "postalCode":"10-200",    # kod pocztowy
+                                    "postalCode": postal_code,    # kod pocztowy
                                     "city":"Wschowa",    # miasto
                                     "countryCode":"PL",    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
                                     "email": vendor.email,    # adres e-mail
@@ -1492,18 +1588,22 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                                     # "point":"A1234567"    # wymagane, jeśli adresem nadawczym jest punkt odbioru
                                 },
                                 "receiver":{    # wymagane, dane odbiorcy
-                                    "name":"Jan Kowalski",    # dane osobowe odbiorcy
-                                    "company":"Allegro.pl sp. z o.o.",    # nazwa firmy
-                                    "street":"Główna 30",    # ulica oraz numer budynku
-                                    "postalCode":"10-200",    # kod pocztowy
-                                    "city":"Warszawa",    # miasto
+                                    "name": order.buyer_name,    # dane osobowe odbiorcy
+                                    "company": order.buyer_company_name,    # nazwa firmy
+                                    "street": order.buyer_street,    # ulica oraz numer budynku
+                                    "postalCode": order.buyer_zipcode,    # kod pocztowy
+                                    "city": order.buyer_city,    # miasto
                                     "countryCode":"PL",    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
                                     "email": order.buyer_email,    # wymagany, adres e-mail. Musisz  przekazać prawidłowy maskowany adres e-mail wygenerowany przez Allegro, np. hamu7udk3p+17454c1b6@allegromail.pl
                                     "phone":"500600700",    # numer telefonu
-                                    # "point":"A1234567"    # wymagane, jeśli adresem odbiorczym jest punkt odbioru. ID punktu odbioru, pobierzesz z danych zamówienia za pomocą GET /order/checkout-forms
+                                    "point": order.pickup_point_id    # wymagane, jeśli adresem odbiorczym jest punkt odbioru. ID punktu odbioru, pobierzesz z danych zamówienia za pomocą GET /order/checkout-forms
                                 },
+                                "referenceNumber":"abcd1234",    # zewnętrzny ID / sygnatura, który nadaje sprzedający, dzięki któremu rozpozna przesyłkę w swoim systemie (część przewoźników nie korzysta z tego pola, w związku z czym informacja nie będzie widoczna na etykiecie)
+                                
+                                "packages": packages
                     }
                 }
+
                 resp = allegro_request("POST", url_1, vendor.name, headers=headers_post, json=payload)
                 print('Creating shipment resp ----------------', resp, resp.text)
                 if resp.status_code == 200 or resp.status_code == 201:
@@ -1511,10 +1611,46 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     order.save(update_fields=['commandId'])
                     ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{resp.json().get('commandId')}"
                     ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
+                    ship_data = ship_resp.json()
+                    # Poll up to 10 times 
+                    # max_attempts = 10 
+                    # attempt = 1
                     print('Fetching shipment ship_resp ##################### ', ship_resp, ship_resp.text)
                     if ship_resp.status_code == 400 or ship_resp.status_code == 401:
                         self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
                     else:
+                        if ship_resp.json().get('status') == "ERROR":
+                            self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
+                        if ship_resp.json().get('status') == "IN_PROGRESS":
+                            self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
+                            attempt = 1
+                            max_attempts = 10
+
+                            while attempt <= max_attempts:
+
+                                retry_after = ship_resp.headers.get("Retry-After")
+                                wait_seconds = int(retry_after) if retry_after else 1
+
+                                print(f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...")
+                                self.message_user(request, f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...", level='info')
+
+                                time.sleep(wait_seconds)
+
+                                ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
+                                ship_data = ship_resp.json()
+
+                                # Stop if error
+                                if ship_data.get("status") == "ERROR":
+                                    self.message_user(request, f"❌ Błąd tworzenia przesyłki: {ship_resp.text}", level='error')
+                                    break
+
+                                # Stop if success
+                                if ship_data.get("status") == "SUCCESS" and ship_data.get("shipmentId"):
+                                    self.message_user(request, f"✅ Przesyłka utworzona: {ship_data.get('shipmentId')}", level='info')
+                                    break
+
+                                attempt += 1
+
                         print('Fetching shipment ship_resp ********************* ', ship_resp, ship_resp.text)
                         order.shipmentId = ship_resp.json().get('shipmentId')
                         order.save(update_fields=['shipmentId'])
@@ -1525,7 +1661,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             "Content-Type": "application/vnd.allegro.public.v1+json"
                         }
                         payload_label = {
-                            "shipmentIds": [order.shipmentId],
+                            "shipmentIds": [order.shipmentId], # na drugiej stronie - jak wyeliminować?
                             "pageSize": "A6",
                             "cutLine": False,
                             "summaryReport": {
@@ -1565,6 +1701,18 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
     create_allegro_orders.short_description = "📦 Utwórz przesyłki allegro"
 
+    def dbg(self, label, value):
+        """Pretty‑print any value safely, even if it's None or deeply nested."""
+        import json
+
+        try:
+            pretty = json.dumps(value, indent=4, ensure_ascii=False)
+        except Exception:
+            pretty = str(value)
+
+        print(f"\n===== DEBUG: {label} =====")
+        print(pretty)
+        print("====================================\n")
 
 
     def fetch_and_store_allegro_orders(self, request, queryset=None):
@@ -1593,47 +1741,135 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                 events = response.json().get('events', [])
 
+                # for event in events:
+                #     # print('Processing event ----------------', event)
+                #     order = event.get('order') or {}
+                #     checkout_form = order.get('checkoutForm') or {}
+                #     checkout_form_id = checkout_form.get('id', '')
+                #     if not checkout_form_id:
+                #         continue
+
+                #     buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token, vendor.name) or {}
+                #     buyer = buyer_info.get('buyer') or {}
+                #     invoice = buyer_info.get('invoice') or {}
+                #     address = invoice.get('address') or {}
+                #     company = address.get('company') or {}
+                #     if company:
+                #         ids = company.get('ids') or []
+                #         buyer_nip = ids[0].get('value') if ids else 'brak'
+                #     else:
+                #         buyer_nip = 'brak'
+
+                #     line_items = order.get('lineItems') or []
+
+                #     delivery = buyer_info.get('delivery') or {}
+                #     delivery_method_id = delivery.get('method', {}).get('id')
+                #     delivery_method_name = delivery.get('method', {}).get('name')
+                #     pickup_point_id = delivery.get('pickupPoint', {}).get('id')
+                #     pickup_point_name = delivery.get('pickupPoint', {}).get('name')
+                #     delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
+                #     is_smart = delivery.get('smart', 'brak')
+
+                #     # print(' ######### ######### ######### buyer_info delivery ----------------', delivery)
+                #     # print(' ######### ######### ######### buyer_info delivery_cost ----------------', delivery_cost)
+                #     # print(' ######### ######### ######### buyer_info is_smart ----------------', is_smart)
+
+
+                #     # print('company ----------------', company.get('name', ''))
+                #     # print('buyer_zipcode ----------------', buyer.get('address', {}).get('postCode', ''))
+
+                #     # delivery_cost = float(buyer_info['delivery']['cost']['amount']) or 0.00
+                #     is_smart = buyer_info.get('delivery', {}).get('smart', 'brak')
+
+                #     # --- 1. Utwórz/aktualizuj nagłówek zamówienia ---
+                #     allegro_order, created = AllegroOrder.objects.update_or_create(
+                #         event_id=event['id'],
+                #         order_id=checkout_form_id,
+                #         vendor=vendor,
+                #         delivery_method_id=delivery_method_id,
+                #         delivery_method_name=delivery_method_name,
+                #         pickup_point_id=pickup_point_id,
+                #         pickup_point_name=pickup_point_name,
+                #         defaults={
+                #             'buyer_login': buyer.get('login', ''),
+                #             'buyer_email': buyer.get('email', ''),
+                #             'buyer_name': f'{buyer.get("firstName", "")} {buyer.get("lastName", "")}',
+                #             'buyer_company_name': buyer.get("companyName", ""),
+                #             'buyer_street': buyer.get('address', {}).get('street', ''),
+                #             'buyer_zipcode': buyer.get('address', {}).get('postCode', ''),
+                #             'buyer_city': buyer.get('address', {}).get('city', ''),
+                #             'buyer_nip': buyer_nip,
+                #             'occurred_at': parse_datetime(event['occurredAt']),
+                #             'type': event['type'],
+                #             'is_smart': is_smart,
+                #             'delivery_cost': delivery_cost #0 if is_smart else delivery_cost,
+                #         }
+                #     )
+
                 for event in events:
-                    # print('Processing event ----------------', event)
+
+                    self.dbg("EVENT RAW", event)
+
                     order = event.get('order') or {}
+                    self.dbg("ORDER", order)
+
                     checkout_form = order.get('checkoutForm') or {}
-                    checkout_form_id = checkout_form.get('id')
+                    checkout_form_id = checkout_form.get('id', '')
+                    self.dbg("CHECKOUT FORM", checkout_form)
+
                     if not checkout_form_id:
                         continue
 
                     buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token, vendor.name) or {}
+                    self.dbg("BUYER INFO", buyer_info)
+
                     buyer = buyer_info.get('buyer') or {}
+                    self.dbg("BUYER", buyer)
+
                     invoice = buyer_info.get('invoice') or {}
                     address = invoice.get('address') or {}
                     company = address.get('company') or {}
+                    self.dbg("INVOICE", invoice)
+                    self.dbg("ADDRESS", address)
+                    self.dbg("COMPANY", company)
+
                     if company:
                         ids = company.get('ids') or []
                         buyer_nip = ids[0].get('value') if ids else 'brak'
                     else:
                         buyer_nip = 'brak'
+                    self.dbg("BUYER NIP", buyer_nip)
 
                     line_items = order.get('lineItems') or []
+                    self.dbg("LINE ITEMS", line_items)
 
                     delivery = buyer_info.get('delivery') or {}
-                    delivery_cost = float(delivery.get('cost', {}).get('amount', 0))
-                    is_smart = delivery.get('smart')
+                    self.dbg("DELIVERY", delivery)
 
-                    # print(' ######### ######### ######### buyer_info delivery ----------------', delivery)
-                    # print(' ######### ######### ######### buyer_info delivery_cost ----------------', delivery_cost)
-                    # print(' ######### ######### ######### buyer_info is_smart ----------------', is_smart)
+                    delivery_method = delivery.get('method') or {}
+                    pickup_point = delivery.get('pickupPoint') or {}
+                    cost = delivery.get('cost') or {}
 
+                    delivery_method_id = delivery_method.get('id')
+                    delivery_method_name = delivery_method.get('name')
+                    pickup_point_id = pickup_point.get('id')
+                    pickup_point_name = pickup_point.get('name')
+                    delivery_cost = float(cost.get('amount', 0))
+                    is_smart = delivery.get('smart', 'brak')
 
-                    # print('company ----------------', company.get('name', ''))
-                    # print('buyer_zipcode ----------------', buyer.get('address', {}).get('postCode', ''))
+                    self.dbg("DELIVERY METHOD", delivery_method)
+                    self.dbg("PICKUP POINT", pickup_point)
+                    self.dbg("DELIVERY COST", delivery_cost)
+                    self.dbg("IS SMART", is_smart)
 
-                    # delivery_cost = float(buyer_info['delivery']['cost']['amount']) or 0.00
-                    is_smart = buyer_info.get('delivery', {}).get('smart')
-
-                    # --- 1. Utwórz/aktualizuj nagłówek zamówienia ---
                     allegro_order, created = AllegroOrder.objects.update_or_create(
                         event_id=event['id'],
                         order_id=checkout_form_id,
                         vendor=vendor,
+                        delivery_method_id=delivery_method_id,
+                        delivery_method_name=delivery_method_name,
+                        pickup_point_id=pickup_point_id,
+                        pickup_point_name=pickup_point_name,
                         defaults={
                             'buyer_login': buyer.get('login', ''),
                             'buyer_email': buyer.get('email', ''),
@@ -1646,9 +1882,16 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             'occurred_at': parse_datetime(event['occurredAt']),
                             'type': event['type'],
                             'is_smart': is_smart,
-                            'delivery_cost': delivery_cost #0 if is_smart else delivery_cost,
+                            'delivery_cost': delivery_cost,
                         }
                     )
+
+                    self.dbg("ORDER SAVED", {
+                        "id": allegro_order.id,
+                        "created": created,
+                        "order_id": allegro_order.order_id,
+                    })
+
 
                     # --- 2. Utwórz/aktualizuj pozycje zamówienia ---
                     for item in line_items:

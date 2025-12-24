@@ -157,6 +157,12 @@ class Product(models.Model):
     slug = models.SlugField(max_length=255, null=True, blank=True,)
     date = models.DateTimeField(default=timezone.now)
 
+    # Parameters
+    weight = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True, help_text="Waga w kg")
+    height = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True, help_text="Wysokość w cm")
+    width = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True, help_text="Szerokość w cm")
+    depth = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True, help_text="Głębokość w cm")
+
     class Meta:
         ordering = ['-id']
         verbose_name = "Produkt"
@@ -476,6 +482,10 @@ class AllegroOrder(models.Model):
     order_id = models.CharField("ID zamówienia", max_length=300, null=True, blank=True)
     commandId = models.CharField("ID komendy", max_length=300, null=True, blank=True)
     shipmentId = models.CharField("ID przesyłki", max_length=300, null=True, blank=True)
+    delivery_method_id = models.CharField("ID metody dostawy", max_length=300, null=True, blank=True)
+    delivery_method_name = models.CharField("Nazwa metody dostawy", max_length=300, null=True, blank=True)
+    pickup_point_id = models.CharField("ID punktu odbioru", max_length=300, null=True, blank=True)
+    pickup_point_name = models.CharField("Nazwa punktu odbioru", max_length=300, null=True, blank=True)
     label_file = models.FileField("Etykieta przewozowa", upload_to=label_upload_path, null=True, blank=True)
     buyer_login = models.CharField("Login kupującego", max_length=100)
     buyer_email = models.EmailField("E-mail kupującego")
@@ -498,12 +508,12 @@ class AllegroOrder(models.Model):
         verbose_name = "Zamówienie Allegro"
         verbose_name_plural = "Zamówienia Allegro"
 
-    # def __str__(self):
-    #     return f"{self.order_id}"
-
     def __str__(self):
-        # This is what the autocomplete dropdown shows
-        return f"{self.order_id or '—'} · {self.buyer_login or ''} · {self.vendor.name if self.vendor_id else ''}"
+        return self.order_id
+
+    # def __str__(self):
+    #     # This is what the autocomplete dropdown shows
+    #     return f"{self.order_id or '—'} · {self.buyer_login or ''} · {self.vendor.name if self.vendor_id else ''}"
 
 
 class AllegroOrderItem(models.Model):

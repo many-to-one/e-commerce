@@ -20,7 +20,7 @@ from .utils.payu import get_client_ip, payu_authenticate, to_grosze
 from vendor.models import Vendor
 from vendor.serializer import VendorSerializer
 
-from .serializers import CartCheckSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer, AddressSerializer
+from .serializers import CartCheckSerializer, PrestaCSVSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer, AddressSerializer
 from .models import Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
 from .store_pagination import StorePagination
 
@@ -790,15 +790,25 @@ class PrestaCSVView(APIView):
             error_message = traceback.format_exc()
             print(f"Error: {error_message}")
             return Response({"error": str(e)}, status=500) 
+        
 
-
+from rest_framework.parsers import MultiPartParser, FormParser
 class PrestaUpdateCSVView(APIView):
 
+    serializer_class = PrestaCSVSerializer
     permission_classes = (AllowAny,)
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_serializer(self, *args, **kwargs): 
+        return self.serializer_class(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        csv_file = request.FILES.get("file")
-        user_id = request.data["user_id"]
+        # csv_file = request.FILES.get("file")
+        # user_id = request.data["user_id"]
+        serializer = self.get_serializer(data=request.data) 
+        serializer.is_valid(raise_exception=True) 
+        csv_file = serializer.validated_data["file"] 
+        user_id = serializer.validated_data["user_id"]
         user = User.objects.get(id=1)
 
         # sprawdzanie checkboxów
@@ -844,12 +854,22 @@ class PrestaUpdateCSVView(APIView):
 
 
             for idx, row in df.iterrows():
+                for r in row:
+                    print('***ROW***', r)
                 categories = row["Kategorie (x,y,z...)"].split(",")
                 if len(categories) >= 2:
-                    category_, created = Category.objects.get_or_create(
-                        title=categories[1],
-                        category_hierarchy=categories[2:]
-                    )
+                    title = categories[1] 
+                    hierarchy = categories[2:]
+                    # Try to fetch existing category
+                    category = Category.objects.filter(title=title).first()
+                    if category:  # Update fields
+                        category.category_hierarchy = hierarchy
+                        category.save(update_fields=["category_hierarchy"])
+                    else:  # Create new category
+                        category = Category.objects.create(
+                            title=title,
+                            category_hierarchy=hierarchy
+                        )
 
                 images = str(row["Zdjęcia"]).split(",")
                 first_image = images[0].strip() if images else None
