@@ -114,7 +114,7 @@ async def async_allegro_request(method, url, vendor, **kwargs):
     headers["Authorization"] = f"Bearer {vendor.access_token}"
     kwargs["headers"] = headers
 
-    response = requests.request(method, url, vendor, **kwargs)
+    response = requests.request(method, url, **kwargs)
     # print(f' TRACE ID #########', response.headers.get("Trace-Id"))
     # print(f' VENDOR NAME ######### {vendor_name}')
     # print(f' URL ######### {url}')
@@ -129,7 +129,7 @@ async def async_allegro_request(method, url, vendor, **kwargs):
         # Retry with new token
         headers["Authorization"] = f"Bearer {new_token}"
         kwargs["headers"] = headers
-        response = requests.request(method, url, vendor,**kwargs)
+        response = requests.request(method, url,**kwargs)
 
     return response
 
@@ -161,7 +161,7 @@ def allegro_request(method, url, vendor_name, **kwargs):
         # Retry with new token
         headers["Authorization"] = f"Bearer {new_token}"
         kwargs["headers"] = headers
-        response = requests.request(method, url, vendor_name, **kwargs)
+        response = requests.request(method, url, **kwargs)
 
     elif response.status_code == 403:
         # Refresh token
