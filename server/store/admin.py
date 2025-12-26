@@ -1347,8 +1347,8 @@ class AddressAdmin(ImportExportModelAdmin):
     list_display = ['user', 'full_name', 'status']
 
 class DeliveryCouriersAdmin(ImportExportModelAdmin):
-    list_editable = ['tracking_website']
-    list_display = ['name', 'tracking_website']
+    # list_editable = ['width', 'height', 'length', 'weight']
+    list_display = ['name', 'width', 'height', 'length', 'weight']
 
 class NotificationAdmin(ImportExportModelAdmin):
     list_editable = ['seen']
@@ -1470,7 +1470,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
             }
             # response = requests.get(url, headers=headers)
             response = allegro_request("GET", url, vendor_name, headers=headers)
-            # print('Fetching order buyer_info ----------------', response, response.text)
+            print(' ///////////////////////////// Fetching order buyer_info ////////////////////////////// ', response, response.text)
             return response.json()
         except Exception as e:
                 print(f"Error fetching orders for {order_id}: {e}")
@@ -1478,7 +1478,10 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
     def create_allegro_orders(self, request, queryset):
         # Wymyślić dodawanie numeru przesyłki do zamówienia allegro i zmienić status
+        # Przetestowac z dwoma i więcej różnymi produktami w zamówieniu
         vendors = Vendor.objects.filter(marketplace='allegro.pl')
+
+        errors = set()
 
         for vendor in vendors:
             url = f"https://{ALLEGRO_API_URL}/shipment-management/delivery-services"
@@ -1526,37 +1529,128 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                         print('Processing delivery ///////////////////', json.dumps(delivery.json(), indent=4, ensure_ascii=False))
 
                     items = order.items.all()
+                    courier_name = " ".join(order.delivery_method_name.split()[-2:])
+                    courier = DeliveryCouriers.objects.filter(name__icontains=courier_name).first()
+                    if not courier:
+                        self.message_user(request, f"⚠️ Nie znaleziono kuriera {courier_name} dla zamówienia {order.order_id}", level='error')
+                        continue
 
-                    packages = []
+                    # 1. Combine items
+                    item_w = 0
+                    item_h = 0
+                    item_l = 0
+                    item_weight = 0
+                    max_w = float(courier.width or 0) 
+                    max_h = float(courier.height or 0) 
+                    max_l = float(courier.length or 0) 
+                    max_weight = float(courier.weight or 0) 
+                    max_packages = getattr(courier, "max_packages", 1) 
+                    max_volume = max_w * max_h * max_l 
+                    text_on_label = ""
+                    packages = [] 
 
+                    val = []
+                    def get_max(value):
+                        val.append(value)
+                        return max(val)     
+                    
                     for item in items:
-                        print('Processing order item ######################## ', item.product.sku, item.quantity)
-                        packages.append({ # wymagane, informacje o paczkach. Maksymalna liczba przesyłek dla przewoźników to: 10. Maksymalna liczba paczek wchodzących w skład jednej przesyłki (dotyczy tylko DPD i WE|DO) to: 10.
-                            "type": "PACKAGE", # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
-                            "length": {
-                                "value": float(item.product.depth or 0),   # or your mapping
-                                "unit": "CENTIMETER"
-                            },
-                            "width": {
-                                "value": float(item.product.width or 0),
-                                "unit": "CENTIMETER"
-                            },
-                            "height": {
-                                "value": float(item.product.height or 0),
-                                "unit": "CENTIMETER"
-                            },
-                            "weight": {
-                                "value": float(item.product.weight or 0),
-                                "unit": "KILOGRAMS"
-                            },
-                            "items": [
+                        product = item.product 
+                        item_w = get_max(float(product.width))
+                        item_h = get_max(float(product.height))
+                        item_l += float(product.depth) * item.quantity
+                        item_weight += float(product.weight) * item.quantity
+                        item_volume = item_w * item_h * item_l
+                        text_on_label += f"{item.quantity}x{item.product.sku}, "
+
+                        # Jeśli głębokość paczki przekracza maksymalną długość, spróbuj zwiększyć szerokość
+                        print(item_l, max_l,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        print(item_w, max_w,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        print(item_h, max_h,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        if item_l >= max_l and item_w < max_w:
+                            print(" item_l >= max_l and item_w < max_w OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                            if max_w - item_w > float(product.depth):
+                                print("max_w - item_w > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                                item_w += item_l
+                                item_l -= float(product.depth)
+                                print(f"Udało się skompletowac paczke po szerokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+                            elif max_h - item_h > float(product.depth):
+                                print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                                item_h += item_l
+                                item_l -= float(product.depth)
+                                print(f"Udało się skompletowac paczke po wysokości a nie po szyrokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+
+                        elif item_l >= max_l and item_h < max_h:
+                            print("item_l >= max_l and item_h < max_h OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                            if max_h - item_h > float(product.depth):
+                                print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                                item_h += item_l
+                                item_l -= float(product.depth)
+                                print(f"Udało się skompletowac paczke po wysokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+
+                        # else:
+                        #     print("Nie udało się skompletowac paczki w dopuszczalnych wymiarach >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        #     errors.add(f"❌ 1593 Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.")
+                        #     continue
+                        
+                        
+                        # wymagane, informacje o paczkach. Maksymalna liczba przesyłek dla przewoźników to: 10. Maksymalna liczba paczek wchodzących w skład jednej przesyłki (dotyczy tylko DPD i WE|DO) to: 10.
+
+                        elif item_l < max_l and item_h < max_h and item_w < max_w and item_weight < max_w and item_volume < max_volume:
+                            packages = [
                                 {
-                                    "sku": item.product.sku,
-                                    "quantity": item.quantity
-                                }
-                            ],
-                            "textOnLabel": f"{item.product.sku}, "  # opis na etykiecie paczki
-                        })
+                                        "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                                        "length": {    # długość paczki
+                                            "value":item_l,
+                                            "unit":"CENTIMETER"
+                                        },
+                                        "width":{    # szerokość paczki
+                                            "value":item_w,
+                                            "unit":"CENTIMETER"
+                                        },
+                                        "height":{    # wysokość paczki
+                                            "value":item_h,
+                                            "unit":"CENTIMETER"
+                                        },
+                                        "weight":{    # waga paczki
+                                            "value":item_weight,
+                                            "unit":"KILOGRAMS"
+                                        },
+                                        "textOnLabel": text_on_label    # opis na etykiecie paczki
+                                    
+                            }]
+                            print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
+
+                        elif item_l >= max_l or item_h >= max_h or item_w >= max_w or item_weight > max_weight or item_volume > max_volume:
+                            # self.message_user(request, f"⚠️ Przekroczono maksymalne wymiary lub wagę paczki dla zamówienia {order.order_id}. Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, maksymalna waga: {max_weight} kg. OBECNE WYMIARY I WAGA: {item_l}x{item_h}x{item_w} cm, {item_weight} kg.", level='error')
+                            errors.add(f"❌ 1600 Przekroczono maksymalne wymiary lub wagę paczki dla zamówienia {order.order_id}. Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, maksymalna waga: {max_weight} kg. OBECNE WYMIARY I WAGA: {item_l}x{item_h}x{item_w} cm, {item_weight} kg.")
+                            
+                            # wymyślić logikę dodawania nastepnej paczki
+                            # packages.append(
+                            #     {
+                            #             "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                            #             "length": {    # długość paczki
+                            #                 "value": #?,
+                            #                 "unit":"CENTIMETER"
+                            #             },
+                            #             "width":{    # szerokość paczki
+                            #                 "value":#?,
+                            #                 "unit":"CENTIMETER"
+                            #             },
+                            #             "height":{    # wysokość paczki
+                            #                 "value":#?,
+                            #                 "unit":"CENTIMETER"
+                            #             },
+                            #             "weight":{    # waga paczki
+                            #                 "value":#?,
+                            #                 "unit":"KILOGRAMS"
+                            #             },
+                            #             "textOnLabel": text_on_label    # opis na etykiecie paczki
+                                    
+                            #     }
+                            # )
+
+                    print('######################## Final package to be sent ######################## ', packages)
 
                     import re
 
@@ -1617,22 +1711,22 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     # attempt = 1
                     print('Fetching shipment ship_resp ##################### ', ship_resp, ship_resp.text)
                     if ship_resp.status_code == 400 or ship_resp.status_code == 401:
-                        self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                        errors.add(f"❌ 1688 {ship_resp.status_code} - {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                     else:
                         if ship_resp.json().get('status') == "ERROR":
-                            self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
+                            errors.add(f"❌ 1691 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                         if ship_resp.json().get('status') == "IN_PROGRESS":
-                            self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
+                            # self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
                             attempt = 1
                             max_attempts = 10
 
                             while attempt <= max_attempts:
 
-                                retry_after = ship_resp.headers.get("Retry-After")
+                                retry_after = 1 #ship_resp.headers.get("Retry-After")
                                 wait_seconds = int(retry_after) if retry_after else 1
 
                                 print(f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...")
-                                self.message_user(request, f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...", level='info')
+                                # self.message_user(request, f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...", level='info')
 
                                 time.sleep(wait_seconds)
 
@@ -1641,7 +1735,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                                 # Stop if error
                                 if ship_data.get("status") == "ERROR":
-                                    self.message_user(request, f"❌ Błąd tworzenia przesyłki: {ship_resp.text}", level='error')
+                                    errors.add(f"❌ 1712 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                                     break
 
                                 # Stop if success
@@ -1664,15 +1758,15 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             "shipmentIds": [order.shipmentId], # na drugiej stronie - jak wyeliminować?
                             "pageSize": "A6",
                             "cutLine": False,
-                            "summaryReport": {
-                                "placement": "LAST",
-                                "fields": [
-                                    "WAYBILL",                     # niepusta tablica pól drukowanych w raporcie, dostępne wartości: 
-                                    # order.order_id,                         # WAYBILL, ORDER_ID, BUYER_LOGIN, ITEMS, DIMS_AND_WEIGHT, 
-                                    # order.buyer_login,                  # ADD_LABEL_TEXT,  NOTES_FOR_ORDER, REF_NUMBER, COD, 
-                                                                # INSURANCE
-                                ]
-                            }
+                            # "summaryReport": {
+                            #     "placement": "LAST",
+                            #     "fields": [
+                            #         "WAYBILL",                     # niepusta tablica pól drukowanych w raporcie, dostępne wartości: 
+                            #         # order.order_id,                         # WAYBILL, ORDER_ID, BUYER_LOGIN, ITEMS, DIMS_AND_WEIGHT, 
+                            #         # order.buyer_login,                  # ADD_LABEL_TEXT,  NOTES_FOR_ORDER, REF_NUMBER, COD, 
+                            #                                     # INSURANCE
+                            #     ]
+                            # }
                         }
                         label_resp = allegro_request("POST", label_url, vendor.name, headers=label_header, json=payload_label)
                         if label_resp.status_code == 200:
@@ -1689,15 +1783,21 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             return response
                             # self.message_user(request, f"✅ Utworzono przesyłkę allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}", level='success')
                         else:
-                            self.message_user(request, f"⚠️ Błąd pobierania etykiety przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {label_resp.status_code} - {label_resp.text}", level='error')
+                            # self.message_user(request, f"⚠️ Błąd pobierania etykiety przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {label_resp.status_code} - {label_resp.text}", level='error')
+                            # errors += f"{label_resp.status_code} - {label_resp.text}\n"
+                            errors.add(f"❌ 1762 {label_resp.status_code} - {label_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                 else:
-                    self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                    # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                    errors.add(f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                     continue
                         # self.message_user(request, f"✅ Utworzono przesyłkę allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}", level='success')
-
             elif response.status_code == 401:
                 self.message_user(request, f"⚠️ Nieprawidłowy token dostępu dla {vendor.name}", level='error')
                 continue
+
+        if errors:
+            self.message_user(request, f"⚠️ Błędy podczas tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}:\n{errors}", level='error')
+                        
 
     create_allegro_orders.short_description = "📦 Utwórz przesyłki allegro"
 
@@ -1808,43 +1908,45 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                 for event in events:
 
-                    self.dbg("EVENT RAW", event)
+                    print('Processing event ######### ######### ######### ', event)
+
+                    # self.dbg("EVENT RAW", event)
 
                     order = event.get('order') or {}
-                    self.dbg("ORDER", order)
+                    # self.dbg("ORDER", order)
 
                     checkout_form = order.get('checkoutForm') or {}
                     checkout_form_id = checkout_form.get('id', '')
-                    self.dbg("CHECKOUT FORM", checkout_form)
+                    # self.dbg("CHECKOUT FORM", checkout_form)
 
                     if not checkout_form_id:
                         continue
 
                     buyer_info = self.get_buyer_info(checkout_form_id, vendor.access_token, vendor.name) or {}
-                    self.dbg("BUYER INFO", buyer_info)
+                    # self.dbg("BUYER INFO", buyer_info)
 
                     buyer = buyer_info.get('buyer') or {}
-                    self.dbg("BUYER", buyer)
+                    # self.dbg("BUYER", buyer)
 
                     invoice = buyer_info.get('invoice') or {}
                     address = invoice.get('address') or {}
                     company = address.get('company') or {}
-                    self.dbg("INVOICE", invoice)
-                    self.dbg("ADDRESS", address)
-                    self.dbg("COMPANY", company)
+                    # self.dbg("INVOICE", invoice)
+                    # self.dbg("ADDRESS", address)
+                    # self.dbg("COMPANY", company)
 
                     if company:
                         ids = company.get('ids') or []
                         buyer_nip = ids[0].get('value') if ids else 'brak'
                     else:
                         buyer_nip = 'brak'
-                    self.dbg("BUYER NIP", buyer_nip)
+                    # self.dbg("BUYER NIP", buyer_nip)
 
                     line_items = order.get('lineItems') or []
-                    self.dbg("LINE ITEMS", line_items)
+                    # self.dbg("LINE ITEMS", line_items)
 
                     delivery = buyer_info.get('delivery') or {}
-                    self.dbg("DELIVERY", delivery)
+                    # self.dbg("DELIVERY", delivery)
 
                     delivery_method = delivery.get('method') or {}
                     pickup_point = delivery.get('pickupPoint') or {}
@@ -1857,10 +1959,10 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     delivery_cost = float(cost.get('amount', 0))
                     is_smart = delivery.get('smart', 'brak')
 
-                    self.dbg("DELIVERY METHOD", delivery_method)
-                    self.dbg("PICKUP POINT", pickup_point)
-                    self.dbg("DELIVERY COST", delivery_cost)
-                    self.dbg("IS SMART", is_smart)
+                    # self.dbg("DELIVERY METHOD", delivery_method)
+                    # self.dbg("PICKUP POINT", pickup_point)
+                    # self.dbg("DELIVERY COST", delivery_cost)
+                    # self.dbg("IS SMART", is_smart)
 
                     allegro_order, created = AllegroOrder.objects.update_or_create(
                         event_id=event['id'],
@@ -1886,11 +1988,11 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                         }
                     )
 
-                    self.dbg("ORDER SAVED", {
-                        "id": allegro_order.id,
-                        "created": created,
-                        "order_id": allegro_order.order_id,
-                    })
+                    # self.dbg("ORDER SAVED", {
+                    #     "id": allegro_order.id,
+                    #     "created": created,
+                    #     "order_id": allegro_order.order_id,
+                    # })
 
 
                     # --- 2. Utwórz/aktualizuj pozycje zamówienia ---

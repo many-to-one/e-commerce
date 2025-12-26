@@ -1160,6 +1160,10 @@ class DeliveryCouriers(models.Model):
     url_parameter = models.CharField(null=True, blank=True, max_length=100)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     free_delivery = models.CharField(choices=FREE_DELIVERY, null=True, blank=True)
+    width = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Szerokość (cm)")
+    height = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Wysokość (cm)")
+    length = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Długość (cm)")
+    weight = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Waga (kg)")
     
     class Meta:
         ordering = ["name"]
