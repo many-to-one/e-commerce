@@ -497,6 +497,7 @@ class AllegroOrder(models.Model):
     buyer_nip = models.CharField("NIP", max_length=100, null=True, blank=True)
     is_smart = models.BooleanField("Dostawa SMART", default=False)
     delivery_cost = models.DecimalField("Koszt dostawy", max_digits=10, decimal_places=2, default=0.00)
+    delivery_address = models.JSONField("Adres dostawy", null=True, blank=True)
     occurred_at = models.DateTimeField("Data zakupu")
     type = models.CharField("Typ zdarzenia", max_length=50)
     invoice_generated = models.BooleanField("Faktura wygenerowana", default=False)
