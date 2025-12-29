@@ -25,6 +25,8 @@ from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
 
+from .allegro_views.create_label import create_label
+
 from .allegro_views.create_shipment import create_shipment
 
 from .utils.payu import payu_authenticate, to_grosze
@@ -1417,7 +1419,7 @@ class InvoiceCorrectionInline(admin.TabularInline):
 
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'label_tag', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
+    list_display = ['order_id', 'delivery_method_name', 'label_tag', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
     list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
     # search_fields = ['order_id', 'event_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
     search_fields = [
@@ -1552,14 +1554,23 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                     max_l = float(courier.length or 0) 
                     max_weight = float(courier.weight or 0) 
                     max_packages = getattr(courier, "max_packages", 1) 
-                    max_volume = max_w * max_h * max_l 
+                    if max_w != 0 and max_h != 0 and max_l != 0:
+                        max_volume = max_l + 2*max_w + 2*max_h
+                    else:
+                        max_volume = item_l + 2*item_w + 2*item_h
                     text_on_label = ""
                     packages = [] 
 
                     val = []
                     def get_max(value):
                         val.append(value)
-                        return max(val)     
+                        return max(val)    
+
+                    text_on_label = ", ".join(
+                        f"{item.quantity}x{item.product.sku}, "
+                        for item in items
+                    )
+
                     
                     for item in items:
                         product = item.product 
@@ -1567,8 +1578,10 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                         item_h = get_max(float(product.height))
                         item_l += float(product.depth) * item.quantity
                         item_weight += float(product.weight) * item.quantity
-                        item_volume = item_w * item_h * item_l
-                        text_on_label += f"{item.quantity}x{item.product.sku}, "
+                        # item_volume = item_l * item_w * item_h
+                        # Girth (DPD, UPS) 
+                        item_volume = item_l + 2 * item_w + 2 * item_h
+                        # text_on_label += f"{item.quantity}x{item.product.sku}, "
 
                         # Jeśli głębokość paczki przekracza maksymalną długość, spróbuj zwiększyć szerokość
                         print(item_l, max_l,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -1600,6 +1613,40 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                         #     errors.add(f"❌ 1593 Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.")
                         #     continue
                         
+                        if order.delivery_method_name == "Allegro DPD Kurier":
+                            max_volume = 300
+                            max_weight = 31.5
+
+                            if item_volume > max_volume:
+                                errors.add(f"❌ 1599 Przekroczono maksymalną objętość paczki dla zamówienia {order.order_id}. Maksymalna objętość: {max_volume} cm3. OBECNA OBJĘTOŚĆ: {item_volume} cm3.")
+                                continue
+
+                            if item_volume <= max_volume and item_weight <= max_weight:
+                                packages = [
+                                    {
+                                            "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                                            "length": {    # długość paczki
+                                                "value":item_l,
+                                                "unit":"CENTIMETER"
+                                            },
+                                            "width":{    # szerokość paczki
+                                                "value":item_w,
+                                                "unit":"CENTIMETER"
+                                            },
+                                            "height":{    # wysokość paczki
+                                                "value":item_h,
+                                                "unit":"CENTIMETER"
+                                            },
+                                            "weight":{    # waga paczki
+                                                "value":item_weight,
+                                                "unit":"KILOGRAMS"
+                                            },
+                                            "textOnLabel": text_on_label    # opis na etykiecie paczki
+                                        
+                                }]
+                                
+
+                                print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
                         
                         # wymagane, informacje o paczkach. Maksymalna liczba przesyłek dla przewoźników to: 10. Maksymalna liczba paczek wchodzących w skład jednej przesyłki (dotyczy tylko DPD i WE|DO) to: 10.
 
@@ -1626,6 +1673,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                                         "textOnLabel": text_on_label    # opis na etykiecie paczki
                                     
                             }]
+                            
                             print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
 
                         if item_l >= max_l or item_h >= max_h or item_w >= max_w or item_weight > max_weight or item_volume > max_volume:
@@ -1636,93 +1684,13 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                             resp = create_shipment(ALLEGRO_API_URL, vendor, order, packages)
                             print('Creating shipment resp ----------------', resp, resp.text)
                             if resp.status_code == 200 or resp.status_code == 201:
-                                order.commandId = resp.json().get('commandId')
-                                order.save(update_fields=['commandId'])
-                                ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{resp.json().get('commandId')}"
-                                ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
-                                ship_data = ship_resp.json()
-                                # Poll up to 10 times 
-                                # max_attempts = 10 
-                                # attempt = 1
-                                print('Fetching shipment ship_resp second ##################### ', ship_resp, ship_resp.text)
-                                if ship_resp.status_code == 400 or ship_resp.status_code == 401:
-                                    errors.add(f"❌ 1688 {ship_resp.status_code} - {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                else:
-                                    if ship_resp.json().get('status') == "ERROR":
-                                        errors.add(f"❌ 1691 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                    if ship_resp.json().get('status') == "IN_PROGRESS":
-                                        # self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
-                                        attempt = 1
-                                        max_attempts = 10
+                                re_filename, _repdf_bytes = create_label(order, ALLEGRO_API_URL, resp, vendor, headers, errors, zip_file)
+                                if re_filename and _repdf_bytes: 
+                                    zip_file.writestr(re_filename, _repdf_bytes)
+                                # break
+                                # else:
+                                #     continue
 
-                                        while attempt <= max_attempts:
-
-                                            retry_after = ship_resp.headers.get("Retry-After")
-                                            wait_seconds = int(retry_after) if retry_after else 1
-
-                                            print(f"⏳second Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...")
-                                            # self.message_user(request, f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...", level='info')
-
-                                            time.sleep(wait_seconds)
-
-                                            ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
-                                            ship_data = ship_resp.json()
-
-                                            # Stop if error
-                                            if ship_data.get("status") == "ERROR":
-                                                errors.add(f"❌ 1712 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                                break
-
-                                            # Stop if success
-                                            if ship_data.get("status") == "SUCCESS" and ship_data.get("shipmentId"):
-                                                self.message_user(request, f"✅ second Przesyłka utworzona: {ship_data.get('shipmentId')}", level='info')
-                                                break
-
-                                            attempt += 1
-
-                                    print('second Fetching shipment ship_resp ********************* ', ship_resp, ship_resp.text)
-                                    order.shipmentId = ship_resp.json().get('shipmentId')
-                                    order.save(update_fields=['shipmentId'])
-                                    label_url = f"https://{ALLEGRO_API_URL}/shipment-management/label"
-                                    label_header = {
-                                        "Accept": "application/octet-stream",
-                                        "Authorization": f"Bearer {vendor.access_token}",
-                                        "Content-Type": "application/vnd.allegro.public.v1+json"
-                                    }
-                                    payload_label = {
-                                        "shipmentIds": [order.shipmentId], # na drugiej stronie - jak wyeliminować?
-                                        "pageSize": "A6",
-                                        "cutLine": False,
-                                        # "summaryReport": {
-                                        #     "placement": "LAST",
-                                        #     "fields": [
-                                        #         "WAYBILL",                     # niepusta tablica pól drukowanych w raporcie, dostępne wartości: 
-                                        #         # order.order_id,                         # WAYBILL, ORDER_ID, BUYER_LOGIN, ITEMS, DIMS_AND_WEIGHT, 
-                                        #         # order.buyer_login,                  # ADD_LABEL_TEXT,  NOTES_FOR_ORDER, REF_NUMBER, COD, 
-                                        #                                     # INSURANCE
-                                        #     ]
-                                        # }
-                                    }
-                                    label_resp = allegro_request("POST", label_url, vendor.name, headers=label_header, json=payload_label)
-                                    if label_resp.status_code == 200:
-
-                                        pdf_bytes = label_resp.content 
-                                        filename = f"label_{order.order_id}.pdf" 
-
-                                        # Save PDF to model field                           
-                                        order.label_file.save(filename, ContentFile(pdf_bytes)) 
-                                        order.save(update_fields=["label_file"]) 
-
-                                        # Add PDF to ZIP 
-                                        zip_file.writestr(filename, pdf_bytes)
-                                        print("__________________label_resp.status_code == 200 second______________")
-                                        # continue
-                                        
-                                    else:
-                                        # self.message_user(request, f"⚠️ Błąd pobierania etykiety przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {label_resp.status_code} - {label_resp.text}", level='error')
-                                        # errors += f"{label_resp.status_code} - {label_resp.text}\n"
-                                        errors.add(f"❌ 1762 {label_resp.status_code} - {label_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                        continue
                             else:
                                 # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
                                 errors.add(f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n")
@@ -1730,145 +1698,17 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                     print('######################## Final package to be sent ######################## ', packages)
 
-                    # import re
-
-                    # address = "ul. Testowa 1, 67-400 Wschowa"
-                    # match = re.search(r"\b\d{2}-\d{3}\b", address)
-
-                    # postal_code = match.group(0) if match else None
-                    # # print(postal_code)  # 67-400
-
-                    # url_1 = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands"
-                    # headers_post = {
-                    #     "Authorization": f"Bearer {vendor.access_token}",
-                    #     "Accept": "application/vnd.allegro.public.v1+json",
-                    #     "Content-Type": "application/vnd.allegro.public.v1+json"
-                    # }
-                    # payload = {
-                    #     # "commandId": uuid4().hex,
-                    #     "input": {
-                    #         "deliveryMethodId": order.delivery_method_id,  
-                    #             "sender":{    # wymagane, dane nadawcy
-                    #                 "name": vendor.name,    # dane osobowe nadawcy
-                    #                 "company":vendor.name,    # nazwa firmy
-                    #                 "street": vendor.address,    # ulica oraz numer budynku
-                    #                 "postalCode": postal_code,    # kod pocztowy
-                    #                 "city":"Wschowa",    # miasto
-                    #                 "countryCode":"PL",    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
-                    #                 "email": vendor.email,    # adres e-mail
-                    #                 "phone": vendor.mobile,    # numer telefonu nadawcy
-                    #                 # "point":"A1234567"    # wymagane, jeśli adresem nadawczym jest punkt odbioru
-                    #             },
-                    #             "receiver":{    # wymagane, dane odbiorcy
-                    #                 "name": f"{order.delivery_address["firstName"]} {order.delivery_address["lastName"]}",    # dane osobowe odbiorcy
-                    #                 "company": order.delivery_address["companyName"],    # nazwa firmy
-                    #                 "street": order.delivery_address["street"],    # ulica oraz numer budynku
-                    #                 "postalCode": order.delivery_address["zipCode"],    # kod pocztowy
-                    #                 "city": order.delivery_address["city"],    # miasto
-                    #                 "countryCode": order.delivery_address["countryCode"],    # kod kraju zgodny ze standardem ISO 3166-1 alpha-2
-                    #                 "email": order.buyer_email,    # wymagany, adres e-mail. Musisz  przekazać prawidłowy maskowany adres e-mail wygenerowany przez Allegro, np. hamu7udk3p+17454c1b6@allegromail.pl
-                    #                 "phone": order.delivery_address["phoneNumber"],    # numer telefonu
-                    #                 "point": order.pickup_point_id    # wymagane, jeśli adresem odbiorczym jest punkt odbioru. ID punktu odbioru, pobierzesz z danych zamówienia za pomocą GET /order/checkout-forms
-                    #             },
-                    #             "referenceNumber":"",    # zewnętrzny ID / sygnatura, który nadaje sprzedający, dzięki któremu rozpozna przesyłkę w swoim systemie (część przewoźników nie korzysta z tego pola, w związku z czym informacja nie będzie widoczna na etykiecie)
-                                
-                    #             "packages": packages
-                    #     }
-                    # }
-
-                    # resp = allegro_request("POST", url_1, vendor.name, headers=headers_post, json=payload)
-
                     resp = create_shipment(ALLEGRO_API_URL, vendor, order, packages)
                     print('Creating shipment resp ----------------', resp, resp.text)
                     if resp.status_code == 200 or resp.status_code == 201:
-                        order.commandId = resp.json().get('commandId')
-                        order.save(update_fields=['commandId'])
-                        ship_url = f"https://{ALLEGRO_API_URL}/shipment-management/shipments/create-commands/{resp.json().get('commandId')}"
-                        ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
-                        ship_data = ship_resp.json()
-                        # Poll up to 10 times 
-                        # max_attempts = 10 
-                        # attempt = 1
-                        print('Fetching shipment ship_resp ##################### ', ship_resp, ship_resp.text)
-                        if ship_resp.status_code == 400 or ship_resp.status_code == 401:
-                            errors.add(f"❌ 1688 {ship_resp.status_code} - {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                        else:
-                            if ship_resp.json().get('status') == "ERROR":
-                                errors.add(f"❌ 1691 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                            if ship_resp.json().get('status') == "IN_PROGRESS":
-                                # self.message_user(request, f"Status tworzenia przesyłki {vendor.name}: {ship_resp.status_code} - {ship_resp.text}", level='info')
-                                attempt = 1
-                                max_attempts = 10
-
-                                while attempt <= max_attempts:
-
-                                    retry_after = ship_resp.headers.get("Retry-After")
-                                    wait_seconds = int(retry_after) if retry_after else 1
-
-                                    print(f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...")
-                                    # self.message_user(request, f"⏳ Waiting {wait_seconds}s for Allegro shipment creation (attempt {attempt}/{max_attempts})...", level='info')
-
-                                    time.sleep(wait_seconds)
-
-                                    ship_resp = allegro_request("GET", ship_url, vendor.name, headers=headers)
-                                    ship_data = ship_resp.json()
-
-                                    # Stop if error
-                                    if ship_data.get("status") == "ERROR":
-                                        errors.add(f"❌ 1712 {ship_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                        break
-
-                                    # Stop if success
-                                    if ship_data.get("status") == "SUCCESS" and ship_data.get("shipmentId"):
-                                        self.message_user(request, f"✅ Przesyłka utworzona: {ship_data.get('shipmentId')}", level='info')
-                                        break
-
-                                    attempt += 1
-
-                            print('Fetching shipment ship_resp ********************* ', ship_resp, ship_resp.text)
-                            order.shipmentId = ship_resp.json().get('shipmentId')
-                            order.save(update_fields=['shipmentId'])
-                            label_url = f"https://{ALLEGRO_API_URL}/shipment-management/label"
-                            label_header = {
-                                "Accept": "application/octet-stream",
-                                "Authorization": f"Bearer {vendor.access_token}",
-                                "Content-Type": "application/vnd.allegro.public.v1+json"
-                            }
-                            payload_label = {
-                                "shipmentIds": [order.shipmentId], # na drugiej stronie - jak wyeliminować?
-                                "pageSize": "A6",
-                                "cutLine": False,
-                                # "summaryReport": {
-                                #     "placement": "LAST",
-                                #     "fields": [
-                                #         "WAYBILL",                     # niepusta tablica pól drukowanych w raporcie, dostępne wartości: 
-                                #         # order.order_id,                         # WAYBILL, ORDER_ID, BUYER_LOGIN, ITEMS, DIMS_AND_WEIGHT, 
-                                #         # order.buyer_login,                  # ADD_LABEL_TEXT,  NOTES_FOR_ORDER, REF_NUMBER, COD, 
-                                #                                     # INSURANCE
-                                #     ]
-                                # }
-                            }
-                            label_resp = allegro_request("POST", label_url, vendor.name, headers=label_header, json=payload_label)
-                            if label_resp.status_code == 200:
-
-                                pdf_bytes = label_resp.content 
-                                filename = f"label_{order.order_id}.pdf" 
-
-                                # Save PDF to model field                           
-                                order.label_file.save(filename, ContentFile(pdf_bytes)) 
-                                order.save(update_fields=["label_file"]) 
-
-                                # Add PDF to ZIP 
-                                zip_file.writestr(filename, pdf_bytes)
-                                print("__________________label_resp.status_code == 200______________")
-                                # continue
-                                
-                            else:
-                                # self.message_user(request, f"⚠️ Błąd pobierania etykiety przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {label_resp.status_code} - {label_resp.text}", level='error')
-                                # errors += f"{label_resp.status_code} - {label_resp.text}\n"
-                                errors.add(f"❌ 1762 {label_resp.status_code} - {label_resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                continue
+                        filename, pdf_bytes = create_label(order, ALLEGRO_API_URL, resp, vendor, headers, errors, zip_file)
+                        # print('######################## After create_label ######################## ', filename, pdf_bytes)
+                        if filename and pdf_bytes: 
+                            zip_file.writestr(filename, pdf_bytes)
+                        # break
+            
                     else:
+                        print('######################## Error creating shipment ######################## ', resp.status_code, resp.text )
                         # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
                         errors.add(f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n")
                         continue
