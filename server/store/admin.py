@@ -25,6 +25,8 @@ from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
 
+from .allegro_views.delivery.dpd import dpd_delivery_info
+
 from .allegro_views.create_label import create_label
 
 from .allegro_views.create_shipment import create_shipment
@@ -40,6 +42,8 @@ import aiohttp
 import asyncio
 import json
 from decimal import Decimal, ROUND_HALF_UP
+
+from .tasks import orchestrate_allegro_labels
 
 # Load variables from .env into environment
 load_dotenv()
@@ -1373,7 +1377,7 @@ class ProductFaqAdmin(ImportExportModelAdmin):
 class AllegroOrderItemInline(admin.TabularInline):
     model = AllegroOrderItem
     extra = 0  # nie pokazuj pustych wierszy na start
-    fields = ("product", "offer_name", "quantity", "price_amount", "price_currency")
+    fields = ("product", "offer_name", "quantity", "price_amount", "price_currency",)
 
 
 class InvoiceInline(admin.TabularInline):
@@ -1419,10 +1423,11 @@ class InvoiceCorrectionInline(admin.TabularInline):
 
 @admin.register(AllegroOrder)
 class AllegroOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_id', 'delivery_method_name', 'label_tag', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
-    list_filter = ['vendor', 'invoice_generated', 'type', 'occurred_at',]
+    list_display = ['order_id', 'delivery_method_name', 'error', 'label_tag', 'invoice_generated', 'message_sent', 'vendor', 'buyer_login', 'occurred_at', 'get_type_display_pl']
+    list_filter = ['vendor', 'delivery_method_name', 'invoice_generated', 'type', 'occurred_at',]
     # search_fields = ['order_id', 'event_id', 'buyer_login', 'buyer_email', 'get_type_display_pl']
     search_fields = [
+        'delivery_method_name',
         'order_id',            # search by Allegro order id
         'event_id',            # search by event id
         'buyer_login',
@@ -1431,7 +1436,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         'id',                  # internal PK, useful for exact searches
     ]
     actions = [
-        'create_allegro_orders',
+        'create_allegro_orders_',
         'remove_duplicate_invoices', 
         'send_auto_message', 
         'generate_invoice'
@@ -1482,6 +1487,21 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 print(f"Error fetching orders for {order_id}: {e}")
 
 
+    def create_allegro_orders_(self, request, queryset):
+
+        batch = AllegroBatch.objects.create(status="PENDING")
+
+        order_ids = list(queryset.values_list("order_id", flat=True))
+
+        orchestrate_allegro_labels.delay(batch.id, order_ids)
+
+        # redirect do strony statusu 
+        return redirect(f"/api/store/admin/allegrobatch/{batch.id}/status/")
+
+    create_allegro_orders_.short_description = "📦 Utwórz etykiety Allegro"
+
+
+
     def create_allegro_orders(self, request, queryset):
         # Wymyślić dodawanie numeru przesyłki do zamówienia allegro i zmienić status
         # Przetestowac z dwoma i więcej różnymi produktami w zamówieniu
@@ -1492,233 +1512,290 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         zip_buffer = io.BytesIO() # in‑memory ZIP 
         zip_file = zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED)
 
-        for vendor in vendors:
-            url = f"https://{ALLEGRO_API_URL}/shipment-management/delivery-services"
+        # for vendor in vendors:
+        #     url = f"https://{ALLEGRO_API_URL}/shipment-management/delivery-services"
 
+        #     headers = {
+        #         'Accept': 'application/vnd.allegro.public.v1+json',
+        #         'Authorization': f'Bearer {vendor.access_token}'
+        #     }
+        #     # response = requests.get(url, headers=headers)
+        #     response = allegro_request("GET", url, vendor.name, headers=headers)
+        #     # print('create_allegro_orders ######################## ', response, response.text)
+
+        #     if response.status_code == 200:
+                # self.message_user(request, f"✅ Pobrano zamówienia allegro dla {vendor.name}", level='success')
+
+
+        for order in queryset:
             headers = {
                 'Accept': 'application/vnd.allegro.public.v1+json',
-                'Authorization': f'Bearer {vendor.access_token}'
+                'Authorization': f'Bearer {order.vendor.access_token}'
             }
-            # response = requests.get(url, headers=headers)
-            response = allegro_request("GET", url, vendor.name, headers=headers)
-            # print('create_allegro_orders ######################## ', response, response.text)
+            print('Processing order delivery_method_id  +3+3+3+3+3+3+3+3', order.delivery_method_id)
+            if order.delivery_method_id is None:
+                delivery_url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{order.order_id}"
+                delivery = allegro_request("GET", delivery_url, order.vendor.name, headers=headers)
+                delivery_method_id = (
+                    delivery.json()
+                    .get("delivery", {})
+                    .get("method", {})
+                    .get("id")
+                )
+                delivery_method_name = (
+                    delivery.json()
+                    .get("delivery", {})
+                    .get("method", {})
+                    .get("name")
+                )
+                pickup_point_id = (
+                    delivery.json()
+                    .get("delivery", {})
+                    .get("pickupPoint", {})
+                    .get("id")
+                )
+                pickup_point_name = delivery.json().get("delivery", {}).get("pickupPoint", {}).get("name")
+                order.delivery_method_id = delivery_method_id
+                order.delivery_method_name = delivery_method_name
+                order.pickup_point_id = pickup_point_id
+                order.pickup_point_name = pickup_point_name
+                order.save(update_fields=['delivery_method_id', 'delivery_method_name', 'pickup_point_id', 'pickup_point_name'])
 
-            if response.status_code == 200:
-                # self.message_user(request, f"✅ Pobrano zamówienia allegro dla {vendor.name}", level='success')
-                for order in queryset:
-                    print('Processing order delivery_method_id  +3+3+3+3+3+3+3+3', order.delivery_method_id)
-                    if order.delivery_method_id is None:
-                        delivery_url = f"https://{ALLEGRO_API_URL}/order/checkout-forms/{order.order_id}"
-                        delivery = allegro_request("GET", delivery_url, vendor.name, headers=headers)
-                        delivery_method_id = (
-                            delivery.json()
-                            .get("delivery", {})
-                            .get("method", {})
-                            .get("id")
-                        )
-                        delivery_method_name = (
-                            delivery.json()
-                            .get("delivery", {})
-                            .get("method", {})
-                            .get("name")
-                        )
-                        pickup_point_id = (
-                            delivery.json()
-                            .get("delivery", {})
-                            .get("pickupPoint", {})
-                            .get("id")
-                        )
-                        pickup_point_name = delivery.json().get("delivery", {}).get("pickupPoint", {}).get("name")
-                        order.delivery_method_id = delivery_method_id
-                        order.delivery_method_name = delivery_method_name
-                        order.pickup_point_id = pickup_point_id
-                        order.pickup_point_name = pickup_point_name
-                        order.save(update_fields=['delivery_method_id', 'delivery_method_name', 'pickup_point_id', 'pickup_point_name'])
+                print('Processing delivery ///////////////////', json.dumps(delivery.json(), indent=4, ensure_ascii=False))
 
-                        print('Processing delivery ///////////////////', json.dumps(delivery.json(), indent=4, ensure_ascii=False))
-
-                    items = order.items.all()
-                    courier_name = " ".join(order.delivery_method_name.split()[-2:])
-                    courier = DeliveryCouriers.objects.filter(name__icontains=courier_name).first()
-                    if not courier:
-                        self.message_user(request, f"⚠️ Nie znaleziono kuriera {courier_name} dla zamówienia {order.order_id}", level='error')
-                        continue
-
-                    # 1. Combine items
-                    item_w = 0
-                    item_h = 0
-                    item_l = 0
-                    item_weight = 0
-                    max_w = float(courier.width or 0) 
-                    max_h = float(courier.height or 0) 
-                    max_l = float(courier.length or 0) 
-                    max_weight = float(courier.weight or 0) 
-                    max_packages = getattr(courier, "max_packages", 1) 
-                    if max_w != 0 and max_h != 0 and max_l != 0:
-                        max_volume = max_l + 2*max_w + 2*max_h
-                    else:
-                        max_volume = item_l + 2*item_w + 2*item_h
-                    text_on_label = ""
-                    packages = [] 
-
-                    val = []
-                    def get_max(value):
-                        val.append(value)
-                        return max(val)    
-
-                    text_on_label = ", ".join(
-                        f"{item.quantity}x{item.product.sku}, "
-                        for item in items
-                    )
-
-                    
-                    for item in items:
-                        product = item.product 
-                        item_w = get_max(float(product.width))
-                        item_h = get_max(float(product.height))
-                        item_l += float(product.depth) * item.quantity
-                        item_weight += float(product.weight) * item.quantity
-                        # item_volume = item_l * item_w * item_h
-                        # Girth (DPD, UPS) 
-                        item_volume = item_l + 2 * item_w + 2 * item_h
-                        # text_on_label += f"{item.quantity}x{item.product.sku}, "
-
-                        # Jeśli głębokość paczki przekracza maksymalną długość, spróbuj zwiększyć szerokość
-                        print(item_l, max_l,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        print(item_w, max_w,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        print(item_h, max_h,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        if item_l >= max_l and item_w < max_w:
-                            print(" item_l >= max_l and item_w < max_w OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            if max_w - item_w > float(product.depth):
-                                print("max_w - item_w > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                                item_w += item_l
-                                item_l -= float(product.depth)
-                                print(f"Udało się skompletowac paczke po szerokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
-                            elif max_h - item_h > float(product.depth):
-                                print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                                item_h += item_l
-                                item_l -= float(product.depth)
-                                print(f"Udało się skompletowac paczke po wysokości a nie po szyrokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
-
-                        elif item_l >= max_l and item_h < max_h:
-                            print("item_l >= max_l and item_h < max_h OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            if max_h - item_h > float(product.depth):
-                                print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                                item_h += item_l
-                                item_l -= float(product.depth)
-                                print(f"Udało się skompletowac paczke po wysokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
-
-                        # else:
-                        #     print("Nie udało się skompletowac paczki w dopuszczalnych wymiarach >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        #     errors.add(f"❌ 1593 Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.")
-                        #     continue
-                        
-                        if order.delivery_method_name == "Allegro DPD Kurier":
-                            max_volume = 300
-                            max_weight = 31.5
-
-                            if item_volume > max_volume:
-                                errors.add(f"❌ 1599 Przekroczono maksymalną objętość paczki dla zamówienia {order.order_id}. Maksymalna objętość: {max_volume} cm3. OBECNA OBJĘTOŚĆ: {item_volume} cm3.")
-                                continue
-
-                            if item_volume <= max_volume and item_weight <= max_weight:
-                                packages = [
-                                    {
-                                            "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
-                                            "length": {    # długość paczki
-                                                "value":item_l,
-                                                "unit":"CENTIMETER"
-                                            },
-                                            "width":{    # szerokość paczki
-                                                "value":item_w,
-                                                "unit":"CENTIMETER"
-                                            },
-                                            "height":{    # wysokość paczki
-                                                "value":item_h,
-                                                "unit":"CENTIMETER"
-                                            },
-                                            "weight":{    # waga paczki
-                                                "value":item_weight,
-                                                "unit":"KILOGRAMS"
-                                            },
-                                            "textOnLabel": text_on_label    # opis na etykiecie paczki
-                                        
-                                }]
-                                
-
-                                print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
-                        
-                        # wymagane, informacje o paczkach. Maksymalna liczba przesyłek dla przewoźników to: 10. Maksymalna liczba paczek wchodzących w skład jednej przesyłki (dotyczy tylko DPD i WE|DO) to: 10.
-
-                        elif item_l < max_l and item_h < max_h and item_w < max_w and item_weight < max_w and item_volume < max_volume:
-                            packages = [
-                                {
-                                        "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
-                                        "length": {    # długość paczki
-                                            "value":item_l,
-                                            "unit":"CENTIMETER"
-                                        },
-                                        "width":{    # szerokość paczki
-                                            "value":item_w,
-                                            "unit":"CENTIMETER"
-                                        },
-                                        "height":{    # wysokość paczki
-                                            "value":item_h,
-                                            "unit":"CENTIMETER"
-                                        },
-                                        "weight":{    # waga paczki
-                                            "value":item_weight,
-                                            "unit":"KILOGRAMS"
-                                        },
-                                        "textOnLabel": text_on_label    # opis na etykiecie paczki
-                                    
-                            }]
-                            
-                            print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
-
-                        if item_l >= max_l or item_h >= max_h or item_w >= max_w or item_weight > max_weight or item_volume > max_volume:
-                            # self.message_user(request, f"⚠️ Przekroczono maksymalne wymiary lub wagę paczki dla zamówienia {order.order_id}. Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, maksymalna waga: {max_weight} kg. OBECNE WYMIARY I WAGA: {item_l}x{item_h}x{item_w} cm, {item_weight} kg.", level='error')
-                            errors.add(f"❌ 1600 Przekroczono maksymalne wymiary lub wagę paczki dla zamówienia {order.order_id}. Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, maksymalna waga: {max_weight} kg. OBECNE WYMIARY I WAGA: {item_l}x{item_h}x{item_w} cm, {item_weight} kg.")
-                            
-                            # wymyślić logikę dodawania nastepnej paczki
-                            resp = create_shipment(ALLEGRO_API_URL, vendor, order, packages)
-                            print('Creating shipment resp ----------------', resp, resp.text)
-                            if resp.status_code == 200 or resp.status_code == 201:
-                                re_filename, _repdf_bytes = create_label(order, ALLEGRO_API_URL, resp, vendor, headers, errors, zip_file)
-                                if re_filename and _repdf_bytes: 
-                                    zip_file.writestr(re_filename, _repdf_bytes)
-                                # break
-                                # else:
-                                #     continue
-
-                            else:
-                                # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
-                                errors.add(f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                                continue
-
-                    print('######################## Final package to be sent ######################## ', packages)
-
-                    resp = create_shipment(ALLEGRO_API_URL, vendor, order, packages)
-                    print('Creating shipment resp ----------------', resp, resp.text)
-                    if resp.status_code == 200 or resp.status_code == 201:
-                        filename, pdf_bytes = create_label(order, ALLEGRO_API_URL, resp, vendor, headers, errors, zip_file)
-                        # print('######################## After create_label ######################## ', filename, pdf_bytes)
-                        if filename and pdf_bytes: 
-                            zip_file.writestr(filename, pdf_bytes)
-                        # break
-            
-                    else:
-                        print('######################## Error creating shipment ######################## ', resp.status_code, resp.text )
-                        # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
-                        errors.add(f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n")
-                        continue
-                    
-            elif response.status_code == 401:
-                self.message_user(request, f"⚠️ Nieprawidłowy token dostępu dla {vendor.name}", level='error')
+            items = order.items.all()
+            courier_name = " ".join(order.delivery_method_name.split()[-2:])
+            courier = DeliveryCouriers.objects.filter(name__icontains=courier_name).first()
+            if not courier:
+                self.message_user(request, f"⚠️ Nie znaleziono kuriera {courier_name} dla zamówienia {order.order_id}", level='error')
                 continue
 
-        if errors:
-            self.message_user(request, f"⚠️ Błędy podczas tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}:\n{errors}", level='error')
+            # 1. Combine items
+            item_w = 0
+            item_h = 0
+            item_l = 0
+            item_weight = 0
+            item_volume = 0
+            item_girth = 0
+            max_w = float(courier.width or 0) 
+            max_h = float(courier.height or 0) 
+            max_l = float(courier.length or 0) 
+            max_weight = float(courier.weight or 0) 
+            max_volume = 0
+            max_girth = 0
+            
+            max_packages = getattr(courier, "max_packages", 1) 
+            if max_w != 0 and max_h != 0 and max_l != 0:
+                max_volume = max_l + 2*max_w + 2*max_h
+                max_girth = max_l + 2*max_w + 2*max_h
+            # else:
+            #     max_volume = item_l + 2*item_w + 2*item_h
+            #     max_girth = item_l + 2*item_w + 2*item_h
+            text_on_label = ""
+            packages = [] 
+
+            def check_girth(length, width, height):
+                if length + 2*width + 2*height <= max_girth:
+                    return True
+                return False
+            
+            def check_volume(length, width, height):
+                if length * width * height / 6000 <= max_volume:
+                    return True
+                return False
+
+            val = []
+            def get_max(value):
+                val.append(value)
+                return max(val)    
+            
+            for item in items:
+                print(' _*__*__*__*__*__*_ Processing item _*__*__*__*__*__*_ ', item.product.sku, item.quantity)
+                product = item.product 
+                product_girth = check_girth(float(product.depth), float(product.width), float(product.height))
+                product_volume = check_volume(float(product.depth), float(product.width), float(product.height))
+
+                # if (float(product.depth)) >= max_l or float(product.width) >= max_w or float(product.height) >= max_h or float(product.weight) >= max_weight:
+                #     order.error=f"❌ Produkt {product.sku} ma wymiary przekraczające maksymalne dla kuriera {courier.name} w zamówieniu {order.order_id}. Wymiary produktu: {product.depth}x{product.height}x{product.width} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm."
+                #     order.save(update_fields=['error'])
+                #     self.message_user(request, f"❌ Produkt {product.sku} ma wymiary przekraczające maksymalne dla kuriera {courier.name} w zamówieniu {order.order_id}. Wymiary produktu: {product.depth}x{product.height}x{product.width} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.", level='error')
+                #     continue
+                #     # print(f"product dimensions exceed maximum for courier {product.sku} >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                # if product_girth is False or product_volume is False:
+                #     order.error=f"❌ Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm."
+                #     order.save(update_fields=['error'])
+                #     self.message_user(request, f"❌ Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.", level='error')
+                #     # print(f"product_girth is False or product_volume is False {product.sku} {product_girth}, {product_volume} >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                #     continue
+
+                item_w = get_max(float(product.width))
+                item_h = get_max(float(product.height))
+                item_l += float(product.depth) * item.quantity
+                item_weight += float(product.weight) * item.quantity
+                item_volume += item_l * item_w * item_h / 6000
+                # Girth (DPD, UPS) 
+                item_girth += item_l + 2 * item_w + 2 * item_h
+                text_on_label += f"{item.quantity}x{item.product.sku}, "
+
+                # Jeśli głębokość paczki przekracza maksymalną długość, spróbuj zwiększyć szerokość
+                print(item_l, max_l,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(item_w, max_w,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(item_h, max_h,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                if item_l >= max_l and item_w < max_w:
+                    print(" item_l >= max_l and item_w < max_w OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    if max_w - item_w > float(product.depth):
+                        print("max_w - item_w > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        item_w += item_l
+                        item_l -= float(product.depth)
+                        print(f"Udało się skompletowac paczke po szerokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+                    elif max_h - item_h > float(product.depth):
+                        print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        item_h += item_l
+                        item_l -= float(product.depth)
+                        print(f"Udało się skompletowac paczke po wysokości a nie po szyrokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+
+                elif item_l >= max_l and item_h < max_h:
+                    print("item_l >= max_l and item_h < max_h OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    if max_h - item_h > float(product.depth):
+                        print("max_h - item_h > float(product.depth) OKAY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        item_h += item_l
+                        item_l -= float(product.depth)
+                        print(f"Udało się skompletowac paczke po wysokości w wymiarach: {item_w}x{item_h}x{item_l} cm @@#@#@#@#@#@#@#@#@#@#@#@#@#@#@")
+
+                # else:
+                #     print("Nie udało się skompletowac paczki w dopuszczalnych wymiarach >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                #     errors.add(f"❌ 1593 Nie udało się skompletowac paczki w dopuszczalnych wymiarach dla zamówienia {order.order_id}. OBECNE Wymiary: {item_l}x{item_h}x{item_w} cm przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm.")
+                #     continue
+                
+                if order.delivery_method_name == "Allegro DPD Kurier":
+                    packages = dpd_delivery_info(item_l, item_h, item_w, item_weight, item_volume, order, text_on_label)
+                
+
+                elif item_l < max_l and item_h < max_h and item_w < max_w and item_weight < max_w and item_volume < max_volume:
+                    packages = [
+                        {
+                                "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                                "length": {    # długość paczki
+                                    "value":item_l,
+                                    "unit":"CENTIMETER"
+                                },
+                                "width":{    # szerokość paczki
+                                    "value":item_w,
+                                    "unit":"CENTIMETER"
+                                },
+                                "height":{    # wysokość paczki
+                                    "value":item_h,
+                                    "unit":"CENTIMETER"
+                                },
+                                "weight":{    # waga paczki
+                                    "value":item_weight,
+                                    "unit":"KILOGRAMS"
+                                },
+                                "textOnLabel": text_on_label    # opis na etykiecie paczki
+                            
+                    }]
+                    
+                    print(f"*******************Zsumowano paczkę: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
+#@ ->
+                # print(f"******************* ETAP PRZED PRZEKROCZENIEM: Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg, Objętość: {item_volume} cm3 przy dopuszczalnych wymiarach: {max_l}x{max_h}x{max_w} cm ************************")
+
+                elif item_l >= max_l or item_h >= max_h or item_w >= max_w or item_weight > max_weight or item_volume > max_volume or item_girth > max_girth:
+
+                    # order.error = f"❌ Przekroczono maksymalne wymiary lub wagę paczki dla zamówienia {order.order_id}. Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, maksymalna waga: {max_weight} kg. OBECNE WYMIARY I WAGA: {item_l}x{item_h}x{item_w} cm, {item_weight} kg."
+                    # order.save(update_fields=['error'])
+                    
+                    # wymyślić logikę dodawania nastepnej paczki
+                    print(f"____________Creating shipment dimension exceeded max ____________________ Wymiary {item_l}x{item_h}x{item_w} cm, Waga: {item_weight} kg")
+
+                    re_packages = [
+                        {
+                                "type":"PACKAGE",     # wymagane, typ przesyłki; dostępne wartości: PACKAGE (paczka), DOX (list), PALLET (przesyłka paletowa), OTHER (inna)
+                                "length": {    # długość paczki
+                                    "value":float(item.product.depth),
+                                    "unit":"CENTIMETER"
+                                },
+                                "width":{    # szerokość paczki
+                                    "value":float(item.product.width),
+                                    "unit":"CENTIMETER"
+                                },
+                                "height":{    # wysokość paczki
+                                    "value":float(item.product.height),
+                                    "unit":"CENTIMETER"
+                                },
+                                "weight":{    # waga paczki
+                                    "value":float(item.product.weight),
+                                    "unit":"KILOGRAMS"
+                                },
+                                "textOnLabel": f"{item.quantity}x{item.product.sku}"    # opis na etykiecie paczki
+                            
+                    }]
+
+                    # Jeśli pojedynczy produkt przekracza dopuszczalne wymiary — NIE twórz przesyłki
+                    if (
+                        float(item.product.depth) >= max_l or
+                        float(item.product.width) >= max_w or
+                        float(item.product.height) >= max_h or
+                        float(item.product.weight) > max_weight
+                    ):
+                        order.error = (
+                            f"❌ Produkt {item.product.sku} przekracza dopuszczalne wymiary lub wagę.\n"
+                            f"Maksymalne wymiary: {max_l}x{max_h}x{max_w} cm, max waga: {max_weight} kg.\n"
+                            f"Wymiary produktu: {item.product.depth}x{item.product.height}x{item.product.width} cm, "
+                            f"waga: {item.product.weight} kg."
+                        )
+                        order.save(update_fields=['error'])
+                        print("❌ ______Produkt przekracza dopuszczalne wymiary — pomijam create_shipment_____")
+                        continue
+
+                    else:
+                        order.error = ""
+                        order.save(update_fields=['error'])
+
+
+                    resp = create_shipment(ALLEGRO_API_URL, order.vendor, order, re_packages)
+                    print('Creating shipment resp > ----------------', resp, resp.text)
+                    if resp.status_code == 200 or resp.status_code == 201:
+                        re_filename, _repdf_bytes = create_label(order, ALLEGRO_API_URL, resp, order.vendor, headers, errors, zip_file)
+                        if re_filename and _repdf_bytes: 
+                            zip_file.writestr(re_filename, _repdf_bytes)
+
+                            print('######################## After create_label for re_package ######################## ', re_filename,)
+                        # break
+                        # else:
+                        #     continue
+
+                    else:
+                        # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                        order.error = f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n"
+                        order.save(update_fields=['error'])
+                        # print('######################## Error creating shipment ######################## ', resp.status_code, resp.text )
+                        continue
+
+            # print('######################## Final package to be sent ######################## ', packages)
+
+            resp = create_shipment(ALLEGRO_API_URL, order.vendor, order, packages)
+            print('Creating shipment resp ----------------', resp, resp.text)
+            if resp.status_code == 200 or resp.status_code == 201:
+                filename, pdf_bytes = create_label(order, ALLEGRO_API_URL, resp, order.vendor, headers, errors, zip_file)
+                # print('######################## After create_label ######################## ', filename, pdf_bytes)
+                if filename and pdf_bytes: 
+                    zip_file.writestr(filename, pdf_bytes)
+                    print('######################## Written to zip ######################## ', filename,)
+                # break
+    
+            else:
+                print('######################## Error creating shipment ######################## ', resp.status_code, resp.text )
+                # self.message_user(request, f"⚠️ Błąd tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {vendor.name}: {resp.status_code} - {resp.text}", level='error')
+                order.error = f"❌ 1765 {resp.status_code} - {resp.json().get('errors', [{}])[0].get('userMessage')}\n"
+                order.save(update_fields=['error'])
+                continue
+                    
+            # elif response.status_code == 401:
+            #     self.message_user(request, f"⚠️ Nieprawidłowy token dostępu dla {vendor.name}", level='error')
+            #     continue
+
+        # if errors:
+        self.message_user(request, f"⚠️ Błędy podczas tworzenia przesyłki allegro dla zamówienia {order.order_id} u sprzedawcy {order.vendor.name}:\n{order.error}", level='error')
                     
         zip_file.close() 
         # Prepare ZIP for download 
@@ -1729,6 +1806,9 @@ class AllegroOrderAdmin(admin.ModelAdmin):
         return response
     
     create_allegro_orders.short_description = "📦 Utwórz przesyłki allegro"
+
+
+
 
     def dbg(self, label, value):
         """Pretty‑print any value safely, even if it's None or deeply nested."""
@@ -3272,3 +3352,4 @@ admin.site.register(DeliveryCouriers, DeliveryCouriersAdmin)
 admin.site.register(ClientAccessLog, ClientAccessLogAdmin)
 admin.site.register(Message)
 admin.site.register(Address)
+admin.site.register(AllegroBatch)

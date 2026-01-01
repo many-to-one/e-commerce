@@ -147,11 +147,11 @@ def allegro_request(method, url, vendor_name, **kwargs):
     kwargs["headers"] = headers
 
     response = requests.request(method, url, **kwargs)
-    print(f' TRACE ID #########', response.headers.get("Trace-Id"))
-    print(f' VENDOR NAME ######### {vendor_name}')
-    print(f' URL ######### {url}')
-    print(f' METHOD ######### {method}')
-    print(f' RESPONSE ######### {response}')
+    # print(f' TRACE ID #########', response.headers.get("Trace-Id"))
+    # print(f' VENDOR NAME ######### {vendor_name}')
+    # print(f' URL ######### {url}')
+    # print(f' METHOD ######### {method}')
+    # print(f' RESPONSE ######### {response}')
     # print(f' RESPONSE TEXT ######### {response.text}')
 
     if response.status_code == 401:

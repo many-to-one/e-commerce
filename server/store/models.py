@@ -474,6 +474,36 @@ class Cart(models.Model):
 def label_upload_path(instance, filename):
     today = datetime.date.today().strftime("%Y-%m-%d")
     return f"allegro_labels/{today}/{filename}"
+
+
+
+class AllegroBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    zip_file = models.FileField("Etykieta przewozowa", upload_to=label_upload_path, null=True, blank=True)
+    status = models.CharField(max_length=20, default="PENDING")
+    processed_orders = models.PositiveIntegerField(default=0)
+    total_orders = models.PositiveIntegerField(default=0)
+
+
+    def __str__(self):
+        return f"Batch {self.id} ({self.status})"
+    
+
+class AllegroLabel(models.Model):
+    # batch = models.ForeignKey(AllegroBatch, on_delete=models.CASCADE, related_name="labels", verbose_name="Partia Allegro")
+    order = models.ForeignKey(
+        "AllegroOrder", 
+        on_delete=models.CASCADE, 
+        related_name="labels", 
+        verbose_name="Zamówienie Allegro",
+        null=True, 
+        blank=True,
+    )
+    zip_file = models.FileField("Etykieta przewozowa", upload_to=label_upload_path, null=True, blank=True)
+
+    def __str__(self):
+        return f"Label for Order {self.order.order_id} in Batch {self.batch.id}"
+
     
 
 class AllegroOrder(models.Model):
@@ -487,6 +517,7 @@ class AllegroOrder(models.Model):
     pickup_point_id = models.CharField("ID punktu odbioru", max_length=300, null=True, blank=True)
     pickup_point_name = models.CharField("Nazwa punktu odbioru", max_length=300, null=True, blank=True)
     label_file = models.FileField("Etykieta przewozowa", upload_to=label_upload_path, null=True, blank=True)
+    # label_file = models.ManyToManyField(AllegroLabel, blank=True, null=True, verbose_name="Etykiety przewozowe")
     buyer_login = models.CharField("Login kupującego", max_length=100)
     buyer_email = models.EmailField("E-mail kupującego")
     buyer_name = models.CharField("Imię i nazwisko", max_length=100, null=True, blank=True)
@@ -504,6 +535,7 @@ class AllegroOrder(models.Model):
     stock_updated = models.BooleanField("Stan magazynowy zaktualizowany", default=False)
     message = models.ForeignKey("Message", on_delete=models.CASCADE, verbose_name="Auto Widomość", null=True, blank=True)
     message_sent = models.BooleanField("Wiadomość", default=False)
+    error = models.CharField("Błąd", max_length=1000, null=True, blank=True)
 
     class Meta:
         verbose_name = "Zamówienie Allegro"

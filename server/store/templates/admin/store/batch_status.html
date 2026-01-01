@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<h1>Status batcha {{ batch.id }}</h1>
+
+<p>Status: <strong>{{ batch.status }}</strong></p>
+
+<div style="width: 100%; background: #ddd; border-radius: 6px; margin: 20px 0;">
+    <div id="progress-bar"
+         style="width: 0%; background: #4caf50; height: 24px; border-radius: 6px; transition: width 0.5s;">
+    </div>
+</div>
+
+<p><strong><span id="progress-text"></span></strong></p>
+
+<script>
+    var processed = {{ batch.processed_orders|default:0 }};
+    var total = {{ batch.total_orders|default:0 }};
+    var percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+    console.log("Processed:", processed, "Total:", total, "Percent:", percent);
+
+    document.getElementById("progress-bar").style.width = percent + "%";
+    document.getElementById("progress-text").innerText =
+        processed + " / " + total + " (" + percent + "%)";
+</script>
+
+{% if batch.zip_file %}
+    <p>ZIP gotowy — pobieranie...</p>
+    <script>
+        window.location.href = "{{ batch.zip_file.url }}";
+    </script>
+{% else %}
+    <p>Przetwarzanie w toku... Odświeżanie co 2 sekundy.</p>
+    <script>
+        setTimeout(function() {
+            window.location.reload();
+        }, 2000);
+    </script>
+{% endif %}
+
+{% endblock %}

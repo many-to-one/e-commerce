@@ -1302,3 +1302,10 @@ class ResizeImageView(APIView):
         return HttpResponse(buffer.getvalue(), content_type="image/webp")
         # return Response({'status': 'Thumbnail task queued'}, status=202)
     
+
+
+from .models import AllegroBatch
+
+def batch_status_view(request, batch_id):
+    batch = get_object_or_404(AllegroBatch, id=batch_id)
+    return render(request, "admin/store/batch_status.html", {"batch": batch})

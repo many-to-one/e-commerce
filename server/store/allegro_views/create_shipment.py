@@ -52,6 +52,6 @@ def create_shipment(ALLEGRO_API_URL, vendor, order, package):
     }
 
     resp = allegro_request("POST", url_1, vendor.name, headers=headers_post, json=payload)
-    print(' ***************************** create_shipment RESPONSE ***************************** ',resp, resp.text)
+    # print(' ***************************** create_shipment RESPONSE ***************************** ',resp, resp.text)
    
     return resp
