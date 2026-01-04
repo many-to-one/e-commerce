@@ -902,7 +902,7 @@ class PrestaUpdateCSVView(APIView):
                         product.stock_qty = row["Ilość"]
                         product.sku = row["Kod dostawcy"]
                         product.shipping_amount = safe_decimal(9.99)
-                        product.category = category_
+                        product.category = category
                         product.sub_cat = categories[2:]
                         product.updates = True
                         # product.tax_rate = safe_decimal("23.00")
