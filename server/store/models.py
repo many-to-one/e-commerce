@@ -338,8 +338,11 @@ class Product(models.Model):
                 self.price_brutto = (self.price_brutto - (cena_brutto - old.price_brutto)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             # Nowa logika zysku po prowizji i dostawie
             cena_po_prowizji = (self.price_brutto * Decimal("0.97")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
             delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
-            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            delivery_cost = Decimal(str(delivery_cost))
+            prowizja = Decimal(str(self.prowizja_allegro))
+            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - prowizja).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # print("Zysk PLN TEST old ------------", old)
         # print("Zysk PLN TEST hurt_price ------------", self.hurt_price)
