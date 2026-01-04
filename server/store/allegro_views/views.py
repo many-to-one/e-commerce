@@ -181,6 +181,11 @@ def allegro_request(method, url, vendor_name, **kwargs):
 def parse_allegro_response(resp, action):
     data = resp.json()
 
+    print(f'parse_allegro_response ACTION ######### {action}')
+    print(f'parse_allegro_response RESPONSE ######### {resp}')
+    print(f'parse_allegro_response RESPONSE TEXT ######### {resp.text}')
+    print(f'parse_allegro_response DATA ######### {data}')
+
     # jeśli Allegro zwróciło błąd
     if "errors" in data and data["errors"]:
         err = data["errors"][0]
@@ -195,6 +200,12 @@ def parse_allegro_response(resp, action):
         "message": f"Zaktualizowano: {action}"
     }
 
+
+def get_allegro_id(vendor_name, allegro_ids):
+    for entry in allegro_ids:
+        if entry["vendor"] == vendor_name:
+            return entry["product_id"]
+    return None
 
 
     # needed functions??

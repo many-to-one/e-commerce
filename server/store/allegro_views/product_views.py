@@ -12,7 +12,7 @@ def action_with_offer_from_product(request, method, product, url, access_token, 
 
         # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
         # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
-        print('create_offer_from_product action ----------------', action)
+        print('create_offer_from_product action ----------------', action, str(product.price_brutto))
 
         raw_html = product.description # your original HTML content
         safe_html = ''
@@ -134,7 +134,7 @@ def action_with_offer_from_product(request, method, product, url, access_token, 
                     ],
                     "sellingMode": {
                         "price": {
-                        "amount": str(product.price_brutto),
+                        "amount": str(product.price_brutto), #str(product.price_brutto),
                         "currency": "PLN"
                         }
                     },

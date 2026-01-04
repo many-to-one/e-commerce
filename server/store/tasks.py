@@ -15,7 +15,7 @@ from .allegro_views.product_views import action_with_offer_from_product
 
 from .allegro_views.create_label import create_label
 from .allegro_views.create_shipment import create_shipment
-from .allegro_views.views import allegro_request, parse_allegro_response
+from .allegro_views.views import allegro_request, parse_allegro_response, responsible_producers
 from users.models import User
 from .models import (
     AllegroProductBatch,
@@ -571,14 +571,25 @@ def delete_batch(batch_id):
 # AKTUALIZACJA PRODUKTÓW W ALLEGRO - CELERY TASK
 
 @shared_task
-def orchestrate_allegro_updates(batch_id, product_ids, user_id):
+def orchestrate_allegro_updates(action, batch_id, product_ids, user_id):
 
-    g = group(
-        update_single_product.s(batch_id, product_id, user_id)
-        for product_id in product_ids
-    )
+    if action == 'update_products':
+        pass
 
-    chord(g)(finalize_update_batch.s(batch_id))
+        g = group(
+            update_single_product.s(batch_id, product_id, user_id)
+            for product_id in product_ids
+        )
+
+        chord(g)(finalize_update_batch.s(batch_id))
+
+    else:
+        g = group(
+            post_single_product.s(batch_id, product_id, user_id)
+            for product_id in product_ids
+        )
+
+        chord(g)(finalize_update_batch.s(batch_id))
 
 
 @shared_task
@@ -645,6 +656,75 @@ def update_single_product(batch_id, product_id, user_id):
 
 
 @shared_task
+def post_single_product(batch_id, product_id, user_id):
+
+    # print('allegro_export request.user ----------------', request.user)
+    updates = []   # lista zmian wykonanych dla tego produktu
+    product = Product.objects.get(id=product_id)
+    print('_____*____post_single_product__task__________*_________', product.sku, product.title, product.price_brutto)
+    queryset = Product.objects.filter(id=product_id)    
+    url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
+    vendors = Vendor.objects.filter(user_id=user_id, marketplace="allegro.pl")
+    action="Wystawiono produkt w katalogu Allegro"
+
+    for vendor in vendors:
+        product_vendors = product.vendors.all()
+        if vendor in product.vendors.all():
+            if product.allegro_in_stock and product.allegro_status == 'ACTIVE' and product.vendor == vendor:
+                print('___post_single_product__task__ product już istnieje ----------------', vendor, product.sku)
+                updates.append('Produkt już jest aktywny w Allegro u tego sprzedawcy.')
+            else:
+                print('___post_single_product__task__ vendor in product_vendors ----------------', vendor)
+                access_token = vendor.access_token
+                producer = responsible_producers(access_token, vendor.name)
+                resp = action_with_offer_from_product(
+                    None, 'POST', product, url,
+                    vendor.access_token, vendor.name,
+                    producer=producer, action='create'
+                )
+
+                print('______________post_single_product response _______________', resp.status_code, resp.text)
+                if resp.status_code == 201:
+                    product.allegro_in_stock = True
+                    product.allegro_status = 'ACTIVE'
+                    product.allegro_id = resp.json().get('id')
+                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
+                    updates.append(action)
+                elif resp.status_code == 422 and resp.json().get('errors', [{}])[0].get('code') == 'MatchingProductForIdNotFoundException':
+                    product.allegro_in_stock = False
+                    product.allegro_status = 'INACTIVE'
+                    product.save(update_fields=['allegro_in_stock', 'allegro_status'])
+                    error = resp.json().get('errors', [{}])[0]
+                    error_message = error.get('userMessage')
+                    updates.append(error_message)
+
+                elif resp.status_code == 200:
+                    updates.append(action)
+
+                # aktualizacja batcha
+                batch = AllegroProductBatch.objects.get(id=batch_id)
+                batch.processed_products += 1
+                # batch.total_products += 1 
+                batch.save(update_fields=["processed_products", "total_products"])
+
+                # zapis logu
+                parsed = parse_allegro_response(resp, action)
+
+                AllegroProductUpdateLog.objects.create(
+                    batch_id=batch_id,
+                    product=product,
+                    updates=[parsed["message"]] if parsed["success"] else [],
+                    success=parsed["success"],
+                    error=None if parsed["success"] else parsed["message"]
+                )
+
+    return {
+        "product_id": product_id,
+        "updates": updates,
+    }
+
+
+@shared_task
 def finalize_update_batch(results, batch_id):
 
     batch = AllegroProductBatch.objects.get(id=batch_id)
@@ -664,6 +744,22 @@ def delete_batch_and_logs(batch_id):
     AllegroProductBatch.objects.filter(id=batch_id).delete()
     return True
 
+
+def responsible_producers(access_token, name):
+
+    url = f"https://{ALLEGRO_API_URL}/sale/responsible-producers" 
+
+    headers = {
+        'Accept': 'application/vnd.allegro.public.v1+json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    # response = requests.request("GET", url, headers=headers)
+
+    response = allegro_request("GET", url, name, headers=headers) # params={"limit": 10}
+    
+    # print('create_offer_from_product response ----------------', response.text)
+    return response.json()
 
 
 ################### SEO TITLE GENERATION TASK ###################

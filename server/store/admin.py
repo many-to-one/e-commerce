@@ -32,7 +32,7 @@ from .allegro_views.create_label import create_label
 from .allegro_views.create_shipment import create_shipment
 
 from .utils.payu import payu_authenticate, to_grosze
-from store.allegro_views.views import allegro_request
+from store.allegro_views.views import allegro_request, get_allegro_id
 from store.utils.invoice import *
 from store.utils.decimal import *
 from store.models import *
@@ -165,7 +165,7 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Podstawowe informacje', {
             'fields': (
-                'title', 'allegro_id', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'title', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
@@ -300,7 +300,8 @@ class ProductAdmin(admin.ModelAdmin):
                 # print(f' ################### "product_map" ################### ', {len(product_map)})
                     if p.allegro_in_stock == True:
 
-                        url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{p.allegro_id}"
+                        allegro_id = get_allegro_id(vendor.name, p.allegro_ids)
+                        url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{allegro_id}"
                         try:
                             offer_resp = allegro_request("GET", url, vendor.name, headers=headers)
                             offer = offer_resp.json()
@@ -320,8 +321,6 @@ class ProductAdmin(admin.ModelAdmin):
                                 'Authorization': f'Bearer {access_token}'
                             }
 
-                            # for offer in offers:
-                            print(f' ################### "offer" ################### ', offer)
                             payload = {
                                 "offer": {
                                     "id": offer.get("id"),
@@ -397,7 +396,7 @@ class ProductAdmin(admin.ModelAdmin):
                                     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                                     p.save(update_fields=["zysk_after_payments"])
-                            # print(f' ################### "offer allegro fee" ################### ', data)
+                            print(f' ################### "offer allegro fee" ################### ', data)
                             self.message_user(request, f"✅ Prowizja Allegro obliczona dla produktu SKU: {p.sku}", level="success")
                         except Exception as e:
                             self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
@@ -442,7 +441,6 @@ class ProductAdmin(admin.ModelAdmin):
         orchestrate_seo_title_batch.delay(batch.id, product_ids)
 
         return redirect(f"/api/store/admin/seotitlebatch/{batch.id}/status/")
-    # return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
 
     generate_allegro_seo_titles.short_description = "🤖 Generuj SEO tytuły z AI"
 
@@ -526,7 +524,8 @@ class ProductAdmin(admin.ModelAdmin):
                         count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.title = offer.get("name", product.title)
-                        product.allegro_id = id
+                        # product.allegro_id = id
+                        product.allegro_ids.append({ "vendor": vendor.name, "product_id": id })
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
                         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -538,7 +537,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product.allegro_in_stock = False
 
                     product.allegro_status = status
-                    product.save(update_fields=["title", "allegro_id", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
+                    product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
 
                 self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 
@@ -637,94 +636,59 @@ class ProductAdmin(admin.ModelAdmin):
     
 
 
-    # def allegro_update(self, request, queryset):
+    def allegro_export(self, request, queryset):
+
+        batch = AllegroProductBatch.objects.create(status="PENDING")
+        product_ids = list(queryset.values_list("id", flat=True))
+
+        vendors = Vendor.objects.filter(user=request.user, marketplace="allegro.pl")
+        for vendor in vendors:
+            for product in queryset:
+                product_vendors = product.vendors.all()
+                if vendor in product.vendors.all():
+                    batch.total_products += 1
+
+        # batch.total_products = len(product_ids)
+        batch.save(update_fields=["total_products"])
+
+        action = "post_products"
+
+        orchestrate_allegro_updates.delay(action, batch.id, product_ids, request.user.id)
+
+        return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
+    
+    allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
+
+    # def allegro_export(self, request, queryset):
+
     #     # print('allegro_export request.user ----------------', request.user)
+    #     url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
     #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+    #     # for vendor in vendors:
+    #     #     print('allegro_export vendors ----------------', vendors)
 
     #     for vendor in vendors:
     #         # print('check vendor ----------------', vendor)
     #         access_token = vendor.access_token
-
-    #         headers = {
-    #             'Accept': 'application/vnd.allegro.public.v1+json',
-    #             'Content-Type': 'application/vnd.allegro.public.v1+json',
-    #             'Accept-Language': 'pl-PL',
-    #             'Authorization': f'Bearer {access_token}'
-    #         }
+    #         producer = self.responsible_producers(access_token, vendor.name)
+    #         # print('allegro_export producer ----------------', producer)
         
     #         for product in queryset:
-    #             url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
-    #             offers = allegro_request('GET', url, vendor.name, headers=headers)
-    #             # print('allegro_update offers ----------------', offers)
-    #             for offer in offers.json()['offers']:
-    #                 print('allegro_update offer ----------------', offer)
-    #                 if offer['sellingMode']['price']['amount'] != str(product.price_brutto):
-    #                     action = 'price_brutto'
-    #                 elif offer['stock']['available'] != product.stock_qty:
-    #                     action = 'stock_qty'
-    #                 elif offer['name'] != product.title:
-    #                     action = 'title'
-    #                 else:
-    #                     action = 'other'
-                    
-    #                 edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-    #                 resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action=action)
-    #                 # print('allegro_update price_brutto #####################', resp)
-    #                 if resp.status_code == 200:
-    #                     product.updates = False
-    #                     product.save(update_fields=['updates'])
-    
-    # allegro_update.short_description = "♻️ Aktualizuj oferty do Allegro"
+    #            product_vendors = product.vendors.all()
+    #            if vendor in product_vendors:
+    #            #     print('if vendor in product_vendors ----------------', vendor)
+    #                resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer, action='create')
+    #                if resp.status_code == 201:
+    #                    product.allegro_in_stock = True
+    #                    product.allegro_status = 'ACTIVE'
+    #                    product.allegro_id = resp.json().get('id')
+    #                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
+    #            #
+    #             # print('allegro_export vendors ----------------', product_vendors)
+    #         #     print('allegro_export ----------------', product.ean)
+    #             #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
+    # allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
 
-
-
-    def allegro_export(self, request, queryset):
-
-        # print('allegro_export request.user ----------------', request.user)
-        url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-        # for vendor in vendors:
-        #     print('allegro_export vendors ----------------', vendors)
-
-        for vendor in vendors:
-            # print('check vendor ----------------', vendor)
-            access_token = vendor.access_token
-            producer = self.responsible_producers(access_token, vendor.name)
-            # print('allegro_export producer ----------------', producer)
-        
-            for product in queryset:
-               product_vendors = product.vendors.all()
-               if vendor in product_vendors:
-               #     print('if vendor in product_vendors ----------------', vendor)
-                   resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer, action='create')
-                   if resp.status_code == 201:
-                       product.allegro_in_stock = True
-                       product.allegro_status = 'ACTIVE'
-                       product.allegro_id = resp.json().get('id')
-                       product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
-               #
-                # print('allegro_export vendors ----------------', product_vendors)
-            #     print('allegro_export ----------------', product.ean)
-                #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
-
-
-
-    def responsible_producers(self, access_token, name):
-
-        url = f"https://{ALLEGRO_API_URL}/sale/responsible-producers" 
-
-        headers = {
-            'Accept': 'application/vnd.allegro.public.v1+json',
-            'Authorization': f'Bearer {access_token}'
-        }
-
-        # response = requests.request("GET", url, headers=headers)
-
-        response = allegro_request("GET", url, name, headers=headers) # params={"limit": 10}
-        
-        # print('create_offer_from_product response ----------------', response.text)
-        return response.json()
 
 
     async def update_products_description(self, request, queryset):
@@ -743,7 +707,8 @@ class ProductAdmin(admin.ModelAdmin):
                 product_vendors = list(product.vendors.all())  # ORM call here, safe (sync)
                 print("All PATCH product_vendors:+*****************", product_vendors)
                 if vendor in product_vendors:
-                    url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
+                    allegro_id = get_allegro_id(vendor.name, product.allegro_ids)
+                    url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{allegro_id}"
                     # build plain dict with only primitive values
                     tasks_data.append({
                         "sku": product.sku,

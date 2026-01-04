@@ -137,14 +137,14 @@ services:
     #   gunicorn backend.asgi:application
     #   -k uvicorn.workers.UvicornWorker
     #   --bind 0.0.0.0:${DJANGO_PORT}
-    #   --workers 4
+    #   --workers 2
     #   --timeout 300
     #   --log-level info
 
     volumes:
       - ./server:/app
       - ./server/media:/app/media
-      - ./server/staticfiles:/app/staticfiles
+      # - ./server/staticfiles:/app/staticfiles
     ports:
       - "${DJANGO_PORT}:${DJANGO_PORT}"
     env_file:
@@ -199,7 +199,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - web
+      # - web
       - redis
 
   celery-beat:

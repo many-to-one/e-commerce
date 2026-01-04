@@ -16,3 +16,9 @@ mpstat -P ALL 1
 lscpu lub nproc
 
 
+# delete folder with files:
+sudo rm -rf ./server/staticfiles
+
+# copy folder with files to the path (exp):
+sudo cp -r ./server/fonts ./server/staticfiles
+
