@@ -627,7 +627,9 @@ class ProductAdmin(admin.ModelAdmin):
         # batch.total_products = len(product_ids)
         # batch.save(update_fields=["total_products"])
 
-        orchestrate_allegro_updates.delay(batch.id, product_ids, request.user.id)
+        action = 'update_products'
+
+        orchestrate_allegro_updates.delay(action, batch.id, product_ids, request.user.id)
 
         return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
     

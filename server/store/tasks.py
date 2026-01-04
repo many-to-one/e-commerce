@@ -574,7 +574,6 @@ def delete_batch(batch_id):
 def orchestrate_allegro_updates(action, batch_id, product_ids, user_id):
 
     if action == 'update_products':
-        pass
 
         g = group(
             update_single_product.s(batch_id, product_id, user_id)
