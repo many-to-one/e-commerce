@@ -22,3 +22,6 @@ sudo rm -rf ./server/staticfiles
 # copy folder with files to the path (exp):
 sudo cp -r ./server/fonts ./server/staticfiles
 
+### GIT ###
+If you don't need git add .
+make git reset (before git pull)
