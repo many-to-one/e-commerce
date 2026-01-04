@@ -21,7 +21,7 @@ from vendor.models import Vendor
 from vendor.serializer import VendorSerializer
 
 from .serializers import CartCheckSerializer, PrestaCSVSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer, AddressSerializer
-from .models import Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
+from .models import AllegroProductBatch, Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
 from .store_pagination import StorePagination
 
 from decimal import Decimal, InvalidOperation
@@ -1304,8 +1304,24 @@ class ResizeImageView(APIView):
     
 
 
-from .models import AllegroBatch
+from .models import AllegroBatch, SeoTitleBatch
 
 def batch_status_view(request, batch_id):
     batch = get_object_or_404(AllegroBatch, id=batch_id)
     return render(request, "admin/store/batch_status.html", {"batch": batch})
+
+
+def update_batch_status_view(request, batch_id):
+    batch = get_object_or_404(AllegroProductBatch, id=batch_id)
+    logs = batch.logs.select_related("product").order_by("id")
+    return render(request, "admin/store/update_products_status_.html", {"batch": batch, "logs": logs})
+
+
+def seo_title_batch_status(request, batch_id):
+    batch = get_object_or_404(SeoTitleBatch, id=batch_id)
+    logs = batch.logs.select_related("product").order_by("id")
+    return render(request, "admin/store/seo_title_batch_status.html", {
+        "batch": batch,
+        "logs": logs,
+    })
+

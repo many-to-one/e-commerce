@@ -8,11 +8,25 @@ from django.core.files.base import ContentFile
 from celery import shared_task, group, chord
 from django.db import transaction
 
+from django.utils import timezone
+from datetime import timedelta
+
+from .allegro_views.product_views import action_with_offer_from_product
+
 from .allegro_views.create_label import create_label
 from .allegro_views.create_shipment import create_shipment
-from .allegro_views.views import allegro_request
+from .allegro_views.views import allegro_request, parse_allegro_response
 from users.models import User
-from .models import ClientAccessLog, Product, Gallery, DeliveryCouriers, AllegroOrder, Vendor, AllegroBatch
+from .models import (
+    AllegroProductBatch,
+    AllegroProductUpdateLog, 
+    ClientAccessLog, 
+    Product, Gallery, 
+    DeliveryCouriers, AllegroOrder, 
+    Vendor, AllegroBatch, Product, 
+    SeoTitleLog, SeoTitleBatch,
+    )
+from .services.openai_client import generate_allegro_seo_title
 
 from django.conf import settings
 
@@ -542,3 +556,190 @@ def finalize_batch_zip(results, batch_id):
 
     batch.status = "SUCCESS"
     batch.save(update_fields=["zip_file", "status"])
+
+    eta_time = timezone.now() + timedelta(days=30)
+    delete_batch.apply_async((batch_id,), eta=eta_time)
+
+
+@shared_task
+def delete_batch(batch_id):
+    AllegroBatch.objects.filter(batch_id=batch_id).delete()
+    return True
+
+
+
+# AKTUALIZACJA PRODUKTÓW W ALLEGRO - CELERY TASK
+
+@shared_task
+def orchestrate_allegro_updates(batch_id, product_ids, user_id):
+
+    g = group(
+        update_single_product.s(batch_id, product_id, user_id)
+        for product_id in product_ids
+    )
+
+    chord(g)(finalize_update_batch.s(batch_id))
+
+
+@shared_task
+def update_single_product(batch_id, product_id, user_id):
+
+    product = Product.objects.get(id=product_id)
+    vendors = Vendor.objects.filter(user_id=user_id, marketplace="allegro.pl")
+
+    updates = []   # lista zmian wykonanych dla tego produktu
+
+    for vendor in vendors:
+        headers = {
+            'Accept': 'application/vnd.allegro.public.v1+json',
+            'Content-Type': 'application/vnd.allegro.public.v1+json',
+            'Accept-Language': 'pl-PL',
+            'Authorization': f'Bearer {vendor.access_token}'
+        }
+
+        url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
+        offers = allegro_request('GET', url, vendor.name, headers=headers)
+
+        for offer in offers.json().get("offers", []):
+            if offer['sellingMode']['price']['amount'] != str(product.price_brutto):
+                action = 'price_brutto'
+            elif offer['stock']['available'] != product.stock_qty:
+                action = 'stock_qty'
+            elif offer['name'] != product.title:
+                action = 'title'
+            else:
+                action = 'other'
+
+            edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+
+            resp = action_with_offer_from_product(
+                None, 'PATCH', product, edit_url,
+                vendor.access_token, vendor.name,
+                producer=None, action=action
+            )
+
+            if resp.status_code == 200:
+                updates.append(action)
+
+            # aktualizacja batcha
+            batch = AllegroProductBatch.objects.get(id=batch_id)
+            batch.processed_products += 1
+            batch.total_products += 1 
+            batch.save(update_fields=["processed_products", "total_products"])
+
+            # zapis logu
+            parsed = parse_allegro_response(resp, action)
+
+            AllegroProductUpdateLog.objects.create(
+                batch_id=batch_id,
+                product=product,
+                updates=[parsed["message"]] if parsed["success"] else [],
+                success=parsed["success"],
+                error=None if parsed["success"] else parsed["message"]
+            )
+
+    return {
+        "product_id": product_id,
+        "updates": updates,
+    }
+
+
+@shared_task
+def finalize_update_batch(results, batch_id):
+
+    batch = AllegroProductBatch.objects.get(id=batch_id)
+    batch.status = "SUCCESS"
+    batch.save(update_fields=["status"])
+
+    # Usuń batch + logi po 5 sekundach
+    eta_time = timezone.now() + timedelta(days=1)
+    delete_batch_and_logs.apply_async((batch_id,), eta=eta_time)
+
+    return True
+
+
+@shared_task
+def delete_batch_and_logs(batch_id):
+    AllegroProductUpdateLog.objects.filter(batch_id=batch_id).delete()
+    AllegroProductBatch.objects.filter(id=batch_id).delete()
+    return True
+
+
+
+################### SEO TITLE GENERATION TASK ###################
+
+@shared_task
+def orchestrate_seo_title_batch(batch_id, product_ids):
+
+    if not product_ids:
+        finalize_seo_title_batch.delay([], batch_id)
+        return
+
+    g = group(
+        generate_single_seo_title.s(batch_id, pid)
+        for pid in product_ids
+    )
+    chord(g)(finalize_seo_title_batch.s(batch_id))
+
+
+@shared_task
+def generate_single_seo_title(batch_id, product_id):
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        SeoTitleLog.objects.create(
+            batch_id=batch_id,
+            product_id=product_id,
+            success=False,
+            error="Product not found"
+        )
+        return
+
+    try:
+        new_title = generate_allegro_seo_title(product.title)
+        product.title = new_title
+        product.save(update_fields=["title"])
+
+        SeoTitleLog.objects.create(
+            batch_id=batch_id,
+            product=product,
+            new_title=new_title,
+            success=True
+        )
+
+        # update batch progress
+        batch = SeoTitleBatch.objects.get(id=batch_id)
+        batch.processed_products += 1
+        batch.save(update_fields=["processed_products"])
+
+    except Exception as e:
+        SeoTitleLog.objects.create(
+            batch_id=batch_id,
+            product=product,
+            success=False,
+            error=str(e)
+        )
+    
+    return {
+        "product_id": product_id,
+    }
+
+@shared_task
+def finalize_seo_title_batch(results, batch_id):
+    batch = SeoTitleBatch.objects.get(id=batch_id)
+    batch.status = "SUCCESS"
+    batch.save(update_fields=["status"])
+
+    # Usuń batch + logi po 5 sekundach
+    eta_time = timezone.now() + timedelta(days=1)
+    delete_title_batch_and_logs.apply_async((batch_id,), eta=eta_time)
+
+    return True
+
+
+@shared_task
+def delete_title_batch_and_logs(batch_id):
+    SeoTitleLog.objects.filter(batch_id=batch_id).delete()
+    SeoTitleBatch.objects.filter(id=batch_id).delete()
+    return True

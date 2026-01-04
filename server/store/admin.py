@@ -43,7 +43,6 @@ import asyncio
 import json
 from decimal import Decimal, ROUND_HALF_UP
 
-from .tasks import orchestrate_allegro_labels
 
 # Load variables from .env into environment
 load_dotenv()
@@ -210,6 +209,7 @@ class ProductAdmin(admin.ModelAdmin):
     # exclude = ('vendors',) 
     actions = [
         apply_discount, 
+        'generate_allegro_seo_titles',
         'allegro_export', 
         'allegro_update', 
         'sync_allegro_offers', 
@@ -428,6 +428,24 @@ class ProductAdmin(admin.ModelAdmin):
 
     calculate_zysk_after_payments.short_description = "💰 Oblicz zysk po prowizji i dostawie"
 
+
+
+    # Generate SEO titles for Allegro
+    def generate_allegro_seo_titles(self, request, queryset):
+
+        batch = SeoTitleBatch.objects.create(status="PENDING")
+        product_ids = list(queryset.values_list("id", flat=True))
+
+        batch.total_products = len(product_ids)
+        batch.save(update_fields=["total_products"])
+
+        orchestrate_seo_title_batch.delay(batch.id, product_ids)
+
+        return redirect(f"/api/store/admin/seotitlebatch/{batch.id}/status/")
+    # return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
+
+    generate_allegro_seo_titles.short_description = "🤖 Generuj SEO tytuły z AI"
+
     
 
     def fetch_all_offers(self, vendor_name, headers):
@@ -599,47 +617,64 @@ class ProductAdmin(admin.ModelAdmin):
                     self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action='activate')
     
     activate_allegro_products.short_description = "✅ Aktywuj oferty do Allegro"
-    
+
 
 
     def allegro_update(self, request, queryset):
-        # print('allegro_export request.user ----------------', request.user)
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
 
-        for vendor in vendors:
-            # print('check vendor ----------------', vendor)
-            access_token = vendor.access_token
+        batch = AllegroProductBatch.objects.create(status="PENDING")
+        product_ids = list(queryset.values_list("id", flat=True))
 
-            headers = {
-                'Accept': 'application/vnd.allegro.public.v1+json',
-                'Content-Type': 'application/vnd.allegro.public.v1+json',
-                'Accept-Language': 'pl-PL',
-                'Authorization': f'Bearer {access_token}'
-            }
-        
-            for product in queryset:
-                url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
-                offers = allegro_request('GET', url, vendor.name, headers=headers)
-                # print('allegro_update offers ----------------', offers)
-                for offer in offers.json()['offers']:
-                    print('allegro_update offer ----------------', offer)
-                    if offer['sellingMode']['price']['amount'] != str(product.price_brutto):
-                        action = 'price_brutto'
-                    elif offer['stock']['available'] != product.stock_qty:
-                        action = 'stock_qty'
-                    elif offer['name'] != product.title:
-                        action = 'title'
-                    else:
-                        action = 'other'
-                    
-                    edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                    resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action=action)
-                    # print('allegro_update price_brutto #####################', resp)
-                    if resp.status_code == 200:
-                        product.updates = False
-                        product.save(update_fields=['updates'])
+        # batch.total_products = len(product_ids)
+        # batch.save(update_fields=["total_products"])
+
+        orchestrate_allegro_updates.delay(batch.id, product_ids, request.user.id)
+
+        return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
     
     allegro_update.short_description = "♻️ Aktualizuj oferty do Allegro"
+
+    
+
+
+    # def allegro_update(self, request, queryset):
+    #     # print('allegro_export request.user ----------------', request.user)
+    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
+
+    #     for vendor in vendors:
+    #         # print('check vendor ----------------', vendor)
+    #         access_token = vendor.access_token
+
+    #         headers = {
+    #             'Accept': 'application/vnd.allegro.public.v1+json',
+    #             'Content-Type': 'application/vnd.allegro.public.v1+json',
+    #             'Accept-Language': 'pl-PL',
+    #             'Authorization': f'Bearer {access_token}'
+    #         }
+        
+    #         for product in queryset:
+    #             url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=ACTIVE"
+    #             offers = allegro_request('GET', url, vendor.name, headers=headers)
+    #             # print('allegro_update offers ----------------', offers)
+    #             for offer in offers.json()['offers']:
+    #                 print('allegro_update offer ----------------', offer)
+    #                 if offer['sellingMode']['price']['amount'] != str(product.price_brutto):
+    #                     action = 'price_brutto'
+    #                 elif offer['stock']['available'] != product.stock_qty:
+    #                     action = 'stock_qty'
+    #                 elif offer['name'] != product.title:
+    #                     action = 'title'
+    #                 else:
+    #                     action = 'other'
+                    
+    #                 edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
+    #                 resp = self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action=action)
+    #                 # print('allegro_update price_brutto #####################', resp)
+    #                 if resp.status_code == 200:
+    #                     product.updates = False
+    #                     product.save(update_fields=['updates'])
+    
+    # allegro_update.short_description = "♻️ Aktualizuj oferty do Allegro"
 
 
 
@@ -1487,6 +1522,7 @@ class AllegroOrderAdmin(admin.ModelAdmin):
                 print(f"Error fetching orders for {order_id}: {e}")
 
 
+    # Zamówienia Allegro - utwórz etykiety
     def create_allegro_orders_(self, request, queryset):
 
         batch = AllegroBatch.objects.create(status="PENDING")
@@ -3353,3 +3389,7 @@ admin.site.register(ClientAccessLog, ClientAccessLogAdmin)
 admin.site.register(Message)
 admin.site.register(Address)
 admin.site.register(AllegroBatch)
+admin.site.register(AllegroProductBatch)
+admin.site.register(AllegroProductUpdateLog)
+admin.site.register(SeoTitleBatch)
+admin.site.register(SeoTitleLog)

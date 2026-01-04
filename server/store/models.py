@@ -60,6 +60,55 @@ class Category(models.Model):
         super(Category, self).save(*args, **kwargs)
 
 
+# models.py
+
+class SeoTitleBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default="PENDING")
+    total_products = models.PositiveIntegerField(default=0)
+    processed_products = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"SEO Batch {self.id}"
+
+
+class SeoTitleLog(models.Model):
+    batch = models.ForeignKey(SeoTitleBatch, on_delete=models.CASCADE, related_name="logs")
+    product = models.ForeignKey("Product", on_delete=models.CASCADE)
+    new_title = models.CharField(max_length=255, null=True, blank=True)
+    success = models.BooleanField(default=False)
+    error = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f"Log for product {self.product_id} in batch {self.batch_id}"
+
+
+class AllegroProductBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default="PENDING")
+
+    total_products = models.PositiveIntegerField(default=0)
+    processed_products = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"UpdateBatch {self.id} ({self.status})"
+    
+
+class AllegroProductUpdateLog(models.Model):
+    batch = models.ForeignKey(AllegroProductBatch, on_delete=models.CASCADE, related_name="logs")
+    product = models.ForeignKey("Product", on_delete=models.CASCADE)
+    updates = models.JSONField(default=list)   # np. ["price_brutto", "stock_qty"]
+    success = models.BooleanField(default=False)
+    error = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Log for product {self.product_id} in batch {self.batch_id}"
+
+
+
+
 class Product(models.Model):
 
     MARKETPLACE_CHOICES = (

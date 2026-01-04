@@ -38,6 +38,8 @@ urlpatterns = [
     path('admin/sync-allegro-offers/', ProductAdminView.as_view(), name='sync_allegro_offers'),
     path('admin/edit-allegro-offers/', EditProductAdminView.as_view(), name='edit_allegro_offers'),
     path("admin/allegrobatch/<int:batch_id>/status/", batch_status_view, name="allegro_batch_status"),
+    path("admin/allegroupdatebatch/<int:batch_id>/status/", update_batch_status_view, name="allegroupdatebatch_status"),
+    path("admin/seotitlebatch/<int:batch_id>/status/", seo_title_batch_status, name="seo_title_batch_status"),
 
     path('vendor-contact', VendorContact.as_view(), name='vendor-contact'),
 ]

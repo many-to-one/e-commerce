@@ -1,0 +1,291 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<style>
+    /* --- GLOBAL STYLE --- */
+    body {
+        font-family: Inter, Roboto, sans-serif;
+    }
+
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    h2, h3, h4 {
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .btn {
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0069d9;
+    }
+
+    .btn-secondary {
+        background: #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+        background: #f89f9f;
+    }
+
+    /* --- PROGRESS BAR --- */
+    .progress-container {
+        width: 100%;
+        background: #f1f1f1;
+        border-radius: 10px;
+        height: 26px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #4caf50, #2e8b57);
+        background-size: 200% 200%;
+        animation: pulseGradient 2s ease infinite;
+        transition: width 0.5s ease;
+    }
+
+    @keyframes pulseGradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+
+    /* --- TABLE --- */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        overflow-x: auto;
+        display: block;
+    }
+
+    table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #6c757d;
+        color: white;
+    }
+
+    th {
+        text-align: left;
+        padding: 12px;
+        background: #6c757d;
+        border-bottom: 2px solid #eee;
+        font-weight: 600;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+    }
+
+    tr[data-success="True"] { background: #005600; }
+    tr[data-success="False"] { background: #7e0c0c; }
+    tr[data-success="None"] { background: #705807; }
+
+    /* --- BADGES --- */
+    .badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .badge-success { background: #d4f8d4; color: #0f7a0f; }
+    .badge-error { background: #ffd4d4; color: #b30000; }
+    .badge-warn { background: #fff1c2; color: #8a6d00; }
+
+    /* --- ACTION BAR --- */
+    .action-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+</style>
+
+
+<div class="card">
+    <h2>🔄 Status aktualizacji ofert Allegro</h2>
+
+    <p>Status:
+        {% if batch.status == "SUCCESS" %}
+            <span class="badge badge-success">🟢 Zakończono</span>
+        {% elif batch.status == "FAILED" %}
+            <span class="badge badge-error">🔴 Błąd</span>
+        {% else %}
+            <span class="badge badge-warn">🟡 W toku</span>
+        {% endif %}
+    </p>
+
+    <!-- Hidden counters -->
+    <span id="batch-processed" style="display:none;">{{ batch.processed_products }}</span>
+    <span id="batch-total" style="display:none;">{{ batch.total_products }}</span>
+
+    <!-- Progress bar -->
+    <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+
+    <p style="margin-top: 10px;">
+        <strong><span id="progress-text"></span></strong>
+    </p>
+
+    {% if batch.status == "SUCCESS" %}
+        <button class="btn btn-primary" onclick="window.location.href='/admin/store/product/'">
+            ⏪ Wróć do listy produktów
+        </button>
+    {% else %}
+        <p style="margin-top: 10px;">Strona odświeży się automatycznie…</p>
+        <script>
+            setTimeout(() => window.location.reload(), 2000);
+        </script>
+    {% endif %}
+</div>
+
+
+<div class="card">
+    <h3>⚙️ Narzędzia</h3>
+
+    <div class="action-bar">
+        <button class="btn btn-secondary" onclick="sortLogs('success')">Sortuj: Sukcesy</button>
+        <button class="btn btn-secondary" onclick="sortLogs('error')">Sortuj: Błędy</button>
+        <button class="btn btn-secondary" onclick="filterErrors()">Pokaż tylko błędy</button>
+        <button class="btn btn-secondary" onclick="showAll()">Pokaż wszystkie</button>
+        <button class="btn btn-primary" onclick="exportCSV()">📤 Eksport CSV</button>
+    </div>
+</div>
+
+
+<div class="card">
+    <h3>📄 Status produktów</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Produkt</th>
+                <th>Aktualizacje</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody id="log-table-body">
+            {% for log in logs %}
+                <tr class="log-row"
+                    data-success="{{ log.success }}"
+                    data-product="{{ log.product.title }}"
+                    data-error="{{ log.error|default:'' }}">
+
+                    <td>
+                        <strong>{{ log.product.title }}</strong><br>
+                        <small>SKU: {{ log.product.sku }}</small>
+                    </td>
+
+                    <td>
+                        {% if log.updates %}
+                            {% for u in log.updates %}
+                                {% if "price" in u %} 💰 {{ u }}<br>
+                                {% elif "stock" in u %} 📦 {{ u }}<br>
+                                {% elif "title" in u %} 📝 {{ u }}<br>
+                                {% else %} 🔧 {{ u }}<br>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <span class="badge badge-warn">— brak zmian —</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if log.success %}
+                            <span class="badge badge-success">🟢 OK</span>
+                        {% elif log.error %}
+                            <span class="badge badge-error">🔴 {{ log.error }}</span>
+                        {% else %}
+                            <span class="badge badge-warn">🟡 Brak zmian</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const processed = parseInt(document.getElementById("batch-processed").textContent.trim(), 10) || 0;
+    const total = parseInt(document.getElementById("batch-total").textContent.trim(), 10) || 0;
+    const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+    document.getElementById("progress-bar").style.width = percent + "%";
+    document.getElementById("progress-text").innerText = `${processed} / ${total} (${percent}%)`;
+});
+
+
+function sortLogs(mode) {
+    const tbody = document.getElementById("log-table-body");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    rows.sort((a, b) => {
+        if (mode === "success") return (b.dataset.success === "True") - (a.dataset.success === "True");
+        if (mode === "error") return (b.dataset.error ? 1 : 0) - (a.dataset.error ? 1 : 0);
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+}
+
+function filterErrors() {
+    document.querySelectorAll(".log-row").forEach(row => {
+        row.style.display = row.dataset.error ? "" : "none";
+    });
+}
+
+function showAll() {
+    document.querySelectorAll(".log-row").forEach(row => row.style.display = "");
+}
+
+function exportCSV() {
+    const rows = document.querySelectorAll(".log-row");
+    let csv = "Produkt,SKU,Status,Komunikat\n";
+
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        const product = cols[0].innerText.replace(/\n/g, " ").trim();
+        const updates = cols[1].innerText.replace(/\n/g, " ").trim();
+        const status = cols[2].innerText.replace(/\n/g, " ").trim();
+        csv += `"${product}","${updates}","${status}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "allegro_update_logs.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

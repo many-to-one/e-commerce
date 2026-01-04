@@ -11,13 +11,21 @@
     </div>
 </div>
 
+<span id="batch-processed" style="display:none;">
+    {{ batch.processed_orders|default:0 }}
+</span>
+<span id="batch-total" style="display:none;">
+    {{ batch.total_orders|default:0 }}
+</span>
+
 <p><strong><span id="progress-text"></span></strong></p>
 
 <script>
-    var processed = {{ batch.processed_orders|default:0 }};
-    var total = {{ batch.total_orders|default:0 }};
-    var percent = total > 0 ? Math.round((processed / total) * 100) : 0;
-    console.log("Processed:", processed, "Total:", total, "Percent:", percent);
+    const batchEl = document.getElementById("batch-data");
+
+    const processed = parseInt(batchEl.dataset.processed, 10) || 0;
+    const total = parseInt(batchEl.dataset.total, 10) || 0;
+    const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
 
     document.getElementById("progress-bar").style.width = percent + "%";
     document.getElementById("progress-text").innerText =

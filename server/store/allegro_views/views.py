@@ -177,6 +177,26 @@ def allegro_request(method, url, vendor_name, **kwargs):
 
     return response
 
+
+def parse_allegro_response(resp, action):
+    data = resp.json()
+
+    # jeśli Allegro zwróciło błąd
+    if "errors" in data and data["errors"]:
+        err = data["errors"][0]
+        return {
+            "success": False,
+            "message": err.get("userMessage") or err.get("message") or "Nieznany błąd"
+        }
+
+    # jeśli wszystko OK
+    return {
+        "success": True,
+        "message": f"Zaktualizowano: {action}"
+    }
+
+
+
     # needed functions??
 
 @method_decorator(staff_member_required, name='dispatch')

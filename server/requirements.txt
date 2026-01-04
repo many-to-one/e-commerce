@@ -2,6 +2,7 @@ aiohappyeyeballs==2.6.1
 aiohttp==3.13.2
 aiosignal==1.4.0
 amqp==5.3.1
+annotated-types==0.7.0
 anyio==4.11.0
 asgiref==3.10.0
 attrs==25.1.0
@@ -20,6 +21,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 ConfigArgParse==1.7
 diff-match-patch==20241021
+distro==1.9.0
 Django==5.1.5
 django-async-orm==0.1.12
 django-cors-headers==4.6.0
@@ -46,6 +48,7 @@ idna==3.10
 inflection==0.5.1
 itsdangerous==2.2.0
 Jinja2==3.1.5
+jiter==0.12.0
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 kombu==5.4.2
@@ -56,6 +59,7 @@ msgpack==1.1.0
 multidict==6.7.0
 num2words==0.5.14
 numpy==2.2.3
+openai==2.14.0
 opencv-python-headless==4.12.0.88
 openpyxl==3.1.5
 packaging==24.2
@@ -65,6 +69,8 @@ prompt_toolkit==3.0.50
 propcache==0.4.1
 psutil==7.0.0
 psycopg2-binary==2.9.10
+pydantic==2.12.5
+pydantic_core==2.41.5
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
@@ -84,7 +90,9 @@ soupsieve==2.8
 sqlparse==0.5.3
 stripe==11.5.0
 tablib==3.8.0
-typing_extensions==4.12.2
+tqdm==4.67.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
 tzdata==2025.1
 uritemplate==4.1.1
 urllib3==2.3.0
