@@ -114,11 +114,6 @@ class ProductAdminForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         required=False
     )
-
-    class Meta:
-        model = Product
-        fields = '__all__'
-
     
 
 class AllegroStockFilter(admin.SimpleListFilter):
@@ -136,6 +131,20 @@ class AllegroStockFilter(admin.SimpleListFilter):
             return queryset.filter(allegro_in_stock=True)
         if self.value() == 'false':
             return queryset.filter(allegro_in_stock=False)
+        return queryset
+    
+
+class AllegroVendorFilter(admin.SimpleListFilter):
+    title = '🛒 Sprzedawca Allegro'
+    parameter_name = 'allegro_vendor'
+
+    def lookups(self, request, model_admin):
+        vendors = Vendor.objects.filter(marketplace='allegro.pl')
+        return [(vendor.name, vendor.name) for vendor in vendors]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(vendors__name=self.value())
         return queryset
     
 
@@ -204,11 +213,11 @@ class ProductAdmin(admin.ModelAdmin):
 
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
-    list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
+    list_filter = [AllegroVendorFilter, AllegroStockFilter, KecjaUpdatesFilter]
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
         'modified_hidden', 
-        'sku', 'product_image', 
+        'sku', 'vendor_checkboxes', 'product_image', 
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
@@ -226,7 +235,7 @@ class ProductAdmin(admin.ModelAdmin):
         'generate_allegro_seo_titles',
         'allegro_export', 
         'allegro_update', 
-        # 'sync_allegro_offers', 
+        'sync_selected_allegro_offers_async', 
         "activate_allegro_products",
         # 'update_products_description',
         'calculate_allegro_fee',
@@ -242,9 +251,61 @@ class ProductAdmin(admin.ModelAdmin):
             "all": ("admin/css/custom_css/my.css",)
         }
 
+        js = ("admin/js/my.js",)
+
     offers = []
 
     change_list_template = "admin/store/product/change_list_.html"
+
+    ###### Vendor checkboxes ######
+
+    def vendor_checkboxes(self, obj):
+        html = ""
+
+        vendors = Vendor.objects.filter(marketplace="allegro.pl")  # lub dowolny filtr, ale BEZ requesta
+        product_vendors = set(obj.vendors.all())
+
+        for vendor in vendors:
+            checked = "checked" if vendor in product_vendors else ""
+            html += f"""
+                <label style='display:flex; align-items:center; gap:4px;'>
+                    <input type="checkbox" class="vendor-toggle"
+                        data-product="{obj.id}"
+                        data-vendor="{vendor.id}"
+                        {checked}>
+                    {vendor.name}
+                </label>
+            """
+
+        return format_html(html)
+
+    vendor_checkboxes.short_description = "Sprzedawcy"
+
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path("toggle-vendor/", self.admin_site.admin_view(self.toggle_vendor)),
+        ]
+        return custom + urls
+    
+    def toggle_vendor(self, request):
+        product_id = request.POST.get("product_id")
+        vendor_id = request.POST.get("vendor_id")
+        checked = request.POST.get("checked") == "true"
+
+        product = Product.objects.get(id=product_id)
+        vendor = Vendor.objects.get(id=vendor_id)
+
+        if checked:
+            product.vendors.add(vendor)
+        else:
+            product.vendors.remove(vendor)
+
+        return JsonResponse({"status": "ok"})
+
+    ###### End Vendor checkboxes ######
+
 
     def modified_hidden(self, obj):
         return format_html(
@@ -589,7 +650,12 @@ class ProductAdmin(admin.ModelAdmin):
                         count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.title = offer.get("name", product.title)
-                        product.allegro_ids.append({ "vendor": vendor.name, "product_id": id })
+    
+                        entry = {"vendor": vendor.name, "product_id": id}
+
+                        if entry not in product.allegro_ids:
+                            product.allegro_ids.append(entry)
+
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
                         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -609,6 +675,24 @@ class ProductAdmin(admin.ModelAdmin):
                 self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 
     sync_allegro_offers.short_description = "🔄 Synchronizuj z Allegro"
+
+
+    def sync_selected_allegro_offers_async(self, request, queryset):
+        product_ids = list(queryset.values_list("id", flat=True))
+
+        batch = AllegroProductBatch.objects.create(
+            status="PENDING",
+            # total_products=len(product_ids)
+        )
+
+        from store.tasks import sync_selected_offers_task
+        sync_selected_offers_task.delay(batch.id, product_ids, request.user.id)
+
+        return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
+
+    sync_selected_allegro_offers_async.short_description = "🔄 Przenieś z Allegro (zaznaczone)"
+
+
 
 
 #    def save_model(self, request, obj, form, change):

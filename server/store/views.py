@@ -1311,10 +1311,6 @@ def batch_status_view(request, batch_id):
     return render(request, "admin/store/batch_status.html", {"batch": batch})
 
 
-# def update_batch_status_view(request, batch_id):
-#     batch = get_object_or_404(AllegroProductBatch, id=batch_id)
-#     logs = batch.logs.select_related("product").order_by("id")
-#     return render(request, "admin/store/update_products_status_.html", {"batch": batch, "logs": logs})
 
 def update_batch_status_view(request, batch_id):
     batch = get_object_or_404(AllegroProductBatch, id=batch_id)
@@ -1322,6 +1318,10 @@ def update_batch_status_view(request, batch_id):
 
     # 🔥 ZBIERAMY WSZYSTKIE SKU Z LOGÓW
     all_skus = ",".join([log.product.sku for log in logs])
+
+    for log in logs:
+        print('***** LOG SKU *****', log.product.sku)
+        print('***** LOG MESSAGE *****', log.message)
 
     return render(
         request,
@@ -1347,4 +1347,3 @@ def seo_title_batch_status(request, batch_id):
         "logs": logs,
         "all_skus": all_skus,
     })
-

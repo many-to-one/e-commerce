@@ -846,3 +846,128 @@ def delete_title_batch_and_logs(batch_id):
     SeoTitleLog.objects.filter(batch_id=batch_id).delete()
     SeoTitleBatch.objects.filter(id=batch_id).delete()
     return True
+
+
+
+# from celery import shared_task
+# from django.utils import timezone
+from decimal import Decimal, ROUND_HALF_UP
+# from store.models import Product, Vendor, AllegroProductBatch
+# from store.allegro_views.views import allegro_request, get_allegro_id
+
+
+@shared_task
+def sync_selected_offers_task(batch_id, product_ids, user_id):
+    batch = AllegroProductBatch.objects.get(id=batch_id)
+    batch.status = "RUNNING"
+    batch.save(update_fields=["status"])
+
+    products = Product.objects.filter(id__in=product_ids)
+    product_map = {p.sku: p for p in products}
+
+    # vendors = Vendor.objects.filter(user_id=user_id, marketplace="allegro.pl")
+
+    updated_count = 0
+
+    updates = []   # lista zmian wykonanych dla tych produktów
+
+    for product in products:
+
+        print('___________________sync_selected_offers_task product.sku___________________', product.sku)
+
+        vendors = product.vendors.all()
+
+        for vendor in vendors.filter(user_id=user_id, marketplace="allegro.pl"):
+
+            print('___________________sync_selected_offers_task vendor.name___________________', vendor.name)
+
+            access_token = vendor.access_token
+
+            headers = {
+                "Accept": "application/vnd.allegro.public.v1+json",
+                "Authorization": f"Bearer {access_token}"
+            }
+
+            sku = product.sku
+            action = f"Synchronizacja oferty Allegro {product.sku} z produktem lokalnym"
+
+            # 🔥 Pobieramy tylko ofertę powiązaną z tym SKU
+            url = (
+                f"https://{os.getenv('ALLEGRO_API_URL')}/sale/offers"
+                f"?external.id={sku}&publication.marketplace=allegro-pl"
+            )
+
+            try:
+                resp = allegro_request("GET", url, vendor.name, headers=headers)
+                data = resp.json()
+
+                offers = data.get("offers", [])
+                if not offers:
+                    continue
+
+                offer = offers[0]  # zawsze jedna oferta na SKU
+
+                status = offer.get("publication", {}).get("status")
+                price_brutto = Decimal(
+                    offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+                )
+
+                product.title = offer.get("name", product.title)
+                product.allegro_status = status
+                product.allegro_in_stock = (status == "ACTIVE")
+                product.price_brutto = price_brutto
+                product.price = (price_brutto / Decimal("1.23")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+
+                # 🔥 aktualizacja allegro_ids
+                allegro_id = offer.get("id")
+                entry = {"vendor": vendor.name, "product_id": allegro_id}
+
+                if entry not in product.allegro_ids:
+                    product.allegro_ids.append(entry)
+
+
+                product.modified = timezone.now()
+                product.save()
+
+                updated_count += 1
+
+                updates.append(action)
+                product.modified = timezone.now()
+                product.save(update_fields=['modified'])
+
+                # aktualizacja batcha
+                batch = AllegroProductBatch.objects.get(id=batch_id)
+                batch.total_products += 1 
+                batch.save(update_fields=["processed_products", "total_products"])
+
+                # zapis logu
+                parsed = parse_allegro_response(resp, action)
+
+                AllegroProductUpdateLog.objects.create(
+                    batch_id=batch_id,
+                    product=product,
+                    updates=[parsed["message"]] if parsed["success"] else [],
+                    success=parsed["success"],
+                    error=None if parsed["success"] else parsed["message"]
+                )
+
+            except Exception as e:
+                print("Error:", e)
+                continue
+
+    batch.status = "SUCCESS"
+    batch.processed_products = updated_count
+    batch.save(update_fields=["status", "processed_products"])
+
+    finalize_update_batch.apply_async(([], batch_id))
+
+    # return updated_count
+
+    return {
+        "product_ids": product_ids,
+        "updated_count": updated_count,
+        "updates": updates,
+    }
+
