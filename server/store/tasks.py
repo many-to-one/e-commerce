@@ -15,7 +15,7 @@ from .allegro_views.product_views import action_with_offer_from_product
 
 from .allegro_views.create_label import create_label
 from .allegro_views.create_shipment import create_shipment
-from .allegro_views.views import allegro_request, parse_allegro_response, responsible_producers
+from .allegro_views.views import allegro_request, parse_allegro_response, responsible_producers, save_allegro_id
 from users.models import User
 from .models import (
     AllegroProductBatch,
@@ -630,6 +630,8 @@ def update_single_product(batch_id, product_id, user_id):
 
             if resp.status_code == 200:
                 updates.append(action)
+                product.modified = timezone.now()
+                product.save(update_fields=['modified'])
 
             # aktualizacja batcha
             batch = AllegroProductBatch.objects.get(id=batch_id)
@@ -686,18 +688,24 @@ def post_single_product(batch_id, product_id, user_id):
                 if resp.status_code == 201:
                     product.allegro_in_stock = True
                     product.allegro_status = 'ACTIVE'
-                    product.allegro_id = resp.json().get('id')
-                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
+                    product.allegro_ids = save_allegro_id(vendor.name, product.allegro_ids, resp.json().get('id'))
+                    product.modified = timezone.now()
+                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_ids', 'modified'])
                     updates.append(action)
                 elif resp.status_code == 422 and resp.json().get('errors', [{}])[0].get('code') == 'MatchingProductForIdNotFoundException':
                     product.allegro_in_stock = False
                     product.allegro_status = 'INACTIVE'
-                    product.save(update_fields=['allegro_in_stock', 'allegro_status'])
+                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'modified'])
                     error = resp.json().get('errors', [{}])[0]
                     error_message = error.get('userMessage')
                     updates.append(error_message)
 
                 elif resp.status_code == 200:
+                    product.allegro_in_stock = True
+                    product.allegro_status = 'ACTIVE'
+                    product.allegro_ids = save_allegro_id(vendor.name, product.allegro_ids, resp.json().get('id'))
+                    product.modified = timezone.now()   
+                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id', 'modified'])
                     updates.append(action)
 
                 # aktualizacja batcha

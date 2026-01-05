@@ -206,6 +206,7 @@ class Product(models.Model):
     # Slug for SEO-friendly URLs
     slug = models.SlugField(max_length=255, null=True, blank=True,)
     date = models.DateTimeField(default=timezone.now)
+    modified = models.DateTimeField(auto_now=True)
 
     # Parameters
     weight = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True, help_text="Waga w kg")

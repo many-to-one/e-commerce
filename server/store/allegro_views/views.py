@@ -207,6 +207,14 @@ def get_allegro_id(vendor_name, allegro_ids):
             return entry["product_id"]
     return None
 
+def save_allegro_id(vendor_name, allegro_ids, new_id):
+    for entry in allegro_ids:
+        if entry["vendor"] == vendor_name:
+            entry["product_id"] = new_id
+            return allegro_ids
+    allegro_ids.append({"vendor": vendor_name, "product_id": new_id})
+    return allegro_ids
+
 
     # needed functions??
 

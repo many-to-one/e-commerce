@@ -205,7 +205,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
     list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
-    list_display = ['sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'hurt_price', 'price_brutto', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
+    list_display = ['modified_hidden', 'sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'hurt_price', 'price_brutto', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
     # exclude = ('vendors',) 
     actions = [
         apply_discount, 
@@ -225,12 +225,18 @@ class ProductAdmin(admin.ModelAdmin):
 
     class Media:
         css = {
-            "all": ("admin/css/custom_styles/my.css",)
+            "all": ("admin/css/custom_css/my.css",)
         }
 
     offers = []
 
     change_list_template = "admin/store/product/change_list.html"
+
+    def modified_hidden(self, obj):
+            return obj.modified
+    modified_hidden.admin_order_field = 'modified'
+    modified_hidden.short_description = ''
+
 
     def title_warning(self, obj):
         if len(obj.title or "") > 75:
