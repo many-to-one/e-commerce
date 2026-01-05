@@ -154,9 +154,20 @@
     </p>
 
     {% if batch.status == "SUCCESS" %}
-        <button class="btn btn-primary" onclick="window.location.href='/admin/store/product/?o=-1'">
-            ⏪ Wróć do listy produktów
-        </button>
+        {% if batch.status == "SUCCESS" %}
+            <button class="btn btn-primary" onclick="window.location.href='/admin/store/product/?o=-1'">
+                ⏪ Główna
+            </button>
+            <br>
+            <button class="btn btn-primary" onclick="window.location.href='/admin/store/product/?q={{ all_skus }}'">
+                🔄 Produkty 
+            </button>
+        {% else %}
+            <p style="margin-top: 10px;">Strona odświeży się automatycznie…</p>
+            <script>
+                setTimeout(() => window.location.reload(), 2000);
+            </script>
+        {% endif %}
     {% else %}
         <p style="margin-top: 10px;">Strona odświeży się automatycznie…</p>
         <script>

@@ -322,13 +322,19 @@ class Product(models.Model):
         # --- Nowa logika: zysk po odjęciu 3% i kosztów dostawy ---
         if self.price_brutto and self.hurt_price:
             # Odejmij 3% od ceny brutto
-            cena_po_prowizji = (self.price_brutto * Decimal("0.97")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            cena_po_podatku = (self.price_brutto * Decimal("0.97")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             # Koszt dostawy (zakładamy 1 przesyłkę)
-            delivery_cost = calculate_delivery_cost(cena_po_prowizji, przesylki=1)
+            delivery_cost = calculate_delivery_cost(cena_po_podatku, przesylki=1)
+
+            print("Zysk PLN hurt_price ------------", self.hurt_price)
+            print("Zysk PLN cena_po_podatku ------------", cena_po_podatku)
+            print("Zysk PLN delivery_cost ------------", delivery_cost)
+            print("Zysk PLN prowizja_allegro ------------", self.prowizja_allegro)
 
             # Zysk po odjęciu prowizji i dostawy
-            self.zysk_after_payments = (cena_po_prowizji - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.zysk_after_payments = (cena_po_podatku - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            print("Zysk PLN zysk_after_payments ------------", self.zysk_after_payments)
 
         # 4️⃣ If price (netto) changed after Kecja price updates
         elif old and self.price != old.price and self.hurt_price is not None:

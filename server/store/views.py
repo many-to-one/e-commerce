@@ -1338,8 +1338,13 @@ def update_batch_status_view(request, batch_id):
 def seo_title_batch_status(request, batch_id):
     batch = get_object_or_404(SeoTitleBatch, id=batch_id)
     logs = batch.logs.select_related("product").order_by("id")
-    return render(request, "admin/store/seo_title_batch_status.html", {
+
+    # 🔥 ZBIERAMY WSZYSTKIE SKU Z LOGÓW
+    all_skus = ",".join([log.product.sku for log in logs])
+    
+    return render(request, "admin/store/seo_title_batch_status_.html", {
         "batch": batch,
         "logs": logs,
+        "all_skus": all_skus,
     })
 
