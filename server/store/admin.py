@@ -7,9 +7,10 @@ from django import forms
 from django.db.models import F
 from django.utils.timezone import now
 from django.utils.html import format_html, format_html_join
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_datetime
 from django.urls import path
+from django.forms import NumberInput
 
 from bs4 import BeautifulSoup
 
@@ -204,15 +205,28 @@ class ProductAdmin(admin.ModelAdmin):
     # inlines = [ProductImagesAdmin, SpecificationAdmin, ColorAdmin, SizeAdmin]
     search_fields = ['title', 'price', 'slug', 'sku', 'ean']
     list_filter = ['vendors', AllegroStockFilter, KecjaUpdatesFilter]
-    list_editable = ['title','ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
-    list_display = ['modified_hidden', 'sku', 'product_image', 'allegro_in_stock', 'allegro_status', 'in_stock', 'title', 'title_warning', 'stock_qty', 'ean', 'hurt_price', 'price_brutto', 'prowizja_allegro', 'zysk_after_payments', 'zysk_procent', 'hot_deal']
+    list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
+    list_display = [
+        'modified_hidden', 
+        'sku', 'product_image', 
+        'allegro_in_stock', 
+        'allegro_status', 
+        'in_stock', 
+        'title',
+        'title_warning', 
+        'stock_qty', 
+        'ean', 
+        'hurt_price', 'price_brutto', 
+        'prowizja_allegro', 'zysk_after_payments', 
+        'zysk_procent', 'hot_deal'
+        ]
     # exclude = ('vendors',) 
     actions = [
         apply_discount, 
         'generate_allegro_seo_titles',
         'allegro_export', 
         'allegro_update', 
-        'sync_allegro_offers', 
+        # 'sync_allegro_offers', 
         "activate_allegro_products",
         # 'update_products_description',
         'calculate_allegro_fee',
@@ -230,21 +244,66 @@ class ProductAdmin(admin.ModelAdmin):
 
     offers = []
 
-    change_list_template = "admin/store/product/change_list.html"
+    change_list_template = "admin/store/product/change_list_.html"
 
     def modified_hidden(self, obj):
-            return obj.modified
-    modified_hidden.admin_order_field = 'modified'
-    modified_hidden.short_description = ''
+        return format_html(
+            '<span style="display:block;">{}</span>',
+            localtime(obj.modified).strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+    modified_hidden.admin_order_field = "modified"
+    modified_hidden.short_description = ""
 
 
     def title_warning(self, obj):
         if len(obj.title or "") > 75:
             return format_html('<span style="color:red;">⚠️ {} znaków</span>', len(obj.title))
         return ""
-    title_warning.short_description = "Ostrzeżenie"
+    title_warning.short_description = ">75 znaków"
 
-    title_warning.short_description = "Tytuł"
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, **kwargs)
+
+        # stock_qty (IntegerField)
+        if db_field.name == "stock_qty":
+            formfield.widget = NumberInput(attrs={
+                "style": "width:60px; text-align:right;"
+            })
+
+        # price_brutto (DecimalField)
+        if db_field.name == "price_brutto":
+            formfield.widget = NumberInput(attrs={
+                "style": "width:80px; text-align:right;"
+            })
+
+        # zysk_after_payments (DecimalField)
+        if db_field.name == "zysk_after_payments":
+            formfield.widget = NumberInput(attrs={
+                "style": "width:80px; text-align:right;"
+            })
+
+        # zysk_procent (DecimalField)
+        if db_field.name == "zysk_procent":
+            formfield.widget = NumberInput(attrs={
+                "style": "width:80px; text-align:right;"
+            })
+
+        return formfield
+
+
+
+
+    def get_search_results(self, request, queryset, search_term):
+        # obsługa wielu SKU oddzielonych przecinkami
+        if "," in search_term:
+            terms = [t.strip() for t in search_term.split(",")]
+            queryset = queryset.filter(sku__in=terms)
+            return queryset, False
+
+        return super().get_search_results(request, queryset, search_term)
+
 
     def product_image(self, obj):  # assuming Gallery model has 'image' field
         if obj.thumbnail:
@@ -530,7 +589,6 @@ class ProductAdmin(admin.ModelAdmin):
                         count += 1
                         # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.title = offer.get("name", product.title)
-                        # product.allegro_id = id
                         product.allegro_ids.append({ "vendor": vendor.name, "product_id": id })
                         product.allegro_in_stock = True
                         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
@@ -543,7 +601,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product.allegro_in_stock = False
 
                     product.allegro_status = status
-                    product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto"])
+                    product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto",])
 
                 self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 

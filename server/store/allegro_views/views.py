@@ -253,7 +253,7 @@ class ProductAdminView(View):
         admin_instance.sync_allegro_offers(request, queryset=None)
 
         messages.success(request, "✅ Synchronizacja Allegro zakończona.")
-        return redirect('/admin/store/product/')
+        return redirect('/admin/store/product/?o=-1')
     
 # @method_decorator(staff_member_required, name='dispatch')
 # class EditProductAdminView(View):
