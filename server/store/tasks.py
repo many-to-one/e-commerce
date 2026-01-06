@@ -929,13 +929,14 @@ def sync_selected_offers_task(batch_id, product_ids, user_id):
 
 
                 product.modified = timezone.now()
+                product.updates = False
                 product.save()
 
                 updated_count += 1
 
                 updates.append(action)
-                product.modified = timezone.now()
-                product.save(update_fields=['modified'])
+                # product.modified = timezone.now()
+                # product.save(update_fields=['modified'])
 
                 # aktualizacja batcha
                 batch = AllegroProductBatch.objects.get(id=batch_id)

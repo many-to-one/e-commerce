@@ -856,8 +856,8 @@ class PrestaUpdateCSVView(APIView):
 
 
             for idx, row in df.iterrows():
-                for r in row:
-                    print('***ROW***', r)
+                # for r in row:
+                    # print('***ROW***', r)
                 categories = row["Kategorie (x,y,z...)"].split(",")
                 if len(categories) >= 2:
                     title = categories[1] 
@@ -868,8 +868,9 @@ class PrestaUpdateCSVView(APIView):
                     category = Category.objects.filter(title=title).first()
                     print('***EXISTING CATEGORY***', category)
                     if category:  # Update fields
-                        category.category_hierarchy = hierarchy
-                        category.save(update_fields=["category_hierarchy"])
+                        if category.category_hierarchy != hierarchy:
+                            category.category_hierarchy = hierarchy
+                            category.save(update_fields=["category_hierarchy"])
                     else:  # Create new category
                         category = Category.objects.create(
                             title=title,
@@ -885,35 +886,123 @@ class PrestaUpdateCSVView(APIView):
                 print(len(row["Nazwa"]), row["Nazwa"])
 
                 product = Product.objects.filter(ean=row["EAN"]).first()
+                # if product:
+                #     if update_stock:
+                #         print("Aktualizujemy stany *******************")
+                #         product.stock_qty = row["Ilość"]
+                #         product.updates = True
+                #         product.save(update_fields=['stock_qty', 'updates'])
+                #     if update_price:
+                #         print("Aktualizujemy ceny *******************")
+                #         product.price = gross_price   # <-- includes 23% VAT
+                #         # product.hurt_price = safe_decimal(row["Cena hurtowa"])
+                #         product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
+                #         product.updates = True
+                #         product.save(update_fields=['price', 'updates'])
+
                 if product:
                     if update_stock:
-                        print("Aktualizujemy stany *******************")
-                        product.stock_qty = row["Ilość"]
-                        product.updates = True
-                        product.save(update_fields=['stock_qty', 'updates'])
-                    if update_price:
-                        print("Aktualizujemy ceny *******************")
-                        product.price = gross_price   # <-- includes 23% VAT
-                        product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
-                        product.updates = True
-                        product.save(update_fields=['price', 'updates'])
-                    if update_description:
-                        product.title = row["Nazwa"]
-                        product.ean = row["EAN"]
-                        product.image = first_image
-                        product.img_links = images
-                        product.description = row["Opis"]
-                        product.price = gross_price   # <-- includes 23% VAT
-                        product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
-                        product.stock_qty = row["Ilość"]
-                        product.sku = row["Kod dostawcy"]
-                        product.shipping_amount = safe_decimal(9.99)
-                        product.category = category
-                        product.sub_cat = categories[2:]
-                        product.updates = True
-                        # product.tax_rate = safe_decimal("23.00")
+                        if product.stock_qty != row["Ilość"]:
+                            product.stock_qty = row["Ilość"]
+                            product.updates = True
+                            product.save(update_fields=['stock_qty', 'updates'])
 
-                        product.save()
+                    if update_price:
+                        new_price = gross_price
+                        new_hurt = safe_decimal(row["Cena hurtowa"])
+
+                        fields_to_update = []
+
+                        if product.price != new_price:
+                            product.price = new_price
+                            fields_to_update.append("price")
+
+                        if product.new_hurt_price != new_hurt:
+                            product.new_hurt_price = new_hurt
+                            fields_to_update.append("new_hurt_price")
+
+                        if fields_to_update:
+                            product.updates = True
+                            fields_to_update.append("updates")
+                            product.save(update_fields=fields_to_update)
+
+
+                    # if update_description:
+                    #     product.title = row["Nazwa"]
+                    #     product.image = first_image
+                    #     product.img_links = images
+                    #     product.description = row["Opis"]
+                    #     product.price = gross_price   # <-- includes 23% VAT
+                    #     product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
+                    #     product.stock_qty = row["Ilość"]
+                    #     product.sku = row["Kod dostawcy"]
+                    #     product.shipping_amount = safe_decimal(9.99)
+                    #     product.category = category
+                    #     product.sub_cat = categories[2:]
+                    #     product.updates = True
+                    #     # product.tax_rate = safe_decimal("23.00")
+
+                    #     product.save()
+
+                    if update_description:
+                        fields_to_update = []
+
+                        title = row["Nazwa"]
+                        if product.title != title:
+                            product.title = title
+                            fields_to_update.append("title")
+
+                        if product.image != first_image:
+                            product.image = first_image
+                            fields_to_update.append("image")
+
+                        if product.img_links != images:
+                            product.img_links = images
+                            fields_to_update.append("img_links")
+
+                        desc = row["Opis"]
+                        if product.description != desc:
+                            product.description = desc
+                            fields_to_update.append("description")
+
+                        if product.price != gross_price:
+                            product.price = gross_price
+                            fields_to_update.append("price")
+
+                        hurt_price = safe_decimal(row["Cena hurtowa"])
+                        if product.hurt_price != hurt_price:
+                            product.new_hurt_price = hurt_price
+                            fields_to_update.append("new_hurt_price")
+
+                        qty = row["Ilość"]
+                        if product.stock_qty != qty:
+                            product.stock_qty = qty 
+                            fields_to_update.append("stock_qty")
+
+                        sku = row["Kod dostawcy"]
+                        if product.sku != sku:
+                            product.sku = sku
+                            fields_to_update.append("sku")
+
+                        shipping = safe_decimal(9.99)
+                        if product.shipping_amount != shipping:
+                            product.shipping_amount = shipping
+                            fields_to_update.append("shipping_amount")
+
+                        if product.category != category:
+                            product.category = category
+                            fields_to_update.append("category")
+
+                        sub_cat = categories[2:]
+                        if product.sub_cat != sub_cat:
+                            product.sub_cat = sub_cat
+                            fields_to_update.append("sub_cat")
+
+                        if fields_to_update:
+                            product.updates = True
+                            fields_to_update.append("updates")
+                            product.save(update_fields=fields_to_update)
+                            print("*******cena hurtowa zaktualizowana********", product.new_hurt_price)
 
                 else:
                     if row["Ilość"] <= 0:
@@ -946,11 +1035,12 @@ class PrestaUpdateCSVView(APIView):
                 total_products=len(product_ids)
             )
 
-            sync_selected_offers_task.delay(
-                batch.id,
-                product_ids,
-                user.id
-            )
+            if update_stock == True and update_price == False and update_description == False:
+                sync_selected_offers_task.delay(
+                    batch.id,
+                    product_ids,
+                    user.id
+                )
 
             # return Response({"message": "CSV proccessed successfully"}, status=201)
 

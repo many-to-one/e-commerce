@@ -189,7 +189,7 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Ceny i podatki', {
             'fields': (
-                'price', 'price_brutto', 'hurt_price', 'prowizja_allegro',
+                'price', 'price_brutto', 'hurt_price','new_hurt_price', 'prowizja_allegro',
                 'zysk_pln', 'zysk_procent', 'tax_rate', 'reach_out',
                 'old_price', 'shipping_amount', 'allegro_delivery_price'
             )
@@ -227,9 +227,10 @@ class ProductAdmin(admin.ModelAdmin):
         'title_warning', 
         'stock_qty', 
         'ean', 
-        'hurt_price', 
-        'colored_new_hurt_price', 
-        'colored_price_brutto', 
+        'price_brutto',
+        'hurt_price',  
+        'hurt_price_diff', 
+        'hurt_price_diff_value',
         'prowizja_allegro', 
         'zysk_after_payments', 
         'zysk_procent', 'hot_deal'
@@ -264,25 +265,85 @@ class ProductAdmin(admin.ModelAdmin):
 
     ##### Highlight new_hurt_price if different from hurt_price ######
 
-    def colored_new_hurt_price(self, obj):
-        if obj.new_hurt_price != obj.hurt_price and obj.new_hurt_price != 0:
+    def hurt_price_diff_value(self, obj):
+        """Tylko do sortowania"""
+        if not obj.new_hurt_price or obj.new_hurt_price == obj.hurt_price:
+            diff = 0
+            # Zwracamy wartość, ale ukrytą
             return format_html(
-                '<span style="color:red; font-weight:bold;">{}</span>',
-                obj.new_hurt_price
+                '<span style="display:none;">{}</span>',
+                diff
             )
-        return obj.new_hurt_price
+        else:
+            diff = float(obj.new_hurt_price - obj.hurt_price)
+            return obj.new_hurt_price
 
-    colored_new_hurt_price.short_description = "Nowa cena hurtowa brutto"
+    hurt_price_diff_value.short_description = "Nowa cena hurtowa"
+    hurt_price_diff_value.admin_order_field = "new_hurt_price"
 
-    def colored_price_brutto(self, obj):
-        if obj.new_hurt_price != obj.hurt_price and obj.new_hurt_price != 0:
-            return format_html(
-                '<span style="color:red; font-weight:bold;">{}</span>',
-                obj.price_brutto
+
+
+    def hurt_price_diff(self, obj):
+        if not obj.new_hurt_price or obj.new_hurt_price == obj.hurt_price:
+            return ""
+
+        diff = obj.new_hurt_price - obj.hurt_price
+        sign = "+" if diff > 0 else ""
+        color = "red" if diff > 0 else "green"
+
+        # formatowanie liczby przed format_html
+        formatted_diff = f"{diff:.2f}"
+
+        return format_html(
+            '<span style="color:{}; font-weight:bold;">{}{}</span>',
+            color,
+            sign,
+            formatted_diff,
+        )
+
+    hurt_price_diff.short_description = "Różnica hurtowa"
+
+
+
+    @admin.action(description="📈 Zastosuj różnicę hurtową do ceny brutto")
+    def apply_hurt_price_difference(modeladmin, request, queryset):
+        updated = 0
+
+        batch = AllegroProductBatch.objects.create(
+            status="PENDING",
+            total_products=len(queryset)
+        )
+
+        for product in queryset:
+            # Pomijamy jeśli brak różnicy
+            if not product.new_hurt_price or product.new_hurt_price == product.hurt_price:
+                continue
+
+            diff = product.new_hurt_price - product.hurt_price
+
+            # Aktualizacja ceny brutto
+            product.price_brutto = product.price_brutto + diff
+
+            # Reset new_hurt_price
+            product.new_hurt_price = 0
+
+            product.save(update_fields=["price_brutto", "new_hurt_price"])
+            updated += 1
+
+            # aktualizacja batcha
+            batch.total_products += 1 
+            batch.save(update_fields=["processed_products", "total_products"])
+
+            AllegroProductUpdateLog.objects.create(
+                batch_id=batch.id,
+                product=product,
+                updates= [],
+                success=f"Zaktualizowano product {product.sku}: Cena hurtowa zmienione o {diff}, nowa Cena detaliczna: {product.price_brutto}",
+                error=f"Bład aktualizacji product {product.sku}",
             )
-        return obj.price_brutto
 
-    colored_price_brutto.short_description = "Cena brutto"
+        return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
+
 
     #### END Highlight new_hurt_price if different from hurt_price ######
 
