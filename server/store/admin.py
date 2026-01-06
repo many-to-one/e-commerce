@@ -229,7 +229,7 @@ class ProductAdmin(admin.ModelAdmin):
         'ean', 
         'hurt_price', 
         'colored_new_hurt_price', 
-        'price_brutto', 
+        'colored_price_brutto', 
         'prowizja_allegro', 
         'zysk_after_payments', 
         'zysk_procent', 'hot_deal'
@@ -265,7 +265,7 @@ class ProductAdmin(admin.ModelAdmin):
     ##### Highlight new_hurt_price if different from hurt_price ######
 
     def colored_new_hurt_price(self, obj):
-        if obj.new_hurt_price != obj.hurt_price:
+        if obj.new_hurt_price != obj.hurt_price and obj.new_hurt_price != 0:
             return format_html(
                 '<span style="color:red; font-weight:bold;">{}</span>',
                 obj.new_hurt_price
@@ -273,6 +273,16 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.new_hurt_price
 
     colored_new_hurt_price.short_description = "Nowa cena hurtowa brutto"
+
+    def colored_price_brutto(self, obj):
+        if obj.new_hurt_price != obj.hurt_price and obj.new_hurt_price != 0:
+            return format_html(
+                '<span style="color:red; font-weight:bold;">{}</span>',
+                obj.price_brutto
+            )
+        return obj.price_brutto
+
+    colored_price_brutto.short_description = "Cena brutto"
 
     #### END Highlight new_hurt_price if different from hurt_price ######
 
