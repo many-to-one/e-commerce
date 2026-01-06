@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .tasks import generate_thumbnail, test
+from .tasks import generate_thumbnail, sync_selected_offers_task, test
 from django.http import HttpResponse
 
 from .utils.payu import get_client_ip, payu_authenticate, to_grosze
@@ -809,7 +809,9 @@ class PrestaUpdateCSVView(APIView):
         serializer.is_valid(raise_exception=True) 
         csv_file = serializer.validated_data["file"] 
         user_id = serializer.validated_data["user_id"]
-        user = User.objects.get(id=1)
+        print('PrestaUpdateCSVView - user_id', user_id)
+        user = User.objects.get(id=user_id)
+        print('PrestaUpdateCSVView - user', user)
 
         # sprawdzanie checkboxów
         update_price = request.data.get("price") == "true"
@@ -859,9 +861,12 @@ class PrestaUpdateCSVView(APIView):
                 categories = row["Kategorie (x,y,z...)"].split(",")
                 if len(categories) >= 2:
                     title = categories[1] 
+                    print('***CATEGORY TITLE***', title)
                     hierarchy = categories[2:]
+                    print('***CATEGORY HIERARCHY***', hierarchy)
                     # Try to fetch existing category
                     category = Category.objects.filter(title=title).first()
+                    print('***EXISTING CATEGORY***', category)
                     if category:  # Update fields
                         category.category_hierarchy = hierarchy
                         category.save(update_fields=["category_hierarchy"])
@@ -908,7 +913,10 @@ class PrestaUpdateCSVView(APIView):
                         # product.tax_rate = safe_decimal("23.00")
 
                         product.save()
+
                 else:
+                    if row["Ilość"] <= 0:
+                        continue  # Skip creating product if stock quantity is 0 or less
                     product = Product.objects.create(
                         title=row["Nazwa"],
                         ean=row["EAN"],
@@ -925,12 +933,32 @@ class PrestaUpdateCSVView(APIView):
                        # tax_rate=safe_decimal("23.00")
                     )
 
-                    all_vendors = Vendor.objects.all()
+                    all_vendors = Vendor.objects.filter(user=user)
                     product.vendors.add(*all_vendors)
                     product.save()
 
+            updated_products = Product.objects.filter(updates=True)
+            product_ids = list(updated_products.values_list("id", flat=True))
 
-            return Response({"message": "CSV proccessed successfully"}, status=201)
+            batch = AllegroProductBatch.objects.create(
+                status="PENDING",
+                total_products=len(product_ids)
+            )
+
+            sync_selected_offers_task.delay(
+                batch.id,
+                product_ids,
+                user.id
+            )
+
+            # return Response({"message": "CSV proccessed successfully"}, status=201)
+
+            return Response({
+                "message": "CSV processed successfully",
+                "batch_id": batch.id,
+                "redirect_url": f"/api/store/admin/allegroupdatebatch/{batch.id}/status/"
+            }, status=201)
+
 
         
         except Exception as e:
@@ -1319,9 +1347,9 @@ def update_batch_status_view(request, batch_id):
     # 🔥 ZBIERAMY WSZYSTKIE SKU Z LOGÓW
     all_skus = ",".join([log.product.sku for log in logs])
 
-    for log in logs:
-        print('***** LOG SKU *****', log.product.sku)
-        print('***** LOG MESSAGE *****', log.message)
+    # for log in logs:
+    #     print('***** LOG SKU *****', log.product.sku)
+    #     print('***** LOG MESSAGE *****', log.message)
 
     return render(
         request,
@@ -1347,3 +1375,23 @@ def seo_title_batch_status(request, batch_id):
         "logs": logs,
         "all_skus": all_skus,
     })
+
+
+class FrontendBatchStatusView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, batch_id):
+        batch = get_object_or_404(AllegroProductBatch, id=batch_id)
+        logs = batch.logs.select_related("product").order_by("id")
+
+        # 🔥 ZBIERAMY WSZYSTKIE SKU Z LOGÓW
+        all_skus = ",".join([log.product.sku for log in logs])
+        return Response({
+            # "status": batch.status,
+            # "progress": batch.progress,
+            # "total_products": batch.total_products,
+            # "finished_at": batch.finished_at
+            "batch": batch,
+            "logs": logs,
+            "all_skus": all_skus,
+        })

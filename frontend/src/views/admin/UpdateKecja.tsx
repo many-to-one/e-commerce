@@ -135,7 +135,16 @@ const UpdateKecja: React.FC = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setIsLoading(true);
-      showToast("success", "Plik przesłany pomyślnie!");
+      showToast( 
+        "success", 
+        "Plik został pomyślnie przetworzony. Za chwilę zostaniesz przekierowany do panelu śledzenia synchronizacji." 
+      );
+      // ⬇️ TU JEST PRZEKIEROWANIE 
+      if (resp.data.redirect_url) { 
+        setTimeout(() => { 
+          window.location.href = resp.data.redirect_url; 
+        }, 2000); // 2 sekundy 
+      }
     } catch (error: any) {
       console.log("error - upload", error);
       if (error.response && error.response.data) {
