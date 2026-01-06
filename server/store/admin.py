@@ -217,7 +217,9 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
         'modified_hidden', 
-        'sku', 'vendor_checkboxes', 'product_image', 
+        'sku', 
+        'vendor_checkboxes', 
+        'product_image', 
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
@@ -225,8 +227,11 @@ class ProductAdmin(admin.ModelAdmin):
         'title_warning', 
         'stock_qty', 
         'ean', 
-        'hurt_price', 'price_brutto', 
-        'prowizja_allegro', 'zysk_after_payments', 
+        'hurt_price', 
+        'colored_new_hurt_price', 
+        'price_brutto', 
+        'prowizja_allegro', 
+        'zysk_after_payments', 
         'zysk_procent', 'hot_deal'
         ]
     # exclude = ('vendors',) 
@@ -256,6 +261,21 @@ class ProductAdmin(admin.ModelAdmin):
     offers = []
 
     change_list_template = "admin/store/product/change_list_.html"
+
+    ##### Highlight new_hurt_price if different from hurt_price ######
+
+    def colored_new_hurt_price(self, obj):
+        if obj.new_hurt_price != obj.hurt_price:
+            return format_html(
+                '<span style="color:red; font-weight:bold;">{}</span>',
+                obj.new_hurt_price
+            )
+        return obj.new_hurt_price
+
+    colored_new_hurt_price.short_description = "Nowa cena hurtowa brutto"
+
+    #### END Highlight new_hurt_price if different from hurt_price ######
+
 
     ###### Vendor checkboxes ######
 
