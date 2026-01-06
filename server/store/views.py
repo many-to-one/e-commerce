@@ -1035,15 +1035,15 @@ class PrestaUpdateCSVView(APIView):
                 total_products=len(product_ids)
             )
 
-            action="Aktualizacja stanów magazynowych",
+            # action="update_products",
 
-            if update_stock == True and update_price == False and update_description == False:
-                orchestrate_allegro_updates.delay(
-                    action,
-                    batch.id,
-                    product_ids,
-                    user.id
-                )
+            # if update_stock == True and update_price == False and update_description == False:
+            #     orchestrate_allegro_updates.delay(
+            #         action,
+            #         batch.id,
+            #         product_ids,
+            #         user.id
+            #     )
 
             # return Response({"message": "CSV proccessed successfully"}, status=201)
 
