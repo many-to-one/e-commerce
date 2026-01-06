@@ -22,6 +22,9 @@ sudo rm -rf ./server/staticfiles
 # copy folder with files to the path (exp):
 sudo cp -r ./server/fonts ./server/staticfiles
 
+# z lokalnego serveru do vps
+scp -r /ścieżka/do/pliku user@IP_VPS:/home/admin/ścieżka/docelowa/ (/home/admin/ - w moim przypadku)
+
 ### GIT ###
 If you don't need git add .
 make git reset (before git pull)

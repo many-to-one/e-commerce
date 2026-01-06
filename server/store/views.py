@@ -904,7 +904,7 @@ class PrestaUpdateCSVView(APIView):
                         product.img_links = images
                         product.description = row["Opis"]
                         product.price = gross_price   # <-- includes 23% VAT
-                        product.hurt_price = safe_decimal(row["Cena hurtowa"])
+                        product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
                         product.stock_qty = row["Ilość"]
                         product.sku = row["Kod dostawcy"]
                         product.shipping_amount = safe_decimal(9.99)
