@@ -162,6 +162,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena netto')
     price_brutto = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena brutto')
     hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Cena hurtowa brutto')
+    new_hurt_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Nowa cena hurtowa brutto')
     prowizja_allegro = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, verbose_name='Prowizja allegro')
     zysk_pln = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Zysk w PLN")
     zysk_procent = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Zysk w %")

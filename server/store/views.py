@@ -894,6 +894,7 @@ class PrestaUpdateCSVView(APIView):
                     if update_price:
                         print("Aktualizujemy ceny *******************")
                         product.price = gross_price   # <-- includes 23% VAT
+                        product.new_hurt_price = safe_decimal(row["Cena hurtowa"])
                         product.updates = True
                         product.save(update_fields=['price', 'updates'])
                     if update_description:
