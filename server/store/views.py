@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .tasks import generate_thumbnail, sync_selected_offers_task, test
+from .tasks import generate_thumbnail, orchestrate_allegro_updates, sync_selected_offers_task, test
 from django.http import HttpResponse
 
 from .utils.payu import get_client_ip, payu_authenticate, to_grosze
@@ -1017,8 +1017,8 @@ class PrestaUpdateCSVView(APIView):
                         hurt_price=safe_decimal(row["Cena hurtowa"]),
                         stock_qty=row["Ilość"],
                         sku=row["Kod dostawcy"],
-                        shipping_amount=safe_decimal(9.99),
-                        category=category,   # <-- comma added here
+                        shipping_amount=safe_decimal(9.99), 
+                        category=category,   
                         sub_cat=categories[2:],
                        # tax_rate=safe_decimal("23.00")
                     )
@@ -1035,8 +1035,11 @@ class PrestaUpdateCSVView(APIView):
                 total_products=len(product_ids)
             )
 
+            action="Aktualizacja stanów magazynowych",
+
             if update_stock == True and update_price == False and update_description == False:
-                sync_selected_offers_task.delay(
+                orchestrate_allegro_updates.delay(
+                    action,
                     batch.id,
                     product_ids,
                     user.id
