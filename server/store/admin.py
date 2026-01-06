@@ -69,9 +69,10 @@ def dbg(label, value):
 
 
 
-@admin.action(description="Discount") #How to add 20% to the title/description?
+@admin.action(description="Dodaj 3zł") #How to add 20% to the title/description?
 def apply_discount(modeladmin, request, queryset):
-    queryset.update(price=F('price') * 0.8) #20%
+    # queryset.update(price=F('price') * 0.8) #20%
+    queryset.update(price=F('price') + 3)
 
 class GalleryInline(admin.TabularInline):
     model = Gallery
