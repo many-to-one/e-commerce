@@ -666,7 +666,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     def fetch_all_offers(self, vendor_name, headers):
 
-        statuses = ["ACTIVE", "INACTIVE", "ENDED", "NOT_LISTED"]
+        statuses = ["ACTIVE", "INACTIVE", "ENDED", "ACTIVATING", "NOT_LISTED"]
         all_offers = []
 
         for status in statuses:
@@ -736,17 +736,17 @@ class ProductAdmin(admin.ModelAdmin):
 
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
-                    print(f' ################### "vendor" ################### ', vendor.name)
-                    print(f' ################### "status" ################### ', status)                
+                    # print(f' ################### "vendor" ################### ', vendor.name)
+                    # print(f' ################### "status" ################### ', status)                
                     product = product_map.get(sku)
-                    print(f' ################### "id-sku" ################### ', id, sku)
+                    # print(f' ################### "id-sku" ################### ', id, sku)
 
                     if not product:
                         continue
                     
                     if status == "ACTIVE":
                         count += 1
-                        # print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
+                        print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
                         product.title = offer.get("name", product.title)
     
                         entry = {"vendor": vendor.name, "product_id": id}
