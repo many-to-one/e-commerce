@@ -181,6 +181,9 @@ class Product(models.Model):
 
     allegro_status = models.CharField(choices=ALLEGRO_STATUS, max_length=50, default="published", verbose_name="allegro status", null=True, blank=True)
     allegro_in_stock = models.BooleanField(default=False, verbose_name="allegro")
+    allegro_started_at = models.DateTimeField(null=True, blank=True, verbose_name="data wystawienia allegro")
+    allegro_watchers = models.PositiveIntegerField(default=0, verbose_name="obserwujący allegro")  
+    allegro_visits = models.PositiveIntegerField(default=0, verbose_name="wizyty allegro")
 
     updates = models.BooleanField(default=False, verbose_name="aktualizacje")
     

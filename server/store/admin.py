@@ -204,7 +204,10 @@ class ProductAdmin(admin.ModelAdmin):
         ('Flagi produktu', {
             'fields': ('featured', 'hot_deal', 'special_offer', 'digital', 'updates')
         }),
-        ('Statystyki', {
+        ('Statystyki Allegro', {
+            'fields': ('allegro_watchers', 'allegro_visits', 'allegro_started_at')
+        }),
+        ('Statystyki Web', {
             'fields': ('views', 'orders', 'saved', 'rating')
         }),
         ('Identyfikatory', {
@@ -218,6 +221,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
         'modified_hidden', 
+        'allegro_started_at',
         'sku', 
         'vendor_checkboxes', 
         'product_image', 
@@ -406,7 +410,7 @@ class ProductAdmin(admin.ModelAdmin):
         )
 
     modified_hidden.admin_order_field = "modified"
-    modified_hidden.short_description = ""
+    modified_hidden.short_description = "Edytowane"
 
 
     def title_warning(self, obj):
@@ -735,6 +739,7 @@ class ProductAdmin(admin.ModelAdmin):
                 }
 
                 for offer in offers:
+                    print(f' ################### "offer" ################### ', offer)
                     id = offer.get("id")
                     external = offer.get("external")
                     if not external:
@@ -743,6 +748,11 @@ class ProductAdmin(admin.ModelAdmin):
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
                     product = product_map.get(sku)
+                    started_at = offer.get("publication", {}).get("startedAt")
+                    watchers = offer.get("stats", {}).get("watchersCount")
+                    visits = offer.get("stats", {}).get("visitsCount")
+
+
 
                     if not product:
                         continue
@@ -759,6 +769,9 @@ class ProductAdmin(admin.ModelAdmin):
                     # Zawsze aktualizujemy status
                     product.allegro_status = status
                     product.allegro_in_stock = (status == "ACTIVE")
+                    product.allegro_watchers = watchers
+                    product.allegro_visits = visits
+                    product.allegro_started_at = started_at
 
                     # Jeśli oferta jest aktywna → aktualizujemy dodatkowe dane
                     if status == "ACTIVE":
@@ -787,6 +800,9 @@ class ProductAdmin(admin.ModelAdmin):
                         "allegro_status",
                         "price",
                         "price_brutto",
+                        "allegro_watchers",
+                        "allegro_visits",
+                        "allegro_started_at",
                     ])
 
 
