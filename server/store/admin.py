@@ -691,7 +691,11 @@ class ProductAdmin(admin.ModelAdmin):
                 total_count = data.get("totalCount")
                 if total_count and offset >= total_count:
                     break
-            return all_offers
+               
+        # for offer in all_offers:
+        #     print(f' ################### "offer id & status" ################### ', offer.get("id"), offer.get("publication", {}).get("status"))
+
+        return all_offers
 
 
     def sync_allegro_offers(self, request, queryset):
@@ -710,10 +714,10 @@ class ProductAdmin(admin.ModelAdmin):
             try:
                 products = Product.objects.all()
                 product_map = {obj.sku: obj for obj in products}
-                print(f' ################### "product_map" ################### ', {len(product_map)})
+                print(f' ################### len "product_map" ################### ', {len(product_map)})
 
                 offers = self.fetch_all_offers(vendor.name, headers)
-                print(f' ################### "offers" ################### ', {len(offers)})
+                print(f' ################### " len offers" ################### ', {len(offers)})
 
                 # If offers is a dict with errors
                 if isinstance(offers, dict) and "errors" in offers:
@@ -723,17 +727,19 @@ class ProductAdmin(admin.ModelAdmin):
                 count = 0 
 
                 for offer in offers:
-                    print(f' ################### "offer" ################### ', offer)
+                    # print(f' ################### "offer" ################### ', offer)
 
                     id = offer.get("id")
                     external = offer.get("external")
                     if not external:
-                        continue
+                        continue 
 
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
+                    print(f' ################### "vendor" ################### ', vendor.name)
+                    print(f' ################### "status" ################### ', status)                
                     product = product_map.get(sku)
-                    print(f' ################### "id" ################### ', id)
+                    print(f' ################### "id-sku" ################### ', id, sku)
 
                     if not product:
                         continue
@@ -756,6 +762,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product.price_brutto = price_brutto
                         print(f' ################### "count" ################### ', count)
                     else:
+                        # print(f' ################### else "status" ################### ', status) 
                         product.allegro_in_stock = False
 
                     product.allegro_status = status
