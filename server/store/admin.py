@@ -726,47 +726,115 @@ class ProductAdmin(admin.ModelAdmin):
 
                 count = 0 
 
-                for offer in offers:
-                    # print(f' ################### "offer" ################### ', offer)
 
+                STATUS_PRIORITY = {
+                    "ACTIVE": 3,
+                    "INACTIVE": 2,
+                    "ENDED": 1,
+                    "NOT_LISTED": 0,
+                }
+
+                for offer in offers:
                     id = offer.get("id")
                     external = offer.get("external")
                     if not external:
-                        continue 
+                        continue
 
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
-                    # print(f' ################### "vendor" ################### ', vendor.name)
-                    # print(f' ################### "status" ################### ', status)                
                     product = product_map.get(sku)
-                    # print(f' ################### "id-sku" ################### ', id, sku)
 
                     if not product:
                         continue
-                    
-                    if status == "ACTIVE":
-                        count += 1
-                        print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
-                        product.title = offer.get("name", product.title)
-    
-                        entry = {"vendor": vendor.name, "product_id": id}
 
+                    # Pobierz aktualny status produktu (lub NOT_LISTED jeśli brak)
+                    current_status = product.allegro_status or "NOT_LISTED"
+
+                    # Jeśli nowy status ma niższy priorytet → pomiń
+                    if STATUS_PRIORITY[status] < STATUS_PRIORITY[current_status]:
+                        continue
+
+                    # --- STATUS JEST WAŻNIEJSZY LUB RÓWNY → AKTUALIZUJ PRODUKT ---
+
+                    # Zawsze aktualizujemy status
+                    product.allegro_status = status
+                    product.allegro_in_stock = (status == "ACTIVE")
+
+                    # Jeśli oferta jest aktywna → aktualizujemy dodatkowe dane
+                    if status == "ACTIVE":
+                        print(f' ################### "ACTIVE" ################### {id} ---- {sku} ----- ', product.sku)
+                        product.title = offer.get("name", product.title)
+
+                        entry = {"vendor": vendor.name, "product_id": id}
                         if entry not in product.allegro_ids:
                             product.allegro_ids.append(entry)
 
-                        product.allegro_in_stock = True
-                        price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
-                        price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                        price_brutto = Decimal(str(
+                            offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+                        ))
+                        price_netto = (price_brutto / Decimal("1.23")).quantize(
+                            Decimal("0.01"), rounding=ROUND_HALF_UP
+                        )
 
                         product.price = price_netto
                         product.price_brutto = price_brutto
-                        print(f' ################### "count" ################### ', count)
-                    else:
-                        # print(f' ################### else "status" ################### ', status) 
-                        product.allegro_in_stock = False
 
-                    product.allegro_status = status
-                    product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto",])
+                    # Zapis tylko raz
+                    product.save(update_fields=[
+                        "title",
+                        "allegro_ids",
+                        "allegro_in_stock",
+                        "allegro_status",
+                        "price",
+                        "price_brutto",
+                    ])
+
+
+                # for offer in offers:
+                #     # print(f' ################### "offer" ################### ', offer)
+
+                #     id = offer.get("id")
+                #     external = offer.get("external")
+                #     if not external:
+                #         continue 
+
+                #     sku = external.get("id")
+                #     status = offer.get("publication", {}).get("status")
+                #     # print(f' ################### "vendor" ################### ', vendor.name)
+                #     # print(f' ################### "status" ################### ', status)                
+                #     product = product_map.get(sku)
+                #     # print(f' ################### "id-sku" ################### ', id, sku)
+
+                #     if not product:
+                #         continue
+                    
+                #     if status == "ACTIVE":
+                #         count += 1
+                #         print(f' ################### "ACTIVE" ################### {sku} ----- ', product.sku)
+                #         product.title = offer.get("name", product.title)
+    
+                #         entry = {"vendor": vendor.name, "product_id": id}
+
+                #         if entry not in product.allegro_ids:
+                #             product.allegro_ids.append(entry)
+
+                #         product.allegro_in_stock = True
+                #         price_brutto = Decimal(str(offer.get("sellingMode", {}).get("price", {}).get("amount", "0")))
+                #         price_netto = (price_brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                #         product.price = price_netto
+                #         product.price_brutto = price_brutto
+                #         print(f' ################### "count" ################### ', count)
+                #         product.allegro_status = status
+                #         product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto",])
+                #     else:
+                #         # print(f' ################### else "status" ################### ', status) 
+                #         product.allegro_in_stock = False
+                #         product.allegro_status = status
+                #         product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto",])
+
+                #     # product.allegro_status = status
+                #     # product.save(update_fields=["title", "allegro_ids", "allegro_in_stock", "allegro_status", "price", "price_brutto",])
 
                 self.message_user(request, "Twoje oferty zostały zaktualizowane", level="success")
 
