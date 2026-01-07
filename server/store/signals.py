@@ -11,6 +11,6 @@ from django.conf import settings
 @receiver(post_delete, sender=Product)
 def clear_products_cache(sender, **kwargs):
 
-    print("**** cache request called ****")
+    # print("**** cache request called ****")
     cache.clear()
 

@@ -280,7 +280,7 @@ class Product(models.Model):
         self.zysk_procent           = to_dec(getattr(self, "zysk_procent", None), "0")
         self.tax_rate               = to_dec(getattr(self, "tax_rate", None), "0")
 
-        print("zysk_after_payments ------------", self.zysk_after_payments)  
+        # print("zysk_after_payments ------------", self.zysk_after_payments)  
         _zysk_after_payments = self.zysk_after_payments 
         
 
@@ -328,14 +328,14 @@ class Product(models.Model):
             # Koszt dostawy (zakładamy 1 przesyłkę)
             delivery_cost = calculate_delivery_cost(cena_po_podatku, przesylki=1)
 
-            print("Zysk PLN hurt_price ------------", self.hurt_price)
-            print("Zysk PLN cena_po_podatku ------------", cena_po_podatku)
-            print("Zysk PLN delivery_cost ------------", delivery_cost)
-            print("Zysk PLN prowizja_allegro ------------", self.prowizja_allegro)
+            # print("Zysk PLN hurt_price ------------", self.hurt_price)
+            # print("Zysk PLN cena_po_podatku ------------", cena_po_podatku)
+            # print("Zysk PLN delivery_cost ------------", delivery_cost)
+            # print("Zysk PLN prowizja_allegro ------------", self.prowizja_allegro)
 
             # Zysk po odjęciu prowizji i dostawy
             self.zysk_after_payments = (cena_po_podatku - self.hurt_price - delivery_cost - self.prowizja_allegro).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            print("Zysk PLN zysk_after_payments ------------", self.zysk_after_payments)
+            # print("Zysk PLN zysk_after_payments ------------", self.zysk_after_payments)
 
         # 4️⃣ If price (netto) changed after Kecja price updates
         elif old and self.price != old.price and self.hurt_price is not None:
