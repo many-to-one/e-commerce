@@ -250,6 +250,7 @@ class ProductAdminView(View):
         from store.models import Product
 
         admin_instance = ProductAdmin(Product, admin_site=None)
+        # products = Product.objects.filter(marketplace="allegro.pl")
         admin_instance.sync_allegro_offers(request, queryset=None)
 
         messages.success(request, "✅ Synchronizacja Allegro zakończona.")

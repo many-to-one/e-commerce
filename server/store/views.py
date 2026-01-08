@@ -1213,6 +1213,98 @@ class ProductCSVView(APIView):
             return Response({"error": str(e)}, status=500)
         
 
+# from decimal import Decimal
+# from django.utils import timezone
+# from store.models import Product, Category
+# import json
+
+def get_or_create_product_from_allegro(offer, vendor):
+    """
+    Tworzy nowy produkt na podstawie danych z Allegro,
+    lub aktualizuje istniejący.
+    """
+
+    sku = offer.get("external", {}).get("id")
+    if not sku:
+        return None
+
+    # Pobierz lub utwórz produkt
+    product, created = Product.objects.get_or_create(
+        sku=sku,
+        defaults={
+            "title": offer.get("name", "Produkt Allegro"),
+            "price_brutto": Decimal(str(offer["sellingMode"]["price"]["amount"])),
+            "price": (Decimal(str(offer["sellingMode"]["price"]["amount"])) / Decimal("1.23")).quantize(Decimal("0.01")),
+            "stock_qty": offer.get("stock", {}).get("available", 0),
+            "allegro_status": offer.get("publication", {}).get("status"),
+            "allegro_in_stock": offer.get("publication", {}).get("status") == "ACTIVE",
+            "allegro_started_at": offer.get("publication", {}).get("startedAt"),
+            "allegro_ended_at": offer.get("publication", {}).get("endedAt"),
+            "allegro_watchers": offer.get("stats", {}).get("watchersCount", 0),
+            "allegro_visits": offer.get("stats", {}).get("visitsCount", 0),
+        }
+    )
+
+    # Dodaj vendora
+    product.vendors.add(vendor)
+
+    # Ustaw kategorię (jeśli istnieje)
+    cat_id = offer.get("category", {}).get("id")
+    if cat_id:
+        try:
+            category = Category.objects.get(allegro_id=cat_id)
+            product.category = category
+        except Category.DoesNotExist:
+            pass
+
+    # Ustaw zdjęcie (link)
+    img = offer.get("primaryImage", {}).get("url")
+    if img:
+        product.img_links = [img]
+
+    # Aktualizacja pól jeśli produkt już istnieje
+    product.title = offer.get("name", product.title)
+    product.price_brutto = Decimal(str(offer["sellingMode"]["price"]["amount"]))
+    product.price = (product.price_brutto / Decimal("1.23")).quantize(Decimal("0.01"))
+    product.stock_qty = offer.get("stock", {}).get("available", 0)
+
+    # Allegro statusy
+    status = offer.get("publication", {}).get("status")
+    product.allegro_status = status
+    product.allegro_in_stock = status == "ACTIVE"
+    product.allegro_started_at = offer.get("publication", {}).get("startedAt")
+    product.allegro_ended_at = offer.get("publication", {}).get("endedAt")
+    product.allegro_watchers = offer.get("stats", {}).get("watchersCount", 0)
+    product.allegro_visits = offer.get("stats", {}).get("visitsCount", 0)
+
+    # Zbuduj entry do allegro_ids
+    entry = {
+        "vendor": vendor.name,
+        "product_id": offer.get("id"),
+        "status": status,
+        "started_at": offer.get("publication", {}).get("startedAt"),
+        "ended_at": offer.get("publication", {}).get("endedAt") or "-",
+        "watchers": offer.get("stats", {}).get("watchersCount", 0),
+        "visits": offer.get("stats", {}).get("visitsCount", 0),
+        "url": f"https://allegro.pl/oferta/{offer.get('id')}",
+    }
+
+    # Aktualizuj istniejący entry lub dodaj nowy
+    updated = False
+    for existing in product.allegro_ids:
+        if existing["product_id"] == entry["product_id"] and existing["vendor"] == entry["vendor"]:
+            existing.update(entry)
+            updated = True
+            break
+
+    if not updated:
+        product.allegro_ids.append(entry)
+
+    product.save()
+    return product
+
+        
+
 class LinksToGallery(APIView):
 
     permission_classes = (AllowAny,)

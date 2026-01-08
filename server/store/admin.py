@@ -1,5 +1,6 @@
 import io
 import time
+import html
 from uuid import uuid4
 from django.contrib import admin
 from django.shortcuts import redirect, render
@@ -11,6 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_datetime
 from django.urls import path
 from django.forms import NumberInput
+from django.utils.safestring import mark_safe
 
 from bs4 import BeautifulSoup
 
@@ -25,6 +27,8 @@ from html import escape
 from dotenv import load_dotenv
 
 from import_export.admin import ImportExportModelAdmin
+
+from .views import get_or_create_product_from_allegro
 
 from .allegro_views.delivery.dpd import dpd_delivery_info
 
@@ -224,6 +228,7 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_started_at',
         'allegro_ended_at',
         'sku', 
+        'allegro_ids_list_display',
         'vendor_checkboxes', 
         'product_image', 
         'allegro_in_stock', 
@@ -697,8 +702,8 @@ class ProductAdmin(admin.ModelAdmin):
                 if total_count and offset >= total_count:
                     break
                
-        # for offer in all_offers:
-        #     print(f' ################### "offer id & status" ################### ', offer.get("id"), offer.get("publication", {}).get("status"))
+        for offer in all_offers:
+            print(f' ################### "offer id & status" ################### ', offer.get("id"), offer.get("publication", {}).get("status"))
 
         return all_offers
 
@@ -740,7 +745,7 @@ class ProductAdmin(admin.ModelAdmin):
                 }
 
                 for offer in offers:
-                    print(f' ################### "offer" ################### ', offer)
+                    # print(f' ################### "offer" ################### ', offer)
                     id = offer.get("id")
                     external = offer.get("external")
                     if not external:
@@ -748,27 +753,30 @@ class ProductAdmin(admin.ModelAdmin):
 
                     sku = external.get("id")
                     status = offer.get("publication", {}).get("status")
+                    print(f' ################### "sku & status" ################### {id} ---- {sku} ----- ', status)
                     product = product_map.get(sku)
                     started_at = offer.get("publication", {}).get("startedAt")
                     watchers = offer.get("stats", {}).get("watchersCount")
                     visits = offer.get("stats", {}).get("visitsCount")
                     ended_at = offer.get("publication", {}).get("endedAt")
 
-
                     if not product:
-                        continue
+                        print("____________! NOT PRODUCT !____________", sku)
+                        product = get_or_create_product_from_allegro(offer, vendor)
 
                     # Pobierz aktualny status produktu (lub NOT_LISTED jeśli brak)
-                    current_status = product.allegro_status or "NOT_LISTED"
+                    # current_status = product.allegro_status or "NOT_LISTED"
 
                     # Jeśli nowy status ma niższy priorytet → pomiń
-                    if STATUS_PRIORITY[status] < STATUS_PRIORITY[current_status]:
-                        continue
+                    # print(f' ################### "STATUS_PRIORITY" ################### {id} ---- {sku} ----- ', STATUS_PRIORITY[status], STATUS_PRIORITY[current_status])
+                    # if STATUS_PRIORITY[status] < STATUS_PRIORITY[current_status]:
+                    #     continue
 
                     # --- STATUS JEST WAŻNIEJSZY LUB RÓWNY → AKTUALIZUJ PRODUKT ---
 
                     # Zawsze aktualizujemy status
                     product.allegro_status = status
+                    # print(f' ################### "UPDATE STATUS" ################### {id} ---- {sku} ----- ', product.sku, ' FROM ', current_status, ' TO ', status)
                     product.allegro_in_stock = (status == "ACTIVE")
                     product.allegro_watchers = watchers
                     product.allegro_visits = visits
@@ -776,23 +784,53 @@ class ProductAdmin(admin.ModelAdmin):
                     product.allegro_ended_at = ended_at
 
                     # Jeśli oferta jest aktywna → aktualizujemy dodatkowe dane
-                    if status == "ACTIVE":
-                        print(f' ################### "ACTIVE" ################### {id} ---- {sku} ----- ', product.sku)
-                        product.title = offer.get("name", product.title)
+                    # if status == "ACTIVE":
+                        # print(f' ################### "ACTIVE" ################### {id} ---- {sku} ----- ', product.sku)
+                    product.title = offer.get("name", product.title)
 
-                        entry = {"vendor": vendor.name, "product_id": id}
-                        if entry not in product.allegro_ids:
-                            product.allegro_ids.append(entry)
+                    entry = {
+                        "main_pk": product.pk,
+                        "vendor": vendor.name,
+                        "product_id": id,
+                        "status": status,
+                        "started_at": started_at,
+                        "ended_at": ended_at if ended_at else "-",
+                        "watchers": watchers,
+                        "visits": visits,
+                        "url": f"https://allegro.pl/oferta/{id}"
 
-                        price_brutto = Decimal(str(
-                            offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
-                        ))
-                        price_netto = (price_brutto / Decimal("1.23")).quantize(
-                            Decimal("0.01"), rounding=ROUND_HALF_UP
-                        )
+                    }
 
-                        product.price = price_netto
-                        product.price_brutto = price_brutto
+
+                    updated = False
+
+                    for existing in product.allegro_ids:
+                        if existing["product_id"] == id and existing["vendor"] == vendor.name:
+                            # aktualizujemy istniejący wpis
+                            existing.update({
+                                "status": status,
+                                "started_at": started_at,
+                                "ended_at": ended_at if ended_at else "-",
+                                "watchers": watchers,
+                                "visits": visits,
+                                "url": f"https://allegro.pl/oferta/{id}",
+                            })
+                            updated = True
+                            break
+
+                    # jeśli nie znaleziono — dodajemy nowy
+                    if not updated:
+                        product.allegro_ids.append(entry)
+
+                    price_brutto = Decimal(str(
+                        offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+                    ))
+                    price_netto = (price_brutto / Decimal("1.23")).quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+
+                    # product.price = price_netto
+                    product.price_brutto = price_brutto
 
                     # Zapis tylko raz
                     product.save(update_fields=[
@@ -814,6 +852,79 @@ class ProductAdmin(admin.ModelAdmin):
                 self.message_user(request, f"❌ Błąd zapytania: {str(e)}", level="error")
 
     sync_allegro_offers.short_description = "🔄 Synchronizuj z Allegro"
+
+
+    def allegro_ids_list_display(self, obj):
+
+        ALLEGRO_STATUS_MAP = {
+            "ACTIVE": "✅",
+            "INACTIVE": "⛔",
+            "ACTIVATING": "⏳",
+            "ENDED": "🏁",
+        }
+        
+        items = obj.allegro_ids or []
+        if not items:
+            return "-"
+
+        output = "<div style='line-height: 1.6;'>"
+
+        for idx, entry in enumerate(items):
+            main_pk = entry.get("main_pk", "")
+            vendor = entry.get("vendor", "")
+            pid = entry.get("product_id", "")
+            status = entry.get("status", "")
+            started = entry.get("started_at", "")
+            ended = entry.get("ended_at", "")
+            watchers = entry.get("watchers", "")
+            visits = entry.get("visits", "")
+
+            # ikona statusu
+            icon = ALLEGRO_STATUS_MAP.get(status, "❔")
+
+            # unikalny checkbox ID
+            checkbox_name = f"allegro_offer_{obj.pk}_{idx}"
+
+            value_json = html.escape(json.dumps({
+                "main_pk": main_pk,
+                "product_id": pid,
+                "vendor": vendor,
+            }))
+
+            output += format_html("""
+                <div ...>
+                    <label ...>
+                        <input type="checkbox" name="{}" value="{}" style="margin-top:4px;">
+                        <div>
+                            <strong>{}</strong><br>
+                            ID: {}<br>
+                            Status: {} ({})<br>
+                            Start: {}<br>
+                            Koniec: {}<br>
+                            Oserwujący: {}<br>
+                            Wizyty: {}
+                        </div>
+                    </label>
+                    <hr/>              
+                </div>
+            """,
+                checkbox_name,
+                value_json,
+                vendor,
+                pid,
+                icon,
+                status,
+                started,
+                ended,
+                watchers,
+                visits,
+            )
+
+        return mark_safe(output)
+
+
+    allegro_ids_list_display.short_description = "Oferty Allegro"
+
 
 
     def sync_selected_allegro_offers_async(self, request, queryset):
@@ -880,27 +991,63 @@ class ProductAdmin(admin.ModelAdmin):
 
     
     def activate_allegro_products(self, request, queryset):
-        # print('allegro_export request.user ----------------', request.user)
-        vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
 
-        for vendor in vendors:
-            # print('check vendor ----------------', vendor)
-            access_token = vendor.access_token
+        selected_offers = []
+
+        # przechodzimy po wszystkich POST key/value
+        for key, value in request.POST.items():
+            if key.startswith("allegro_offer_"):
+                # 1. HTML unescape 
+                unescaped = html.unescape(value)
+                # 2. JSON decode 
+                try: 
+                    data = json.loads(unescaped) 
+                    selected_offers.append(data) 
+                except json.JSONDecodeError: 
+                    print("Nie udało się zdekodować:", unescaped)
+
+        print("Wybrane oferty:", selected_offers)
+
+        
+        for offer in selected_offers:
+            pid = offer["product_id"]
+            vendor_name = offer["vendor"]
+            main_pk = offer["main_pk"]
+
+            vendor = Vendor.objects.get(
+                user=request.user,
+                name=vendor_name
+            )
+
+            product = Product.objects.get(pk=main_pk)
+
+            print("Zaznaczona oferta:", pid, vendor)
 
             headers = {
                 'Accept': 'application/vnd.allegro.public.v1+json',
                 'Content-Type': 'application/vnd.allegro.public.v1+json',
                 'Accept-Language': 'pl-PL',
-                'Authorization': f'Bearer {access_token}'
+                'Authorization': f'Bearer {vendor.access_token}'
             }
-        
-            for product in queryset:
-                url = f"https://{ALLEGRO_API_URL}/sale/offers?external.id={product.sku}&publication.status=INACTIVE"
-                offers = allegro_request('GET', url, vendor.name, headers=headers)
-                print('allegro_update offers ----------------', offers)
-                for offer in offers.json()['offers']:
-                    edit_url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{offer['id']}"
-                    self.create_offer_from_product(request, 'PATCH', product, edit_url, access_token, vendor.name, producer=None, action='activate')
+
+            # allegro_id = get_allegro_id(vendor.name, product.allegro_ids)
+            url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{pid}"
+            payload = {
+                "publication": {
+                    "status": "ACTIVE"
+                }
+            }
+            response = allegro_request('PATCH', url, vendor.name, headers=headers, json=payload)
+            print('allegro_activate response ----------------', response, response.json() ) #response.json()
+            if response.status_code == 202:
+                for entry in product.allegro_ids:
+                    print(f"+++++{entry}++++", pid)
+                    if entry["product_id"] == str(pid):
+                        entry["status"] = "ACTIVE"
+                        product.save(update_fields=['allegro_ids'])
+                self.message_user(request, f"✅ Aktywowałeś ofertę {pid} dla {vendor.name}", level='success')
+            else:
+                self.message_user(request, f"❌ Błąd aktywacji oferty {pid} dla {vendor.name}: {response.json()}", level='error')
     
     activate_allegro_products.short_description = "✅ Aktywuj oferty do Allegro"
 
@@ -947,37 +1094,6 @@ class ProductAdmin(admin.ModelAdmin):
         return redirect(f"/api/store/admin/allegroupdatebatch/{batch.id}/status/")
     
     allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
-
-    # def allegro_export(self, request, queryset):
-
-    #     # print('allegro_export request.user ----------------', request.user)
-    #     url = f"https://{ALLEGRO_API_URL}/sale/product-offers"
-    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-    #     # for vendor in vendors:
-    #     #     print('allegro_export vendors ----------------', vendors)
-
-    #     for vendor in vendors:
-    #         # print('check vendor ----------------', vendor)
-    #         access_token = vendor.access_token
-    #         producer = self.responsible_producers(access_token, vendor.name)
-    #         # print('allegro_export producer ----------------', producer)
-        
-    #         for product in queryset:
-    #            product_vendors = product.vendors.all()
-    #            if vendor in product_vendors:
-    #            #     print('if vendor in product_vendors ----------------', vendor)
-    #                resp = self.create_offer_from_product(request, 'POST', product, url, access_token, vendor.name, producer, action='create')
-    #                if resp.status_code == 201:
-    #                    product.allegro_in_stock = True
-    #                    product.allegro_status = 'ACTIVE'
-    #                    product.allegro_id = resp.json().get('id')
-    #                    product.save(update_fields=['allegro_in_stock', 'allegro_status', 'allegro_id'])
-    #            #
-    #             # print('allegro_export vendors ----------------', product_vendors)
-    #         #     print('allegro_export ----------------', product.ean)
-    #             #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    # allegro_export.short_description = "📤 Eksportuj oferty do Allegro"
-
 
 
     async def update_products_description(self, request, queryset):
@@ -1061,84 +1177,6 @@ class ProductAdmin(admin.ModelAdmin):
             elif response.status == 401:
                 self.message_user(request, f"⚠️ Nie jesteś zalogowany {data['vendor_name']}", level='error')
             return response.status
-
-
-
-
-    
-
-    # def update_products_description(self, request, queryset):
-
-    #     # print('allegro_export request.user ----------------', request.user)
-    #     vendors = Vendor.objects.filter(user=request.user, marketplace='allegro.pl')
-    #     # for vendor in vendors:
-    #     #     print('allegro_export vendors ----------------', vendors)
-
-    #     for vendor in vendors:
-    #         # print('check vendor ----------------', vendor)
-    #         access_token = vendor.access_token
-    #         producer = self.responsible_producers(access_token, vendor.name)
-    #         # print('allegro_export producer ----------------', producer)
-        
-    #         for product in queryset:
-    #            product_vendors = product.vendors.all()
-    #            if vendor in product_vendors:
-    #            #     print('if vendor in product_vendors ----------------', vendor)
-    #                url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{product.allegro_id}"
-    #                self.update_description(request, 'PATCH', product, url, access_token, vendor.name, producer)
-    #             # print('allegro_export vendors ----------------', product_vendors)
-    #         #     print('allegro_export ----------------', product.ean)
-    #             #  self.create_offer_from_product(request, product, url, access_token, vendor.name, producer)
-    # update_products_description.short_description = "📝Edytuj opisy ofert"
-
-
-
-    # def convert_description_for_allegro(self, html: str) -> str:
-    #     soup = BeautifulSoup(html, "html.parser")
-
-    #     # usuń wszystkie style, klasy, atrybuty (zostaw tylko src dla <img>)
-    #     for tag in soup.find_all(True):
-    #         tag.attrs = {k: v for k, v in tag.attrs.items() if k == "src"}
-
-    #     # usuń <div> (rozpakuj zawartość)
-    #     for div in soup.find_all("div"):
-    #         div.unwrap()
-
-    #     # zamień <h1>/<h2> na <h2> (bez styli)
-    #     for h in soup.find_all(["h1", "h2"]):
-    #         new_h = soup.new_tag("h2")
-    #         new_h.string = h.get_text(strip=True)
-    #         h.replace_with(new_h)
-
-    #     # zamień <table> na <ul><li>
-    #     for table in soup.find_all("table"):
-    #         ul = soup.new_tag("ul")
-    #         for td in table.find_all("td"):
-    #             text = td.get_text(strip=True)
-    #             if text:
-    #                 li = soup.new_tag("li")
-    #                 li.string = text
-    #                 ul.append(li)
-    #         table.replace_with(ul)
-
-    #     # upewnij się, że <img> są samozamykające
-    #     for img in soup.find_all("img"):
-    #         img.attrs = {"src": img.get("src")}
-    #         # BeautifulSoup w trybie html.parser sam zamknie <img />
-
-    #     # zamień <b> na <h2> (bo <b> nie jest dozwolone)
-    #     for b in soup.find_all("b"):
-    #         new_h = soup.new_tag("h2")
-    #         new_h.string = b.get_text(strip=True)
-    #         b.replace_with(new_h)
-
-    #     # zamień <span> na <p>
-    #     for span in soup.find_all("span"):
-    #         new_p = soup.new_tag("p")
-    #         new_p.string = span.get_text(strip=True)
-    #         span.replace_with(new_p)
-
-    #     return str(soup)
 
 
     def sanitize_allegro_description(self, html: str) -> str:
@@ -1226,94 +1264,6 @@ class ProductAdmin(admin.ModelAdmin):
         print('uploaded ----------------', uploaded)
         return uploaded
 
-
-
-    # def update_description(self, request, method, product, url, access_token, vendor_name, producer):
-
-    #     # print('create_offer_from_product producer ----------------', producer["responsibleProducers"][0]['id'])
-    #     # print('self.build_images(product.img_links) ----------------', self.build_images(product.img_links))
-
-    #     raw_html = product.description # your original HTML content
-    #     safe_html = self.sanitize_allegro_description(raw_html)
-
-    #     try:
-    #         payload = json.dumps({
-    #             "name": f"{product.title}",
-    #             "external": {
-    #                 "id": f"{product.sku}" 
-    #             },
-    #             "productSet": [
-    #                 {
-    #                 "product": {
-    #                     "id": f"{product.ean}", #product.ean,
-    #                     "idType": "GTIN"
-    #                 },
-    #                 # "responsibleProducer": {
-    #                 #     "type": "ID",
-    #                 #     "id": producer["responsibleProducers"][0]['id']
-    #                 # },
-    #                 },
-    #             ],
-    #             "sellingMode": {
-    #                 "price": {
-    #                 # "amount": str(product.price),
-    #                 "amount": str(
-    #                     (product.price * (1 + product.tax_rate / 100)).quantize(
-    #                         Decimal("0.01"), rounding=ROUND_HALF_UP
-    #                     )
-    #                 ),
-    #                 "currency": "PLN"
-    #                 }
-    #             },
-    #             "stock": {
-    #                 "available": product.stock_qty
-    #             },
-    #             # 'delivery': {
-    #             #     'shippingRates': {
-    #             #         'name': 'Paczkomat 1szt'
-    #             #     }
-    #             # },
-    #             "description": {
-    #                 "sections": [
-    #                     {
-    #                         "items": [
-    #                             {
-    #                                 "type": "TEXT",
-    #                                 "content": safe_html #self.convert_description_for_allegro(product.description)
-    #                             }
-    #                         ]
-    #                     }
-    #                 ]
-    #             },
-    #             "images": self.build_images(product.img_links, vendor_name)
-    #         })
-
-    #         headers = {
-    #             'Accept': 'application/vnd.allegro.public.v1+json',
-    #             'Content-Type': 'application/vnd.allegro.public.v1+json',
-    #             'Accept-Language': 'pl-PL',
-    #             'Authorization': f'Bearer {access_token}'
-    #         }
-
-    #         # response = requests.request("POST", url, headers=headers, data=payload)
-    #         response = allegro_request('PATCH', url, vendor_name, headers=headers, data=payload)
-    #         print(f'update_offer_from_product {method} response ----------------', response)
-    #         print(f'update_offer_from_product {method} response text ----------------', response.text)
-    #         if response.status_code == 200:
-    #             self.message_user(request, f"✅ Zmieniłęs ofertę {product.sku} allegro dla {vendor_name}", level='success')
-    #         if response.status_code == 202:
-    #             product.allegro_in_stock = True
-    #             self.message_user(request, f"✅ Zakończyłeś edytować ofertę {product.sku} allegro dla {vendor_name}", level='success')
-    #         elif response.status_code == 401:
-    #             self.message_user(request, f"⚠️ Nie jesteś załogowany {vendor_name}", level='error')
-    #         # else:
-    #         #     self.message_user(request, f"EAN:{product.ean}; SKU: {product.sku} - {response.status_code} - {response.text} dla {vendor_name}", level='info')
-    #         return response
-    #     except requests.exceptions.HTTPError as err:
-    #         self.message_user(request, f"⚠️ EAN:{product.ean}; SKU: {product.sku} - {err} dla {vendor_name}", level='error')
-    #         raise SystemExit(err)
-
-    
 
     def create_offer_from_product(self, request, method, product, url, access_token, vendor_name, producer, action=None):
 
