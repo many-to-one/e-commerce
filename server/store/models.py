@@ -146,7 +146,7 @@ class Product(models.Model):
         ("offer", "Offer")
     )
 
-    # allegro_id = models.CharField(max_length=100, null=True, blank=True)
+    allegro_id = models.CharField("Allegro id", max_length=100, null=True, blank=True)
     allegro_ids = models.JSONField(default=list, blank=True)
     title = models.CharField(max_length=255, verbose_name='Nazwa')
     ean = models.CharField(max_length=100, null=True, blank=True)
