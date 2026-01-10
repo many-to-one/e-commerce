@@ -1038,10 +1038,6 @@ def sync_allegro_offers_task(batch_id, user_id):
                 try:
                     # 1) znajdź produkt po allegro_id
                     product = allegro_map.get(offer_id)
-                    if product.ean is None or product.ean == "(None,)":
-                        product.ean=ean
-                    if product.description is None or product.description == "(None,)":
-                        product.description=html_description
 
                     # 2) znajdź produkt po SKU bez allegro_id
                     if not product:
@@ -1083,6 +1079,8 @@ def sync_allegro_offers_task(batch_id, user_id):
                     update_field("allegro_started_at", offer.get("publication", {}).get("startedAt"))
                     update_field("allegro_ended_at", offer.get("publication", {}).get("endedAt"))
                     update_field("title", offer.get("name", product.title))
+                    update_field("ean", ean)
+                    update_field("description", html_description)
 
                     price_brutto = Decimal(str(
                         offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
