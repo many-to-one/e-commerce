@@ -1187,20 +1187,22 @@ class ProductCSVView(APIView):
                             category_.category_hierarchy.append(cat),
                         category_.save()
 
-                    product, created_product = Product.objects.get_or_create(
-                        title=row.iloc[21],
-                        # image = img_links[0].replace(',', ''),
-                        img_links=img_links,
-                        description=descr,
-                        price=safe_decimal(row.iloc[14]),
-                        stock_qty=row.iloc[12],
-                        sku=row.iloc[11],
-                        shipping_amount=safe_decimal(14.99),
-                        category=category_,
-                        sub_cat=category,
-                    )
-                    product.vendors.add(vendor)
-                    product.save()
+                    title = row["Nazwa"].strip()
+                    if "przecena" not in title.lower():
+                        product, created_product = Product.objects.get_or_create(
+                            title=row.iloc[21],
+                            # image = img_links[0].replace(',', ''),
+                            img_links=img_links,
+                            description=descr,
+                            price=safe_decimal(row.iloc[14]),
+                            stock_qty=row.iloc[12],
+                            sku=row.iloc[11],
+                            shipping_amount=safe_decimal(14.99),
+                            category=category_,
+                            sub_cat=category,
+                        )
+                        product.vendors.add(vendor)
+                        product.save()
 
             categories = Category.objects.all()
             for cat in categories:
