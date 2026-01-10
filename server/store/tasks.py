@@ -983,6 +983,139 @@ def sync_selected_offers_task(batch_id, product_ids, user_id):
 
 
 
+# @shared_task
+# def sync_allegro_offers_task(batch_id, user_id):
+#     batch = AllegroProductBatch.objects.get(id=batch_id)
+#     batch.status = "RUNNING"
+#     batch.save()
+
+#     vendors = Vendor.objects.filter(user_id=user_id, marketplace="allegro.pl")
+
+#     try:
+#         products = Product.objects.all()
+
+#         allegro_map = {obj.allegro_id: obj for obj in products if obj.allegro_id}
+
+#         sku_map = {}
+#         for obj in products:
+#             sku_map.setdefault(obj.sku, []).append(obj)
+
+#         total = 0
+#         processed = 0
+
+#         for vendor in vendors:
+#             headers = {
+#                 'Accept': 'application/vnd.allegro.public.v1+json',
+#                 'Authorization': f'Bearer {vendor.access_token}'
+#             }
+
+#             offers = fetch_all_offers(vendor.name, headers)
+
+#             total += len(offers)
+#             batch.total_products = total
+#             batch.save(update_fields=["total_products"])
+
+#             for offer in offers:
+#                 # print("_________OFFER_________", offer)
+#                 processed += 1
+#                 batch.processed_products = processed
+#                 batch.save(update_fields=["processed_products"])
+
+#                 offer_id = offer.get("id")
+#                 # product_id = offer["offer"]["id"]
+#                 # print("_________product_id_________", offer_id)
+
+#                 offer_json = get_ean(offer_id, vendor.name, headers)
+#                 ean, html_description = extract_ean_and_html_description(offer_json)
+#                 external = offer.get("external")
+#                 print("_________external___product_id__ean, html_description_________", external, offer_id, ean, html_description)
+#                 if not external:
+#                     continue
+
+#                 sku = external.get("id")
+#                 status = offer.get("publication", {}).get("status")
+
+#                 try:
+#                     # 1) znajdź produkt po allegro_id
+#                     product = allegro_map.get(offer_id)
+
+#                     # 2) znajdź produkt po SKU bez allegro_id
+#                     if not product:
+#                         candidates = sku_map.get(sku, [])
+#                         product = next((p for p in candidates if not p.allegro_id), None)
+
+#                     # 3) stwórz nowy produkt
+#                     if not product:
+#                         product = create_product_from_allegro(offer, vendor, ean, html_description)
+#                         product.allegro_id = offer_id
+#                         product.save()
+
+#                         allegro_map[offer_id] = product
+#                         sku_map.setdefault(sku, []).append(product)
+
+#                     # 4) klonowanie
+#                     elif product.allegro_id != offer_id:
+#                         product = clone_product_with_new_allegro_id(product, offer_id, vendor, ean, html_description)
+#                         allegro_map[offer_id] = product
+#                         sku_map.setdefault(sku, []).append(product)
+
+#                     # 5) vendorzy
+#                     local_vendors = product.vendors.filter(marketplace="mojastrona.pl")
+#                     product.vendors.set([vendor, *local_vendors])
+
+#                     # 6) aktualizacja pól
+#                     updates = []
+
+#                     def update_field(field, value):
+#                         nonlocal updates
+#                         if getattr(product, field) != value:
+#                             setattr(product, field, value)
+#                             updates.append(field)
+
+#                     update_field("allegro_status", status)
+#                     update_field("allegro_in_stock", status == "ACTIVE")
+#                     update_field("allegro_watchers", offer.get("stats", {}).get("watchersCount", 0))
+#                     update_field("allegro_visits", offer.get("stats", {}).get("visitsCount", 0))
+#                     update_field("allegro_started_at", offer.get("publication", {}).get("startedAt"))
+#                     update_field("allegro_ended_at", offer.get("publication", {}).get("endedAt"))
+#                     update_field("title", offer.get("name", product.title))
+#                     update_field("ean", ean)
+#                     update_field("description", html_description)
+
+#                     price_brutto = Decimal(str(
+#                         offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
+#                     ))
+#                     update_field("price_brutto", price_brutto)
+
+#                     product.save()
+
+#                     # --- dopiero teraz zapisujemy log ---
+#                     AllegroProductUpdateLog.objects.create(
+#                         batch=batch,
+#                         product=product,
+#                         updates=updates,
+#                         success=True
+#                     )
+
+#                 except Exception as e:
+#                     AllegroProductUpdateLog.objects.create(
+#                         batch=batch,
+#                         product=product if 'product' in locals() else None,
+#                         updates=[],
+#                         success=False,
+#                         error=str(e)
+#                     )
+
+#         batch.status = "SUCCESS"
+#         batch.save()
+
+#     except Exception as e:
+#         batch.status = "FAILED"
+#         batch.save()
+#         raise e
+
+
+
 @shared_task
 def sync_allegro_offers_task(batch_id, user_id):
     batch = AllegroProductBatch.objects.get(id=batch_id)
@@ -994,8 +1127,10 @@ def sync_allegro_offers_task(batch_id, user_id):
     try:
         products = Product.objects.all()
 
+        # mapowanie po allegro_id
         allegro_map = {obj.allegro_id: obj for obj in products if obj.allegro_id}
 
+        # mapowanie po SKU
         sku_map = {}
         for obj in products:
             sku_map.setdefault(obj.sku, []).append(obj)
@@ -1016,54 +1151,70 @@ def sync_allegro_offers_task(batch_id, user_id):
             batch.save(update_fields=["total_products"])
 
             for offer in offers:
-                # print("_________OFFER_________", offer)
                 processed += 1
                 batch.processed_products = processed
                 batch.save(update_fields=["processed_products"])
 
                 offer_id = offer.get("id")
-                # product_id = offer["offer"]["id"]
-                # print("_________product_id_________", offer_id)
-
-                offer_json = get_ean(offer_id, vendor.name, headers)
-                ean, html_description = extract_ean_and_html_description(offer_json)
                 external = offer.get("external")
-                print("_________external___product_id__ean, html_description_________", external, offer_id, ean, html_description)
+
                 if not external:
                     continue
 
                 sku = external.get("id")
                 status = offer.get("publication", {}).get("status")
 
+                # pobranie EAN + opisu
+                offer_json = get_ean(offer_id, vendor.name, headers)
+                ean, html_description = extract_ean_and_html_description(offer_json)
+
                 try:
-                    # 1) znajdź produkt po allegro_id
-                    product = allegro_map.get(offer_id)
+                    # --- 1) Pobierz listę produktów o tym SKU ---
+                    candidates = sku_map.get(sku, [])
 
-                    # 2) znajdź produkt po SKU bez allegro_id
-                    if not product:
-                        candidates = sku_map.get(sku, [])
-                        product = next((p for p in candidates if not p.allegro_id), None)
+                    product = None
 
-                    # 3) stwórz nowy produkt
-                    if not product:
-                        product = create_product_from_allegro(offer, vendor, ean, html_description)
-                        product.allegro_id = offer_id
-                        product.save()
+                    # --- 2) Jeśli istnieje produkt z tym allegro_id → użyj go ---
+                    if offer_id in allegro_map:
+                        product = allegro_map[offer_id]
 
-                        allegro_map[offer_id] = product
-                        sku_map.setdefault(sku, []).append(product)
+                    else:
+                        if candidates:
+                            # --- 3) Jeśli istnieje produkt z tym SKU i nie ma allegro_id → przypisz allegro_id ---
+                            no_id = next((p for p in candidates if not p.allegro_id), None)
+                            if no_id:
+                                product = no_id
+                                product.allegro_id = offer_id
+                                product.save()
 
-                    # 4) klonowanie
-                    elif product.allegro_id != offer_id:
-                        product = clone_product_with_new_allegro_id(product, offer_id, vendor, ean, html_description)
-                        allegro_map[offer_id] = product
-                        sku_map.setdefault(sku, []).append(product)
+                                allegro_map[offer_id] = product
 
-                    # 5) vendorzy
+                            else:
+                                # --- 4) Jeśli istnieje produkt z tym SKU, ale ma inne allegro_id → klonuj ---
+                                base = candidates[0]
+                                product = clone_product_with_new_allegro_id(
+                                    base, offer_id, vendor, ean, html_description
+                                )
+
+                                allegro_map[offer_id] = product
+                                sku_map[sku].append(product)
+
+                        else:
+                            # --- 5) Nie ma produktu z tym SKU → stwórz nowy ---
+                            product = create_product_from_allegro(
+                                offer, vendor, ean, html_description
+                            )
+                            product.allegro_id = offer_id
+                            product.save()
+
+                            allegro_map[offer_id] = product
+                            sku_map.setdefault(sku, []).append(product)
+
+                    # --- 6) vendorzy ---
                     local_vendors = product.vendors.filter(marketplace="mojastrona.pl")
                     product.vendors.set([vendor, *local_vendors])
 
-                    # 6) aktualizacja pól
+                    # --- 7) aktualizacja pól ---
                     updates = []
 
                     def update_field(field, value):
@@ -1079,8 +1230,8 @@ def sync_allegro_offers_task(batch_id, user_id):
                     update_field("allegro_started_at", offer.get("publication", {}).get("startedAt"))
                     update_field("allegro_ended_at", offer.get("publication", {}).get("endedAt"))
                     update_field("title", offer.get("name", product.title))
-                    update_field("ean", ean)
-                    update_field("description", html_description)
+                    # update_field("ean", ean)
+                    # update_field("description", html_description)
 
                     price_brutto = Decimal(str(
                         offer.get("sellingMode", {}).get("price", {}).get("amount", "0")
@@ -1089,7 +1240,6 @@ def sync_allegro_offers_task(batch_id, user_id):
 
                     product.save()
 
-                    # --- dopiero teraz zapisujemy log ---
                     AllegroProductUpdateLog.objects.create(
                         batch=batch,
                         product=product,
@@ -1100,7 +1250,7 @@ def sync_allegro_offers_task(batch_id, user_id):
                 except Exception as e:
                     AllegroProductUpdateLog.objects.create(
                         batch=batch,
-                        product=product if 'product' in locals() else None,
+                        product=product if isinstance(product, Product) else None,
                         updates=[],
                         success=False,
                         error=str(e)
@@ -1113,3 +1263,4 @@ def sync_allegro_offers_task(batch_id, user_id):
         batch.status = "FAILED"
         batch.save()
         raise e
+

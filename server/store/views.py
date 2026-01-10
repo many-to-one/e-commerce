@@ -1007,25 +1007,27 @@ class PrestaUpdateCSVView(APIView):
                 else:
                     if row["Ilość"] <= 0:
                         continue  # Skip creating product if stock quantity is 0 or less
-                    product = Product.objects.create(
-                        title=row["Nazwa"],
-                        ean=row["EAN"],
-                        image=first_image,
-                        img_links=images,
-                        description=row["Opis"],
-                        price=gross_price,   # <-- includes 23% VAT
-                        hurt_price=safe_decimal(row["Cena hurtowa"]),
-                        stock_qty=row["Ilość"],
-                        sku=row["Kod dostawcy"],
-                        shipping_amount=safe_decimal(9.99), 
-                        category=category,   
-                        sub_cat=categories[2:],
-                       # tax_rate=safe_decimal("23.00")
-                    )
+                    title = row["Nazwa"].strip()
+                    if "przecena" not in title.lower():
+                        product = Product.objects.create(
+                            title=row["Nazwa"],
+                            ean=row["EAN"],
+                            image=first_image,
+                            img_links=images,
+                            description=row["Opis"],
+                            price=gross_price,   # <-- includes 23% VAT
+                            hurt_price=safe_decimal(row["Cena hurtowa"]),
+                            stock_qty=row["Ilość"],
+                            sku=row["Kod dostawcy"],
+                            shipping_amount=safe_decimal(9.99), 
+                            category=category,   
+                            sub_cat=categories[2:],
+                        # tax_rate=safe_decimal("23.00")
+                        )
 
-                    all_vendors = Vendor.objects.filter(user=user)
-                    product.vendors.add(*all_vendors)
-                    product.save()
+                        all_vendors = Vendor.objects.filter(user=user)
+                        product.vendors.add(*all_vendors)
+                        product.save()
 
             updated_products = Product.objects.filter(updates=True)
             product_ids = list(updated_products.values_list("id", flat=True))
