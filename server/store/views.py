@@ -778,8 +778,8 @@ class PrestaCSVView(APIView):
                     category=category_,
                     sub_cat=categories[2:],
                 )
-                all_vendors = Vendor.objects.all()
-                product.vendors.add(*all_vendors)
+                vendor = Vendor.objects.filter(marketplace=_marketplace)
+                product.vendors.add(vendor)
 
                 product.save()
 
@@ -1027,8 +1027,8 @@ class PrestaUpdateCSVView(APIView):
                         # tax_rate=safe_decimal("23.00")
                         )
 
-                        all_vendors = Vendor.objects.filter(user=user)
-                        product.vendors.add(*all_vendors)
+                        vendor = Vendor.objects.filter(user=user, marketplace=_marketplace)
+                        product.vendors.add(vendor)
                         product.save()
 
             updated_products = Product.objects.filter(updates=True)
