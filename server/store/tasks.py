@@ -23,9 +23,11 @@ from .allegro_views.views import (
     )
 
 from store.utils.allegro import (
+    extract_ean_and_html_description,
     fetch_all_offers,
     create_product_from_allegro, 
     clone_product_with_new_allegro_id,
+    get_ean,
 )
 
 from users.models import User
@@ -1014,12 +1016,19 @@ def sync_allegro_offers_task(batch_id, user_id):
             batch.save(update_fields=["total_products"])
 
             for offer in offers:
+                # print("_________OFFER_________", offer)
                 processed += 1
                 batch.processed_products = processed
                 batch.save(update_fields=["processed_products"])
 
                 offer_id = offer.get("id")
+                # product_id = offer["offer"]["id"]
+                # print("_________product_id_________", offer_id)
+
+                offer_json = get_ean(offer_id, vendor.name, headers)
+                ean, html_description = extract_ean_and_html_description(offer_json)
                 external = offer.get("external")
+                print("_________external___product_id__ean, html_description_________", external, offer_id, ean, html_description)
                 if not external:
                     continue
 
@@ -1029,6 +1038,10 @@ def sync_allegro_offers_task(batch_id, user_id):
                 try:
                     # 1) znajdź produkt po allegro_id
                     product = allegro_map.get(offer_id)
+                    if product.ean is None or product.ean == "(None,)":
+                        product.ean=ean
+                    if product.description is None or product.description == "(None,)":
+                        product.description=html_description
 
                     # 2) znajdź produkt po SKU bez allegro_id
                     if not product:
@@ -1037,7 +1050,7 @@ def sync_allegro_offers_task(batch_id, user_id):
 
                     # 3) stwórz nowy produkt
                     if not product:
-                        product = create_product_from_allegro(offer, vendor)
+                        product = create_product_from_allegro(offer, vendor, ean, html_description)
                         product.allegro_id = offer_id
                         product.save()
 
@@ -1046,7 +1059,7 @@ def sync_allegro_offers_task(batch_id, user_id):
 
                     # 4) klonowanie
                     elif product.allegro_id != offer_id:
-                        product = clone_product_with_new_allegro_id(product, offer_id, vendor)
+                        product = clone_product_with_new_allegro_id(product, offer_id, vendor, ean, html_description)
                         allegro_map[offer_id] = product
                         sku_map.setdefault(sku, []).append(product)
 

@@ -5,6 +5,87 @@ from store.models import Category, Product
 import os
 
 
+def extract_full_description(offer_json):
+    html_parts = []
+
+    try:
+        sections = offer_json.get("description", {}).get("sections", [])
+
+        for section in sections:
+            items = section.get("items", [])
+            for item in items:
+
+                # TEXT → gotowy HTML
+                if item.get("type") == "TEXT":
+                    html_parts.append(item.get("content", ""))
+
+                # IMAGE → budujemy <img>
+                elif item.get("type") == "IMAGE":
+                    url = item.get("url")
+                    if url:
+                        html_parts.append(
+                            f'<p><img src="{url}" style="max-width:100%;height:auto;" /></p>'
+                        )
+
+    except Exception:
+        pass
+
+    return "\n".join(html_parts).strip()
+
+
+def extract_ean_and_html_description(offer_json):
+    ean = None
+    html_parts = []
+
+    # --- EAN ---
+    try:
+        params = offer_json["productSet"][0]["product"]["parameters"]
+        for p in params:
+            if p.get("id") == "225693" or p.get("name") == "EAN (GTIN)":
+                values = p.get("values")
+                if values:
+                    ean = values[0]
+                break
+    except Exception:
+        pass
+
+    # --- DESCRIPTION (HTML + IMAGES) ---
+    try:
+        sections = offer_json.get("description", {}).get("sections", [])
+
+        for section in sections:
+            items = section.get("items", [])
+            for item in items:
+
+                # TEXT → gotowy HTML
+                if item.get("type") == "TEXT":
+                    html_parts.append(item.get("content", ""))
+
+                # IMAGE → budujemy <img>
+                elif item.get("type") == "IMAGE":
+                    url = item.get("url")
+                    if url:
+                        html_parts.append(
+                            f'<p><img src="{url}" style="max-width:100%;height:auto;" /></p>'
+                        )
+
+    except Exception:
+        pass
+
+    html_description = "\n".join(html_parts).strip()
+
+    return ean, html_description
+
+
+
+def get_ean(product_id, vendor_name, headers):
+
+    url = f"https://{os.getenv("ALLEGRO_API_URL")}/sale/product-offers/{product_id}"
+    response = allegro_request("GET", url, vendor_name, headers=headers)
+    print("_________EAN RESPONSE___________", response, response.json())
+    return response.json()
+
+
 def fetch_all_offers(vendor_name, headers):
 
     statuses = ["ACTIVE", "INACTIVE", "ENDED", "ACTIVATING", "NOT_LISTED"]
@@ -21,6 +102,7 @@ def fetch_all_offers(vendor_name, headers):
             )
             response = allegro_request("GET", url, vendor_name, headers=headers)
             data = response.json()
+            # print("_________OFFER_________", data)
 
             offers = data.get("offers", [])
             if not offers:
@@ -33,14 +115,15 @@ def fetch_all_offers(vendor_name, headers):
             if total_count and offset >= total_count:
                 break
             
-    for offer in all_offers:
-        print(f' ################### "offer id & status" ################### ', offer.get("id"), offer.get("publication", {}).get("status"))
+    # for offer in all_offers:
+    #     print("_________OFFER_________", offer)
+        # print(f' ################### "offer id & status" ################### ', offer.get("id"), offer.get("publication", {}).get("status"))
 
     return all_offers
 
 
 
-def create_product_from_allegro(offer, vendor):
+def create_product_from_allegro(offer, vendor, ean, html_description):
 
     sku = offer.get("external", {}).get("id")
     if not sku:
@@ -52,6 +135,8 @@ def create_product_from_allegro(offer, vendor):
     product = Product.objects.create(
         sku=sku,
         title=offer.get("name", "Produkt Allegro"),
+        ean=ean,
+        description=html_description,
         price_brutto=price_brutto,
         price=price_netto,
         stock_qty=offer.get("stock", {}).get("available", 0),
@@ -87,13 +172,17 @@ def create_product_from_allegro(offer, vendor):
     return product
 
 
-def clone_product_with_new_allegro_id(product, new_allegro_id, vendor):
+def clone_product_with_new_allegro_id(product, new_allegro_id, vendor, ean, html_description):
     # skopiuj bazowy produkt
     original_pk = product.pk
     original_vendors = list(product.vendors.all())
 
     product.pk = None  # nowy rekord
     product.allegro_id = new_allegro_id
+    if product.ean is None or product.ean == "(None,)":
+        product.ean=ean
+    if product.description is None or product.description == "(None,)":
+        product.description=html_description
 
     # nowy pid i unikalny slug
     product.pid = generate_pid()
