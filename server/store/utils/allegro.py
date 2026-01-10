@@ -64,7 +64,7 @@ def create_product_from_allegro(offer, vendor):
     )
 
     # --- zachowaj vendorów z mojastrona.pl ---
-    local_vendors = product.vendors.filter(marketplace="mojastrona.pl")
+    local_vendors = product.vendors.filter(marketplace=os.getenv("_marketplace"))
 
     # --- ustaw aktualnego vendora Allegro + lokalnych vendorów ---
     product.vendors.set([vendor, *local_vendors])
@@ -111,7 +111,7 @@ def clone_product_with_new_allegro_id(product, new_allegro_id, vendor):
     product.save()
 
     # --- zachowaj vendorów z mojastrona.pl ---
-    local_vendors = product.vendors.filter(marketplace=os.get("_marketplace"))
+    local_vendors = product.vendors.filter(marketplace=os.getenv("_marketplace"))
 
     # --- ustaw aktualnego vendora Allegro + lokalnych vendorów ---
     product.vendors.set([vendor, *local_vendors])
