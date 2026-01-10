@@ -91,11 +91,11 @@ class ProductsView(generics.ListAPIView):
     permission_classes = (AllowAny, )
 
     def get_queryset(self):
-        vendor = Vendor.objects.filter(marketplace=_marketplace)
+        vendors = Vendor.objects.filter(marketplace=_marketplace)
         queryset = Product.objects.filter(
             in_stock=True,
             stock_qty__gt=0,
-            vendors=vendor,
+            vendors__in=vendors,
             )
         # queryset = Product.objects.all()
         search = self.request.query_params.get('search')
