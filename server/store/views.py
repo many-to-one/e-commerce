@@ -1029,7 +1029,7 @@ class PrestaUpdateCSVView(APIView):
                         # tax_rate=safe_decimal("23.00")
                         )
 
-                        vendor = Vendor.objects.filter(user=user, marketplace=_marketplace)
+                        vendor = Vendor.objects.get(user=user, marketplace=_marketplace)
                         product.vendors.add(vendor)
                         product.save()
 
@@ -1088,7 +1088,7 @@ class ProductCSVView(APIView):
         cat_set = set()
 
         try:
-            vendor = Vendor.objects.get(user=user)
+            vendor = Vendor.objects.get(user=user, marketplace=_marketplace)
         except:
             return Response({
                     "Error": "No vendor",
