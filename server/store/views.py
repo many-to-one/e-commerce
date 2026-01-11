@@ -890,32 +890,79 @@ class PrestaUpdateCSVView(APIView):
 
                 product = Product.objects.filter(ean=row["EAN"])
 
-
                 if product:
-                    if update_stock:
-                        if product.stock_qty != row["Ilość"]:
-                            product.stock_qty = row["Ilość"]
-                            product.updates = True
-                            product.save(update_fields=['stock_qty', 'updates'])
 
+                    # --- UPDATE STOCK ---
+                    if update_stock:
+                        for p in product:
+
+                            fields_to_update = []
+                            updates_info = []
+
+                            if p.stock_qty != row["Ilość"]:
+                                p.stock_qty = row["Ilość"]
+                                fields_to_update.append("stock_qty")
+                                updates_info.append("Nowy STAN PRODUKTU w hurtowni")
+
+                            if fields_to_update:
+                                p.updates = True
+                                p.difference = True
+
+                                # zabezpieczenie przed None
+                                if not p.updates_info:
+                                    p.updates_info = "-"
+
+                                for i in updates_info:
+                                    p.updates_info += f"{i}\n"
+
+                                fields_to_update.append("updates")
+                                fields_to_update.append("difference")
+                                fields_to_update.append("updates_info")
+
+                                p.save(update_fields=fields_to_update)
+
+
+
+                    # --- UPDATE PRICE ---
                     if update_price:
+
                         new_price = gross_price
                         new_hurt = safe_decimal(row["Cena hurtowa"])
 
-                        fields_to_update = []
+                        for p in product:
 
-                        if product.price != new_price:
-                            product.price = new_price
-                            fields_to_update.append("price")
+                            fields_to_update = []
+                            updates_info = []
 
-                        if product.new_hurt_price != new_hurt:
-                            product.new_hurt_price = new_hurt
-                            fields_to_update.append("new_hurt_price")
+                            # price
+                            if p.price != new_price:
+                                p.price = new_price
+                                fields_to_update.append("price")
+                                updates_info.append("Nowa CENA NETTO w hurtowni")
 
-                        if fields_to_update:
-                            product.updates = True
-                            fields_to_update.append("updates")
-                            product.save(update_fields=fields_to_update)
+                            # new_hurt_price
+                            if p.new_hurt_price != new_hurt:
+                                p.new_hurt_price = new_hurt
+                                fields_to_update.append("new_hurt_price")
+                                updates_info.append("Nowa CENA BRUTTO w hurtowni")
+
+                            if fields_to_update:
+                                p.updates = True
+                                p.difference = True
+
+                                # zabezpieczenie przed None
+                                if not p.updates_info:
+                                    p.updates_info = "-"
+
+                                for i in updates_info:
+                                    p.updates_info += f"{i}\n"
+
+                                fields_to_update.append("updates")
+                                fields_to_update.append("difference")
+                                fields_to_update.append("updates_info")
+
+                                p.save(update_fields=fields_to_update)
+
 
 
                     if update_description:
@@ -932,6 +979,7 @@ class PrestaUpdateCSVView(APIView):
                         for p in product:
 
                             fields_to_update = []
+                            updates_info = []
 
                             print("----------------- title -----------------", title)
                             print("----------------- product.hurt_title before -----------------", p.hurt_title)
@@ -939,43 +987,50 @@ class PrestaUpdateCSVView(APIView):
                             # hurt_title
                             if p.hurt_title != title or p.hurt_title is None:
                                 p.hurt_title = title
-                                print("----------------- product.hurt_title after -----------------", p.hurt_title)
                                 fields_to_update.append("hurt_title")
+                                updates_info.append("Nowy TYTUŁ w hurtowni")
 
                             # image
                             if p.image != first_image:
                                 p.image = first_image
                                 fields_to_update.append("image")
+                                updates_info.append("Nowe GŁÓWNE ZDJĘCIE w hurtowni")
 
                             # img_links
                             if p.img_links != images:
                                 p.img_links = images
                                 fields_to_update.append("img_links")
+                                updates_info.append("Nowe ZDJĘCIE(A) w hurtowni")
 
                             # description
                             if p.description != desc:
                                 p.description = desc
                                 fields_to_update.append("description")
+                                updates_info.append("Nowy OPIS w hurtowni")
 
                             # price
                             if p.price != gross_price:
                                 p.price = gross_price
                                 fields_to_update.append("price")
+                                updates_info.append("Nowa CENA NETTO w hurtowni")
 
                             # hurt_price → new_hurt_price
                             if p.hurt_price != hurt_price:
                                 p.new_hurt_price = hurt_price
                                 fields_to_update.append("new_hurt_price")
+                                updates_info.append("Nowa CENA BRUTTO w hurtowni")
 
                             # qty
                             if p.stock_qty != qty:
                                 p.stock_qty = qty
                                 fields_to_update.append("stock_qty")
+                                updates_info.append("Nowy STAN PRODUKTU w hurtowni")
 
                             # sku
                             if p.sku != sku:
                                 p.sku = sku
                                 fields_to_update.append("sku")
+                                updates_info.append("Nowy NUMER SKU w hurtowni")
 
                             # shipping
                             if p.shipping_amount != shipping:
@@ -986,19 +1041,33 @@ class PrestaUpdateCSVView(APIView):
                             if p.category != category:
                                 p.category = category
                                 fields_to_update.append("category")
+                                updates_info.append("Nowa KATEGORIA w hurtowni")
 
                             # sub_cat
                             if p.sub_cat != sub_cat:
                                 p.sub_cat = sub_cat
                                 fields_to_update.append("sub_cat")
+                                updates_info.append("Nowa SUB-KATEGORIA w hurtowni")
 
                             # save if needed
                             if fields_to_update:
+
                                 p.updates = True
                                 p.difference = True
+
+                                # zabezpieczenie przed None
+                                if not p.updates_info:
+                                    p.updates_info = "-"
+
+                                # dopisujemy zmiany
+                                for i in updates_info:
+                                    p.updates_info += f"{i}\n"
+
                                 fields_to_update.append("updates")
-                                fields_to_update.append("difference")
+                                fields_to_update.append("updates_info")
+
                                 p.save(update_fields=fields_to_update)
+
 
                             # print("*******cena hurtowa zaktualizowana********", product.new_hurt_price)
 

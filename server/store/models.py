@@ -188,6 +188,7 @@ class Product(models.Model):
     allegro_visits = models.PositiveIntegerField(default=0, verbose_name="wizyty allegro")
 
     updates = models.BooleanField(default=False, verbose_name="Aktualizacje")
+    updates_info = models.TextField(null=True, blank=True, verbose_name="Opis aktualizacji")
     difference = models.BooleanField(default=False, verbose_name="Są zmainy")
     
     # Product flags (featured, hot deal, special offer, digital)
