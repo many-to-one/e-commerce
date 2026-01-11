@@ -950,7 +950,7 @@ class PrestaUpdateCSVView(APIView):
                             if p.hurt_price != new_hurt:
                                 p.new_hurt_price = new_hurt
                                 fields_to_update.append("new_hurt_price")
-                                updates_info.append(f"Nowa CENA BRUTTO w hurtowni {hurt_price}/{p.hurt_price}")
+                                updates_info.append(f"Nowa CENA BRUTTO w hurtowni {new_hurt}/{p.hurt_price}")
 
                             if fields_to_update:
                                 p.updates = True
