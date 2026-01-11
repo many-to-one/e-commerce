@@ -220,7 +220,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = [AllegroVendorFilter, AllegroStockFilter, KecjaUpdatesFilter]
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
-        'date',
+        # 'date',
         'difference', 
         'allegro_started_at',
         'allegro_ended_at',
@@ -231,7 +231,7 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
-        # 'hurt_title',
+        'title',
         'title_warning', 
         'stock_qty', 
         'ean', 
