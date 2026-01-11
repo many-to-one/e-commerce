@@ -888,9 +888,8 @@ class PrestaUpdateCSVView(APIView):
 
                 print(len(row["Nazwa"]), row["Nazwa"])
 
-                product = Product.objects.filter(ean=row["EAN"]).first()
+                product = Product.objects.filter(ean=row["EAN"])
 
-                update_description = True
 
                 if product:
                     if update_stock:
