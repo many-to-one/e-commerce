@@ -941,49 +941,41 @@ class PrestaUpdateCSVView(APIView):
                                 p.hurt_title = title
                                 print("----------------- product.hurt_title after -----------------", p.hurt_title)
                                 fields_to_update.append("hurt_title")
-                                fields_to_update.append("difference")
 
                             # image
                             if p.image != first_image:
                                 p.image = first_image
                                 fields_to_update.append("image")
-                                fields_to_update.append("difference")
 
                             # img_links
                             if p.img_links != images:
                                 p.img_links = images
                                 fields_to_update.append("img_links")
-                                fields_to_update.append("difference")
 
                             # description
                             if p.description != desc:
                                 p.description = desc
                                 fields_to_update.append("description")
-                                fields_to_update.append("difference")
 
                             # price
                             if p.price != gross_price:
                                 p.price = gross_price
                                 fields_to_update.append("price")
-                                fields_to_update.append("difference")
 
                             # hurt_price → new_hurt_price
                             if p.hurt_price != hurt_price:
                                 p.new_hurt_price = hurt_price
                                 fields_to_update.append("new_hurt_price")
-                                fields_to_update.append("difference")
 
                             # qty
                             if p.stock_qty != qty:
                                 p.stock_qty = qty
                                 fields_to_update.append("stock_qty")
-                                fields_to_update.append("difference")
 
                             # sku
                             if p.sku != sku:
                                 p.sku = sku
                                 fields_to_update.append("sku")
-                                fields_to_update.append("difference")
 
                             # shipping
                             if p.shipping_amount != shipping:
@@ -1003,7 +995,9 @@ class PrestaUpdateCSVView(APIView):
                             # save if needed
                             if fields_to_update:
                                 p.updates = True
+                                p.difference = True
                                 fields_to_update.append("updates")
+                                fields_to_update.append("difference")
                                 p.save(update_fields=fields_to_update)
 
                             # print("*******cena hurtowa zaktualizowana********", product.new_hurt_price)
@@ -1056,7 +1050,7 @@ class PrestaUpdateCSVView(APIView):
             return Response({
                 "message": "CSV processed successfully",
                 "batch_id": batch.id,
-                "redirect_url": f"{os.getenv('PRO_SITE_URL')}/api/store/admin/allegroupdatebatch/{batch.id}/status/",
+                "redirect_url": f"api.{os.getenv('PRO_SITE_URL')}/api/store/admin/allegroupdatebatch/{batch.id}/status/",
                 'Price': update_price,
                 'Stock': update_stock,
                 'Descr': update_description,
