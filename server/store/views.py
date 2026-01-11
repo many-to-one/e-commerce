@@ -938,13 +938,13 @@ class PrestaUpdateCSVView(APIView):
                             if p.price != new_price:
                                 p.price = new_price
                                 fields_to_update.append("price")
-                                updates_info.append("Nowa CENA NETTO w hurtowni")
+                                updates_info.append(f"Nowa CENA NETTO w hurtowni {gross_price}/{p.price}")
 
                             # new_hurt_price
                             if p.new_hurt_price != new_hurt:
                                 p.new_hurt_price = new_hurt
                                 fields_to_update.append("new_hurt_price")
-                                updates_info.append("Nowa CENA BRUTTO w hurtowni")
+                                updates_info.append(f"Nowa CENA BRUTTO w hurtowni {hurt_price}/{p.hurt_price}")
 
                             if fields_to_update:
                                 p.updates = True
@@ -1012,13 +1012,13 @@ class PrestaUpdateCSVView(APIView):
                             if p.price != gross_price:
                                 p.price = gross_price
                                 fields_to_update.append("price")
-                                updates_info.append("Nowa CENA NETTO w hurtowni")
+                                updates_info.append(f"Nowa CENA NETTO w hurtowni {gross_price}/{p.price}")
 
                             # hurt_price → new_hurt_price
                             if p.hurt_price != hurt_price:
                                 p.new_hurt_price = hurt_price
                                 fields_to_update.append("new_hurt_price")
-                                updates_info.append("Nowa CENA BRUTTO w hurtowni")
+                                updates_info.append(f"Nowa CENA BRUTTO w hurtowni {hurt_price}/{p.hurt_price}")
 
                             # qty
                             if p.stock_qty != qty:
