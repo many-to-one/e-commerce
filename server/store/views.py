@@ -819,9 +819,13 @@ class PrestaUpdateCSVView(APIView):
         print('PrestaUpdateCSVView - request.data', request.data)
 
         # sprawdzanie checkboxów
-        update_price = request.data.get("price") == "true"
-        update_stock = request.data.get("stock") == "true"
-        update_description = request.data.get("description") == "true"
+        # update_price = request.data.get("price") == "true"
+        # update_stock = request.data.get("stock") == "true"
+        # update_description = request.data.get("description") == "true"
+
+        update_price = False
+        update_stock = False
+        update_description = True
 
         # przykładowe użycie
         # if update_price:
