@@ -277,9 +277,11 @@ class ProductAdmin(admin.ModelAdmin):
     @admin.display(description="Allegro")
     def allegro_column(self, obj):
         return format_html(
-            '<div style="line-height: 1.2;">'
+            '<div style="line-height: 1.2; min-width: 110px; display: inline-block;">'
             '<strong>{}</strong><br>'
-            '<span style="color: #555;">👁 {} &nbsp;&nbsp; 👤 {}</span>'
+            '<span style="color: #c3c3c3;">👁 {} &nbsp;&nbsp; '
+            '<span style="color: #e0e0e0;">👤 {}</span>'
+            '</span>'
             '</div>',
             obj.allegro_id or "-",
             obj.allegro_visits or 0,
