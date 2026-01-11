@@ -919,74 +919,93 @@ class PrestaUpdateCSVView(APIView):
 
 
                     if update_description:
-                        fields_to_update = []
 
                         title = row["Nazwa"]
-                        print("----------------- title -----------------", title)
-                        print("----------------- product.hurt_title before -----------------", product.hurt_title)
-                        if product.hurt_title != title or product.hurt_title is None:
-                            product.hurt_title = title
-                            print("----------------- product.hurt_title after -----------------", product.hurt_title)
-                            fields_to_update.append("hurt_title")
-                            fields_to_update.append("difference")
-
-                        if product.image != first_image:
-                            product.image = first_image
-                            fields_to_update.append("image")
-                            fields_to_update.append("difference")
-
-                        if product.img_links != images:
-                            product.img_links = images
-                            fields_to_update.append("img_links")
-                            fields_to_update.append("difference")
-
                         desc = row["Opis"]
-                        if product.description != desc:
-                            product.description = desc
-                            fields_to_update.append("description")
-                            fields_to_update.append("difference")
-
-                        if product.price != gross_price:
-                            product.price = gross_price
-                            fields_to_update.append("price")
-                            fields_to_update.append("difference")
-
                         hurt_price = safe_decimal(row["Cena hurtowa"])
-                        if product.hurt_price != hurt_price:
-                            product.new_hurt_price = hurt_price
-                            fields_to_update.append("new_hurt_price")
-                            fields_to_update.append("difference")
-
                         qty = row["Ilość"]
-                        if product.stock_qty != qty:
-                            product.stock_qty = qty 
-                            fields_to_update.append("stock_qty")
-                            fields_to_update.append("difference")
-
                         sku = row["Kod dostawcy"]
-                        if product.sku != sku:
-                            product.sku = sku
-                            fields_to_update.append("sku")
-                            fields_to_update.append("difference")
-
                         shipping = safe_decimal(9.99)
-                        if product.shipping_amount != shipping:
-                            product.shipping_amount = shipping
-                            fields_to_update.append("shipping_amount")
-
-                        if product.category != category:
-                            product.category = category
-                            fields_to_update.append("category")
-
                         sub_cat = categories[2:]
-                        if product.sub_cat != sub_cat:
-                            product.sub_cat = sub_cat
-                            fields_to_update.append("sub_cat")
 
-                        if fields_to_update:
-                            product.updates = True
-                            fields_to_update.append("updates")
-                            product.save(update_fields=fields_to_update)
+                        # iterujemy po WSZYSTKICH produktach z tym EAN
+                        for p in product:
+
+                            fields_to_update = []
+
+                            print("----------------- title -----------------", title)
+                            print("----------------- product.hurt_title before -----------------", p.hurt_title)
+
+                            # hurt_title
+                            if p.hurt_title != title or p.hurt_title is None:
+                                p.hurt_title = title
+                                print("----------------- product.hurt_title after -----------------", p.hurt_title)
+                                fields_to_update.append("hurt_title")
+                                fields_to_update.append("difference")
+
+                            # image
+                            if p.image != first_image:
+                                p.image = first_image
+                                fields_to_update.append("image")
+                                fields_to_update.append("difference")
+
+                            # img_links
+                            if p.img_links != images:
+                                p.img_links = images
+                                fields_to_update.append("img_links")
+                                fields_to_update.append("difference")
+
+                            # description
+                            if p.description != desc:
+                                p.description = desc
+                                fields_to_update.append("description")
+                                fields_to_update.append("difference")
+
+                            # price
+                            if p.price != gross_price:
+                                p.price = gross_price
+                                fields_to_update.append("price")
+                                fields_to_update.append("difference")
+
+                            # hurt_price → new_hurt_price
+                            if p.hurt_price != hurt_price:
+                                p.new_hurt_price = hurt_price
+                                fields_to_update.append("new_hurt_price")
+                                fields_to_update.append("difference")
+
+                            # qty
+                            if p.stock_qty != qty:
+                                p.stock_qty = qty
+                                fields_to_update.append("stock_qty")
+                                fields_to_update.append("difference")
+
+                            # sku
+                            if p.sku != sku:
+                                p.sku = sku
+                                fields_to_update.append("sku")
+                                fields_to_update.append("difference")
+
+                            # shipping
+                            if p.shipping_amount != shipping:
+                                p.shipping_amount = shipping
+                                fields_to_update.append("shipping_amount")
+
+                            # category
+                            if p.category != category:
+                                p.category = category
+                                fields_to_update.append("category")
+
+                            # sub_cat
+                            if p.sub_cat != sub_cat:
+                                p.sub_cat = sub_cat
+                                fields_to_update.append("sub_cat")
+
+                            # save if needed
+                            if fields_to_update:
+                                p.updates = True
+                                fields_to_update.append("updates")
+                                p.save(update_fields=fields_to_update)
+
                             # print("*******cena hurtowa zaktualizowana********", product.new_hurt_price)
 
                 else:
