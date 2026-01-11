@@ -299,7 +299,7 @@ class ProductAdmin(admin.ModelAdmin):
             # jeśli new_hurt_price jest ustawione, to przenosimy
             if p.new_hurt_price is not None:
                 p.hurt_price = p.new_hurt_price
-                p.difference = True
+                p.difference = False
                 p.updates = True
                 p.save(update_fields=["hurt_price", "difference", "updates"])
                 updated += 1
