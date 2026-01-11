@@ -202,7 +202,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('status', 'type', 'allegro_status', 'allegro_in_stock')
         }),
         ('Flagi produktu', {
-            'fields': ('featured', 'hot_deal', 'special_offer', 'digital', 'updates')
+            'fields': ('featured', 'hot_deal', 'special_offer', 'digital', 'updates', "difference")
         }),
         ('Statystyki Allegro', {
             'fields': ('allegro_watchers', 'allegro_visits', 'allegro_started_at')
