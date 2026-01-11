@@ -254,6 +254,7 @@ class ProductAdmin(admin.ModelAdmin):
         "activate_allegro_products",
         # 'update_products_description',
         'calculate_allegro_fee',
+        'apply_new_hurt_price',
         'calculate_zysk_after_payments', 
         ]
     inlines = [GalleryInline, SpecificationInline, SizeInline, ColorInline]
@@ -287,6 +288,23 @@ class ProductAdmin(admin.ModelAdmin):
             obj.allegro_visits or 0,
             obj.allegro_watchers or 0,
         )
+    
+
+
+    @admin.action(description="💲Aktualizuj nowe ceny")
+    def apply_new_hurt_price(self, request, queryset):
+        updated = 0
+
+        for p in queryset:
+            # jeśli new_hurt_price jest ustawione, to przenosimy
+            if p.new_hurt_price is not None:
+                p.hurt_price = p.new_hurt_price
+                p.difference = True
+                p.updates = True
+                p.save(update_fields=["hurt_price", "difference", "updates"])
+                updated += 1
+
+            self.message_user(request, f"✅ Zaktualizowano cenę brutto w {p.sku}", level="success")
 
 
     ##### Highlight new_hurt_price if different from hurt_price ######
