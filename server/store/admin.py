@@ -176,7 +176,7 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Podstawowe informacje', {
             'fields': (
-                'title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'title', 'hurt_title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
