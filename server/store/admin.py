@@ -221,7 +221,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
         'date',
-        'difference', 
+        'updates_info', 
         'allegro_started_at',
         'allegro_ended_at',
         'sku', 
