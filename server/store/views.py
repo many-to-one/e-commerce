@@ -40,6 +40,8 @@ from django.core.files.base import ContentFile
 import httpx
 import asyncio
 
+from decimal import Decimal, ROUND_HALF_UP
+
 
 stripe.api_key = os.environ.get("STRIPE_API_KEY")
 PAYU_CLIENT_ID = os.environ.get("PAYU_CLIENT_ID")
@@ -974,8 +976,6 @@ class PrestaUpdateCSVView(APIView):
                         sku = row["Kod dostawcy"]
                         shipping = safe_decimal(9.99)
                         sub_cat = categories[2:]
-
-                        from decimal import Decimal, ROUND_HALF_UP
 
                         def fmt(value: Decimal) -> str:
                             return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
