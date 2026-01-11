@@ -280,7 +280,7 @@ class ProductAdmin(admin.ModelAdmin):
             '<div style="line-height: 1.2; min-width: 110px; display: inline-block;">'
             '<strong>{}</strong><br>'
             '<span style="color: #c3c3c3;">👁 {} &nbsp;&nbsp; '
-            '<span style="color: #e0e0e0;">👤 {}</span>'
+            '<span style="filter: brightness(1.8);">👤</span> {}</span>'
             '</span>'
             '</div>',
             obj.allegro_id or "-",
