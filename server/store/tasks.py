@@ -596,7 +596,7 @@ def orchestrate_allegro_updates(action, batch_id, product_ids, user_id):
 
         chord(g)(finalize_update_batch.s(batch_id))
 
-    else:
+    if action == 'post_products':
         g = group(
             post_single_product.s(batch_id, product_id, user_id)
             for product_id in product_ids

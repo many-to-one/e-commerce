@@ -136,11 +136,11 @@ class AllegroStockFilter(admin.SimpleListFilter):
     
 
 class AllegroVendorFilter(admin.SimpleListFilter):
-    title = '🛒 Sprzedawca Allegro'
+    title = '🛒 Sprzedawca'
     parameter_name = 'allegro_vendor'
 
     def lookups(self, request, model_admin):
-        vendors = Vendor.objects.filter(marketplace='allegro.pl')
+        vendors = Vendor.objects.filter(user=request.user)
         return [(vendor.name, vendor.name) for vendor in vendors]
 
     def queryset(self, request, queryset):
@@ -176,7 +176,7 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Podstawowe informacje', {
             'fields': (
-                'title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'title', 'hurt_title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
@@ -221,7 +221,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
         'date',
-        # 'modified_hidden', 
+        'difference', 
         'allegro_started_at',
         'allegro_ended_at',
         'sku', 
@@ -231,7 +231,7 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
-        'title',
+        'hurt_title',
         'title_warning', 
         'stock_qty', 
         'ean', 

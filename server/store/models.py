@@ -149,6 +149,7 @@ class Product(models.Model):
     allegro_id = models.CharField("Allegro id", max_length=100, null=True, blank=True)
     allegro_ids = models.JSONField(default=list, blank=True)
     title = models.CharField(max_length=255, verbose_name='Nazwa')
+    hurt_title = models.CharField(max_length=255, null=True, blank=True, verbose_name='Nazwa w hurtowni')
     ean = models.CharField(max_length=100, null=True, blank=True)
     image = models.FileField(upload_to="products", max_length=1000, blank=True, null=True, default="default.jpg")
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
@@ -186,7 +187,8 @@ class Product(models.Model):
     allegro_watchers = models.PositiveIntegerField(default=0, verbose_name="obserwujący allegro")  
     allegro_visits = models.PositiveIntegerField(default=0, verbose_name="wizyty allegro")
 
-    updates = models.BooleanField(default=False, verbose_name="aktualizacje")
+    updates = models.BooleanField(default=False, verbose_name="Aktualizacje")
+    difference = models.BooleanField(default=False, verbose_name="Są zmainy")
     
     # Product flags (featured, hot deal, special offer, digital)
     featured = models.BooleanField(default=False, verbose_name='Nowości')
