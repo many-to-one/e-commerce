@@ -1125,6 +1125,10 @@ class PrestaUpdateCSVView(APIView):
 
             # return Response({"message": "CSV proccessed successfully"}, status=201)
 
+            print("price", request.data.get("price"))
+            print("stock", request.data.get("stock"))
+            print("description", request.data.get("description"))
+
             return Response({
                 "message": "CSV processed successfully",
                 "batch_id": batch.id,
