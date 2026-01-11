@@ -220,14 +220,15 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = [AllegroVendorFilter, AllegroStockFilter, KecjaUpdatesFilter]
     list_editable = ['title', 'ean', 'stock_qty', 'hot_deal', 'in_stock', 'price_brutto', 'zysk_after_payments', 'zysk_procent',]
     list_display = [
-        # 'date',
+        'date',
         'difference', 
         'allegro_started_at',
         'allegro_ended_at',
         'sku', 
-        'allegro_id',
+        'allegro_column',
         'vendor_checkboxes', 
         'product_image', 
+        'title',
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
@@ -270,6 +271,21 @@ class ProductAdmin(admin.ModelAdmin):
     offers = []
 
     change_list_template = "admin/store/product/change_list_.html"
+
+
+
+    @admin.display(description="Allegro")
+    def allegro_column(self, obj):
+        return format_html(
+            '<div style="line-height: 1.2;">'
+            '<strong>{}</strong><br>'
+            '<span style="color: #555;">👁 {} &nbsp;&nbsp; 👤 {}</span>'
+            '</div>',
+            obj.allegro_id or "-",
+            obj.allegro_visits or 0,
+            obj.allegro_watchers or 0,
+        )
+
 
     ##### Highlight new_hurt_price if different from hurt_price ######
 
