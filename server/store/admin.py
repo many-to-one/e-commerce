@@ -176,7 +176,7 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Podstawowe informacje', {
             'fields': (
-                'title', 'hurt_title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
+                'title', 'allegro_id', 'allegro_ids', 'sku', 'ean', 'image', 'thumbnail', 'img_links',
                 'description', 'text_description', 'category', 'sub_cat', 'tags', 'brand'
             )
         }),
@@ -231,7 +231,7 @@ class ProductAdmin(admin.ModelAdmin):
         'allegro_in_stock', 
         'allegro_status', 
         'in_stock', 
-        'hurt_title',
+        # 'hurt_title',
         'title_warning', 
         'stock_qty', 
         'ean', 
