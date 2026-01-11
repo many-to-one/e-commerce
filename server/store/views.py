@@ -819,13 +819,13 @@ class PrestaUpdateCSVView(APIView):
         print('PrestaUpdateCSVView - request.data', request.data)
 
         # sprawdzanie checkboxów
-        # update_price = request.data.get("price") == "true"
-        # update_stock = request.data.get("stock") == "true"
-        # update_description = request.data.get("description") == "true"
+        update_price = request.data.get("price") == "true"
+        update_stock = request.data.get("stock") == "true"
+        update_description = request.data.get("description") == "true"
 
-        update_price = False
-        update_stock = False
-        update_description = True
+        # update_price = False
+        # update_stock = False
+        # update_description = True
 
         # przykładowe użycie
         # if update_price:
@@ -1013,29 +1013,29 @@ class PrestaUpdateCSVView(APIView):
                                 fields_to_update.append("description")
                                 updates_info.append("Nowy OPIS w hurtowni")
 
-                            # price (NETTO)
-                            old_price = p.price
-                            if old_price != gross_price:
-                                p.price = gross_price
-                                fields_to_update.append("price")
-                                updates_info.append(
-                                    f"Nowa CENA NETTO w hurtowni {fmt(old_price)} -> {fmt(gross_price)}"
-                                )
+                            # # price (NETTO)
+                            # old_price = p.price
+                            # if old_price != gross_price:
+                            #     p.price = gross_price
+                            #     fields_to_update.append("price")
+                            #     updates_info.append(
+                            #         f"Nowa CENA NETTO w hurtowni {fmt(old_price)} -> {fmt(gross_price)}"
+                            #     )
 
-                            # hurt_price → new_hurt_price (BRUTTO)
-                            old_hurt_price = p.hurt_price
-                            if old_hurt_price != hurt_price:
-                                p.new_hurt_price = hurt_price
-                                fields_to_update.append("new_hurt_price")
-                                updates_info.append(
-                                    f"Nowa CENA BRUTTO w hurtowni {fmt(old_hurt_price)} -> {fmt(hurt_price)}"
-                                )
+                            # # hurt_price → new_hurt_price (BRUTTO)
+                            # old_hurt_price = p.hurt_price
+                            # if old_hurt_price != hurt_price:
+                            #     p.new_hurt_price = hurt_price
+                            #     fields_to_update.append("new_hurt_price")
+                            #     updates_info.append(
+                            #         f"Nowa CENA BRUTTO w hurtowni {fmt(old_hurt_price)} -> {fmt(hurt_price)}"
+                            #     )
 
-                            # qty
-                            if p.stock_qty != qty:
-                                p.stock_qty = qty
-                                fields_to_update.append("stock_qty")
-                                updates_info.append("Nowy STAN PRODUKTU w hurtowni")
+                            # # qty
+                            # if p.stock_qty != qty:
+                            #     p.stock_qty = qty
+                            #     fields_to_update.append("stock_qty")
+                            #     updates_info.append("Nowy STAN PRODUKTU w hurtowni")
 
                             # sku
                             if p.sku != sku:
