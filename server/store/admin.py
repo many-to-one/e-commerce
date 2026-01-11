@@ -561,8 +561,8 @@ class ProductAdmin(admin.ModelAdmin):
                 # print(f' ################### "product_map" ################### ', {len(product_map)})
                     if p.allegro_in_stock == True:
 
-                        allegro_id = get_allegro_id(vendor.name, p.allegro_ids)
-                        url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{allegro_id}"
+                        # allegro_id = get_allegro_id(vendor.name, p.allegro_ids)
+                        url = f"https://{ALLEGRO_API_URL}/sale/product-offers/{p.allegro_id}"
                         try:
                             offer_resp = allegro_request("GET", url, vendor.name, headers=headers)
                             offer = offer_resp.json()
