@@ -1119,7 +1119,7 @@ class PrestaUpdateCSVView(APIView):
             return Response({
                 "message": "CSV processed successfully",
                 "batch_id": batch.id,
-                "redirect_url": f"{os.getenv('_marketplace')}/api/store/admin/allegroupdatebatch/{batch.id}/status/",
+                "redirect_url": f"{os.getenv('PRO_SITE_URL')}/api/store/admin/allegroupdatebatch/{batch.id}/status/",
                 'Price': update_price,
                 'Stock': update_stock,
                 'Descr': update_description,
