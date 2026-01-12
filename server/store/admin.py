@@ -297,13 +297,13 @@ class ProductAdmin(admin.ModelAdmin):
 
         for p in queryset:
             # jeśli new_hurt_price jest ustawione, to przenosimy
-            if p.new_hurt_price is not None:
-                p.hurt_price = p.new_hurt_price
-                p.difference = False
-                p.updates_info = "-"
-                p.updates = True
-                p.save(update_fields=["hurt_price", "difference", "updates", "updates_info",])
-                updated += 1
+            # if p.new_hurt_price is not None:
+            p.hurt_price = p.new_hurt_price
+            p.difference = False
+            p.updates_info = "-"
+            p.updates = True
+            p.save(update_fields=["hurt_price", "difference", "updates", "updates_info",])
+            updated += 1
 
             self.message_user(request, f"✅ Zaktualizowano cenę brutto w {p.sku}", level="success")
 
