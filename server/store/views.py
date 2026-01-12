@@ -823,7 +823,7 @@ class PrestaUpdateCSVView(APIView):
         update_stock = request.data.get("stock") == "true"
         update_description = request.data.get("description") == "true"
 
-        update_price = True
+        # update_price = True
         # update_stock = False
         # update_description = True
 
