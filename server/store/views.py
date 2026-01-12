@@ -823,7 +823,7 @@ class PrestaUpdateCSVView(APIView):
         update_stock = request.data.get("stock") == "true"
         update_description = request.data.get("description") == "true"
 
-        # update_price = False
+        update_price = True
         # update_stock = False
         # update_description = True
 
@@ -837,6 +837,7 @@ class PrestaUpdateCSVView(APIView):
 
         # return Response({"message": "CSV proccessed successfully"}, status=201)
 
+
         if Vendor.objects.exists():
             pass
         else:
@@ -849,11 +850,16 @@ class PrestaUpdateCSVView(APIView):
         if not csv_file:
             return Response({"error": "No file uploaded"}, status=400)
         
+        # def safe_decimal(value):
+        #     try:
+        #         return Decimal(value)
+        #     except InvalidOperation:
+        #         return Decimal('0.00')
+            
         def safe_decimal(value):
-            try:
-                return Decimal(value)
-            except InvalidOperation:
-                return Decimal('0.00')
+            if value is None:
+                return Decimal("0.00")
+            return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         try:
             file_extension = os.path.splitext(csv_file.name)[1].lower()
@@ -890,191 +896,217 @@ class PrestaUpdateCSVView(APIView):
                 first_image = images[0].strip() if images else None
 
                 net_price = safe_decimal(row["Cena bez podatku. (netto)"])
-                gross_price = net_price * Decimal("1.23")
+                gross_price = safe_decimal(net_price * Decimal("1.23"))
 
-                print(len(row["Nazwa"]), row["Nazwa"])
+                # print(len(row["Nazwa"]), row["Nazwa"])
 
-                product = Product.objects.filter(ean=row["EAN"])
+                # pomijamy wiersze z przeceną 
+                if "przecena" in row["Nazwa"].lower(): 
+                    continue
+
+                if row["Kod dostawcy"] == "931B/D":
+                    # print('______________931B/D______________', row["Kod dostawcy"])
+                    continue
+
+                product = Product.objects.filter(
+                    ean=row["EAN"]
+                    )
+                
 
                 if product:
 
-                    # --- UPDATE STOCK ---
-                    if update_stock:
-                        for p in product:
+                        # --- UPDATE STOCK ---
+                        if update_stock:
 
-                            fields_to_update = []
-                            updates_info = []
+                            for p in product:
 
-                            if p.stock_qty != row["Ilość"]:
-                                p.stock_qty = row["Ilość"]
-                                fields_to_update.append("stock_qty")
-                                updates_info.append("Nowy STAN PRODUKTU w hurtowni")
+                                fields_to_update = []
+                                updates_info = []
 
-                            if fields_to_update:
-                                p.updates = True
-                                p.difference = True
+                                if p.stock_qty != row["Ilość"]:
+                                    p.stock_qty = row["Ilość"]
+                                    fields_to_update.append("stock_qty")
+                                    updates_info.append("Nowy STAN PRODUKTU w hurtowni")
 
-                                # zabezpieczenie przed None
-                                if not p.updates_info:
-                                    p.updates_info = "-"
+                                if fields_to_update:
+                                    p.updates = True
+                                    p.difference = True
 
-                                for i in updates_info:
-                                    p.updates_info += f"{i}\n"
+                                    # zabezpieczenie przed None
+                                    if not p.updates_info:
+                                        p.updates_info = "-"
 
-                                fields_to_update.append("updates")
-                                fields_to_update.append("difference")
-                                fields_to_update.append("updates_info")
+                                    for i in updates_info:
+                                        p.updates_info += f"{i}\n"
 
-                                p.save(update_fields=fields_to_update)
+                                    fields_to_update.append("updates")
+                                    fields_to_update.append("difference")
+                                    fields_to_update.append("updates_info")
 
-
-
-                    # --- UPDATE PRICE ---
-                    if update_price:
-
-                        new_price = gross_price
-                        new_hurt = safe_decimal(row["Cena hurtowa"])
-
-                        for p in product:
-
-                            fields_to_update = []
-                            updates_info = []
-
-                            # price
-                            if p.price != new_price:
-                                p.price = new_price
-                                fields_to_update.append("price")
-                                updates_info.append(f"Nowa CENA NETTO w hurtowni {gross_price}/{p.price}")
-
-                            # new_hurt_price
-                            if p.hurt_price != new_hurt:
-                                p.new_hurt_price = new_hurt
-                                fields_to_update.append("new_hurt_price")
-                                updates_info.append(f"Nowa CENA BRUTTO w hurtowni {new_hurt}/{p.hurt_price}")
-
-                            if fields_to_update:
-                                p.updates = True
-                                p.difference = True
-
-                                # zabezpieczenie przed None
-                                if not p.updates_info:
-                                    p.updates_info = "-"
-
-                                for i in updates_info:
-                                    p.updates_info += f"{i}\n"
-
-                                fields_to_update.append("updates")
-                                fields_to_update.append("difference")
-                                fields_to_update.append("updates_info")
-
-                                p.save(update_fields=fields_to_update)
+                                    p.save(update_fields=fields_to_update)
 
 
 
-                    if update_description:
+                        # --- UPDATE PRICE ---
+                        if update_price:
 
-                        title = row["Nazwa"]
-                        desc = row["Opis"]
-                        hurt_price = safe_decimal(row["Cena hurtowa"])
-                        qty = row["Ilość"]
-                        sku = row["Kod dostawcy"]
-                        shipping = safe_decimal(9.99)
-                        sub_cat = categories[2:]
+                            new_price = safe_decimal(gross_price)
+                            new_hurt = safe_decimal(row["Cena hurtowa"])
 
-                        def fmt(value: Decimal) -> str:
-                            return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+                            for p in product:
 
-                        for p in product:
+                                # print('______________KOD______________', row["Kod dostawcy"])
+                                # print('____________P SKU___________', p.sku)
 
-                            fields_to_update = []
-                            updates_info = []
+                                if p.sku == "931B/D":
+                                    continue
 
-                            # hurt_title
-                            if p.hurt_title != title or p.hurt_title is None:
-                                p.hurt_title = title
-                                fields_to_update.append("hurt_title")
-                                updates_info.append("Nowy TYTUŁ w hurtowni")
+                                fields_to_update = []
+                                updates_info = []
 
-                            # image
-                            if p.image != first_image:
-                                p.image = first_image
-                                fields_to_update.append("image")
-                                updates_info.append("Nowe GŁÓWNE ZDJĘCIE w hurtowni")
+                                # print('____________P TITLE___________', p.hurt_title)
+                                # print('____________NEW PRICE___________', new_price)
+                                # print('____________P PRICE___________', p.price)
+                                # print('____________NEW HURT___________', new_hurt)
+                                # print('____________P HURT___________', p.hurt_price)
 
-                            # img_links
-                            if p.img_links != images:
-                                p.img_links = images
-                                fields_to_update.append("img_links")
-                                updates_info.append("Nowe ZDJĘCIE(A) w hurtowni")
+                                # price
+                                if p.price != new_price:
+                                    # print(f"Nowa CENA NETTO {p.sku} w hurtowni {gross_price}/{p.price}")
+                                    p.price = new_price
+                                    fields_to_update.append("price")
+                                    updates_info.append(f"Nowa CENA NETTO w hurtowni {gross_price}/{p.price}")
 
-                            # description
-                            if p.description != desc:
-                                p.description = desc
-                                fields_to_update.append("description")
-                                updates_info.append("Nowy OPIS w hurtowni")
+                                # new_hurt_price
+                                if p.hurt_price != new_hurt:
+                                    # print(f"Nowa CENA BRUTTO {p.sku} w hurtowni {new_hurt}/{p.hurt_price}")
+                                    p.new_hurt_price = new_hurt
+                                    fields_to_update.append("new_hurt_price")
+                                    updates_info.append(f"Nowa CENA BRUTTO w hurtowni {new_hurt}/{p.hurt_price}")
 
-                            # # price (NETTO)
-                            # old_price = p.price
-                            # if old_price != gross_price:
-                            #     p.price = gross_price
-                            #     fields_to_update.append("price")
-                            #     updates_info.append(
-                            #         f"Nowa CENA NETTO w hurtowni {fmt(old_price)} -> {fmt(gross_price)}"
-                            #     )
+                                if fields_to_update:
+                                    p.updates = True
+                                    p.difference = True
 
-                            # # hurt_price → new_hurt_price (BRUTTO)
-                            # old_hurt_price = p.hurt_price
-                            # if old_hurt_price != hurt_price:
-                            #     p.new_hurt_price = hurt_price
-                            #     fields_to_update.append("new_hurt_price")
-                            #     updates_info.append(
-                            #         f"Nowa CENA BRUTTO w hurtowni {fmt(old_hurt_price)} -> {fmt(hurt_price)}"
-                            #     )
+                                    # zabezpieczenie przed None
+                                    if not p.updates_info:
+                                        p.updates_info = "-"
 
-                            # # qty
-                            # if p.stock_qty != qty:
-                            #     p.stock_qty = qty
-                            #     fields_to_update.append("stock_qty")
-                            #     updates_info.append("Nowy STAN PRODUKTU w hurtowni")
+                                    for i in updates_info:
+                                        p.updates_info += f"{i}\n"
 
-                            # sku
-                            if p.sku != sku:
-                                p.sku = sku
-                                fields_to_update.append("sku")
-                                updates_info.append("Nowy NUMER SKU w hurtowni")
+                                    fields_to_update.append("updates")
+                                    fields_to_update.append("difference")
+                                    fields_to_update.append("updates_info")
 
-                            # shipping
-                            if p.shipping_amount != shipping:
-                                p.shipping_amount = shipping
-                                fields_to_update.append("shipping_amount")
+                                    p.save(update_fields=fields_to_update)
 
-                            # category
-                            if p.category != category:
-                                p.category = category
-                                fields_to_update.append("category")
-                                updates_info.append("Nowa KATEGORIA w hurtowni")
 
-                            # sub_cat
-                            if p.sub_cat != sub_cat:
-                                p.sub_cat = sub_cat
-                                fields_to_update.append("sub_cat")
-                                updates_info.append("Nowa SUB-KATEGORIA w hurtowni")
 
-                            if fields_to_update:
+                        if update_description:
 
-                                p.updates = True
-                                p.difference = True
+                            title = row["Nazwa"]
+                            desc = row["Opis"]
+                            hurt_price = safe_decimal(row["Cena hurtowa"])
+                            qty = row["Ilość"]
+                            sku = row["Kod dostawcy"]
+                            shipping = safe_decimal(9.99)
+                            sub_cat = categories[2:]
 
-                                if not p.updates_info:
-                                    p.updates_info = "-"
+                            def fmt(value: Decimal) -> str:
+                                return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
-                                for i in updates_info:
-                                    p.updates_info += f"{i}\n"
+                            for p in product:
 
-                                fields_to_update.append("updates")
-                                fields_to_update.append("updates_info")
+                                fields_to_update = []
+                                updates_info = []
 
-                                p.save(update_fields=fields_to_update)
+                                # hurt_title
+                                if p.hurt_title != title or p.hurt_title is None:
+                                    p.hurt_title = title
+                                    fields_to_update.append("hurt_title")
+                                    updates_info.append("Nowy TYTUŁ w hurtowni")
+
+                                # image
+                                if p.image != first_image:
+                                    p.image = first_image
+                                    fields_to_update.append("image")
+                                    updates_info.append("Nowe GŁÓWNE ZDJĘCIE w hurtowni")
+
+                                # img_links
+                                if p.img_links != images:
+                                    p.img_links = images
+                                    fields_to_update.append("img_links")
+                                    updates_info.append("Nowe ZDJĘCIE(A) w hurtowni")
+
+                                # description
+                                if p.description != desc:
+                                    p.description = desc
+                                    fields_to_update.append("description")
+                                    updates_info.append("Nowy OPIS w hurtowni")
+
+                                # # price (NETTO)
+                                # old_price = p.price
+                                # if old_price != gross_price:
+                                #     p.price = gross_price
+                                #     fields_to_update.append("price")
+                                #     updates_info.append(
+                                #         f"Nowa CENA NETTO w hurtowni {fmt(old_price)} -> {fmt(gross_price)}"
+                                #     )
+
+                                # # hurt_price → new_hurt_price (BRUTTO)
+                                # old_hurt_price = p.hurt_price
+                                # if old_hurt_price != hurt_price:
+                                #     p.new_hurt_price = hurt_price
+                                #     fields_to_update.append("new_hurt_price")
+                                #     updates_info.append(
+                                #         f"Nowa CENA BRUTTO w hurtowni {fmt(old_hurt_price)} -> {fmt(hurt_price)}"
+                                #     )
+
+                                # # qty
+                                # if p.stock_qty != qty:
+                                #     p.stock_qty = qty
+                                #     fields_to_update.append("stock_qty")
+                                #     updates_info.append("Nowy STAN PRODUKTU w hurtowni")
+
+                                # sku
+                                if p.sku != sku:
+                                    p.sku = sku
+                                    fields_to_update.append("sku")
+                                    updates_info.append("Nowy NUMER SKU w hurtowni")
+
+                                # shipping
+                                if p.shipping_amount != shipping:
+                                    p.shipping_amount = shipping
+                                    fields_to_update.append("shipping_amount")
+
+                                # category
+                                if p.category != category:
+                                    p.category = category
+                                    fields_to_update.append("category")
+                                    updates_info.append("Nowa KATEGORIA w hurtowni")
+
+                                # sub_cat
+                                if p.sub_cat != sub_cat:
+                                    p.sub_cat = sub_cat
+                                    fields_to_update.append("sub_cat")
+                                    updates_info.append("Nowa SUB-KATEGORIA w hurtowni")
+
+                                if fields_to_update:
+
+                                    p.updates = True
+                                    p.difference = True
+
+                                    if not p.updates_info:
+                                        p.updates_info = "-"
+
+                                    for i in updates_info:
+                                        p.updates_info += f"{i}\n"
+
+                                    fields_to_update.append("updates")
+                                    fields_to_update.append("updates_info")
+
+                                    p.save(update_fields=fields_to_update)
 
 
 
