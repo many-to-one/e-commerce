@@ -1823,21 +1823,18 @@ def invoice_corrections_report_result_view(request):
 
 
 
-from reportlab.pdfgen import canvas
+
+
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from django.http import HttpResponse
 from io import BytesIO
-import os
 from decimal import Decimal
-
-from django.conf import settings
-
+import os
 
 def invoice_report_pdf_view(request):
     year = int(request.GET.get("year"))
@@ -1861,43 +1858,45 @@ def invoice_report_pdf_view(request):
     return response
 
 
-
-
-
 def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
     buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
 
-    # Register font
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=1.2*cm,
+        rightMargin=1.2*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+
     font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
     pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
 
     styles = getSampleStyleSheet()
-    normal_style = styles['Normal']
-    normal_style.wordWrap = 'CJK'
-    normal_style.fontSize = 7
-    normal_style.fontName = 'DejaVuSans'
+    normal = styles["Normal"]
+    normal.fontName = "DejaVuSans"
+    normal.fontSize = 9
 
-    LEFT = 1.2 * cm   # mniejszy margines
-    RIGHT = 1.2 * cm
-    TOP = height - 2 * cm
+    story = []
 
     # Title
-    c.setFont("DejaVuSans", 12)
-    c.drawString(LEFT, TOP, f"Zestawienie faktur za {month}/{year}")
+    story.append(Paragraph(f"<b>Zestawienie faktur za {month}/{year}</b>", normal))
+    story.append(Spacer(1, 0.5*cm))
 
     # Seller info
-    c.setFont("DejaVuSans", 9)
-    y = TOP - 1.5 * cm
-    c.drawString(LEFT, y, "Sprzedawca:")
-    c.drawString(LEFT, y - 0.5 * cm, str(user.full_name or ""))
-    c.drawString(LEFT, y - 1.0 * cm, f"{vendor.address}")
-    c.drawString(LEFT, y - 1.5 * cm, f"NIP: {vendor.nip}")
-    c.drawString(LEFT, y - 2.0 * cm, f"Telefon: {user.phone}")
-    c.drawString(LEFT, y - 2.5 * cm, f"E-mail: {vendor.email}")
+    seller_info = f"""
+        <b>Sprzedawca:</b><br/>
+        {user.full_name}<br/>
+        {vendor.address}<br/>
+        NIP: {vendor.nip}<br/>
+        Telefon: {user.phone}<br/>
+        E-mail: {vendor.email}<br/>
+    """
+    story.append(Paragraph(seller_info, normal))
+    story.append(Spacer(1, 0.7*cm))
 
-    # Table header
+    # Table data
     data = [["Lp.", "Numer faktury", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
 
     total_netto = Decimal("0")
@@ -1905,6 +1904,130 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
     total_brutto = Decimal("0")
 
     for i, inv in enumerate(invoices, start=1):
+        brutto = inv.get_total_brutto()
+        netto = brutto / Decimal("1.23")
+        vat = brutto - netto
+
+        total_netto += netto
+        total_vat += vat
+        total_brutto += brutto
+
+        data.append([
+            str(i),
+            inv.invoice_number,
+            inv.created_at.strftime("%Y-%m-%d"),
+            inv.buyer_name,
+            f"{netto:.2f} PLN",
+            f"{vat:.2f} PLN",
+            f"{brutto:.2f} PLN",
+        ])
+
+    data.append([
+        "",
+        "",
+        "",
+        "RAZEM:",
+        f"{total_netto:.2f} PLN",
+        f"{total_vat:.2f} PLN",
+        f"{total_brutto:.2f} PLN",
+    ])
+
+    table = Table(
+        data,
+        colWidths=[1.0*cm, 3.0*cm, 2.2*cm, 6.0*cm, 2.0*cm, 2.0*cm, 2.0*cm]
+    )
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,-1), 'DejaVuSans'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+    ]))
+
+    story.append(table)
+
+    doc.build(story)
+
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
+
+
+
+
+# --------------------------------------------------------------
+
+
+def invoice_corrections_report_pdf_view(request):
+    year = int(request.GET.get("year"))
+    month = int(request.GET.get("month"))
+
+    corrections = InvoiceCorrection.objects.filter(
+        created_at__year=year,
+        created_at__month=month,
+    )
+
+    vendor = Vendor.objects.first()
+    user = request.user
+
+    pdf = generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user)
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="zestawienie_korekt_{year}_{month}.pdf"'
+    return response
+
+
+
+
+def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user):
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=1.2*cm,
+        rightMargin=1.2*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+
+    # Font
+    font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    normal.fontName = "DejaVuSans"
+    normal.fontSize = 9
+
+    story = []
+
+    # Title
+    story.append(Paragraph(f"<b>Zestawienie korekt za {month}/{year}</b>", normal))
+    story.append(Spacer(1, 0.5*cm))
+
+    # Seller info
+    seller_info = f"""
+        <b>Sprzedawca:</b><br/>
+        {user.full_name}<br/>
+        {vendor.address}<br/>
+        NIP: {vendor.nip}<br/>
+        Telefon: {user.phone}<br/>
+        E-mail: {vendor.email}<br/>
+    """
+    story.append(Paragraph(seller_info, normal))
+    story.append(Spacer(1, 0.7*cm))
+
+    # Table data
+    data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
+
+    total_netto = Decimal("0")
+    total_vat = Decimal("0")
+    total_brutto = Decimal("0")
+
+    for i, inv in enumerate(corrections, start=1):
         brutto = inv.get_total_brutto()
         netto = brutto / Decimal("1.23")
         vat = brutto - netto
@@ -1934,17 +2057,17 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
         f"{total_brutto:.2f} PLN",
     ])
 
-    # NEW: poprawione szerokości kolumn (idealnie mieszczą się w A4)
+    # Table
     table = Table(
         data,
         colWidths=[
-            1.0 * cm,   # Lp
-            3.0 * cm,   # Numer faktury
-            2.2 * cm,   # Data
-            6.0 * cm,   # Nabywca
-            2.0 * cm,   # Netto
-            2.0 * cm,   # VAT
-            2.0 * cm,   # Brutto
+            1.0*cm,   # Lp
+            3.0*cm,   # Numer korekty
+            2.2*cm,   # Data
+            6.0*cm,   # Nabywca
+            2.0*cm,   # Netto
+            2.0*cm,   # VAT
+            2.0*cm,   # Brutto
         ]
     )
 
@@ -1953,131 +2076,14 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('FONTNAME', (0,0), (-1,-1), 'DejaVuSans'),
-        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
     ]))
 
-    # NEW: tabela zaczyna się bliżej lewej krawędzi
-    table.wrapOn(c, width - LEFT - RIGHT, height)
-    table.drawOn(c, LEFT, height - 18 * cm)
+    story.append(table)
 
-    c.save()
-    pdf = buffer.getvalue()
-    buffer.close()
-    return pdf
+    doc.build(story)
 
-
-
-# --------------------------------------------------------------
-
-
-def invoice_corrections_report_pdf_view(request):
-    year = int(request.GET.get("year"))
-    month = int(request.GET.get("month"))
-
-    corrections = InvoiceCorrection.objects.filter(
-        created_at__year=year,
-        created_at__month=month,
-    )
-
-    vendor = Vendor.objects.first()
-    user = request.user
-
-    pdf = generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user)
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="zestawienie_korekt_{year}_{month}.pdf"'
-    return response
-
-
-
-def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-
-    font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
-    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-
-    LEFT = 1.2 * cm
-    RIGHT = 1.2 * cm
-    TOP = height - 2 * cm
-
-    c.setFont("DejaVuSans", 12)
-    c.drawString(LEFT, TOP, f"Zestawienie korekt za {month}/{year}")
-
-    c.setFont("DejaVuSans", 9)
-    y = TOP - 1.5 * cm
-    c.drawString(LEFT, y, "Sprzedawca:")
-    c.drawString(LEFT, y - 0.5 * cm, str(user.full_name or ""))
-    c.drawString(LEFT, y - 1.0 * cm, f"{vendor.address}")
-    c.drawString(LEFT, y - 1.5 * cm, f"NIP: {vendor.nip}")
-    c.drawString(LEFT, y - 2.0 * cm, f"Telefon: {user.phone}")
-    c.drawString(LEFT, y - 2.5 * cm, f"E-mail: {vendor.email}")
-
-    data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
-
-    total_netto = Decimal("0")
-    total_vat = Decimal("0")
-    total_brutto = Decimal("0")
-
-    for i, inv in enumerate(corrections, start=1):
-        brutto = inv.get_total_brutto()
-        netto = brutto / Decimal("1.23")  # jeśli 23% VAT
-        vat = brutto - netto
-
-        total_netto += netto
-        total_vat += vat
-        total_brutto += brutto
-
-        data.append([
-            str(i),
-            inv.invoice_number,
-            inv.created_at.strftime("%Y-%m-%d"),
-            inv.buyer_name,
-            f"{netto:.2f} PLN",
-            f"{vat:.2f} PLN",
-            f"{brutto:.2f} PLN",
-        ])
-
-    data.append([
-        "",
-        "",
-        "",
-        "RAZEM:",
-        f"{total_netto:.2f} PLN",
-        f"{total_vat:.2f} PLN",
-        f"{total_brutto:.2f} PLN",
-    ])
-
-    table = Table(
-        data,
-        colWidths=[
-            1.0 * cm,   # Lp
-            3.0 * cm,   # Numer korekty
-            2.2 * cm,   # Data
-            6.0 * cm,   # Nabywca
-            2.0 * cm,   # Netto
-            2.0 * cm,   # VAT
-            2.0 * cm,   # Brutto
-        ]
-    )
-
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('FONTNAME', (0,0), (-1,-1), 'DejaVuSans'),
-        ('FONTSIZE', (0,0), (-1,-1), 7),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-    ]))
-
-    table.wrapOn(c, width - LEFT - RIGHT, height)
-    table.drawOn(c, LEFT, height - 18 * cm)
-
-    c.save()
     pdf = buffer.getvalue()
     buffer.close()
     return pdf
