@@ -3,6 +3,13 @@
 {% block content %}
 <h1>🧾 Korekty za {{ month }}/{{ year }}</h1>
 
+<a href="{% url 'invoice_corrections_report_pdf' %}?year={{ year }}&month={{ month }}" 
+   class="button" style="margin-bottom: 20px;">
+    📄 Pobierz PDF (korekty)
+</a>
+
+
+
 <p><strong>Suma brutto korekt:</strong> {{ total }} zł</p>
 
 <h2>Lista korekt</h2>

@@ -1,7 +1,59 @@
 {% extends "admin/base_site.html" %}
 
+{% block extrahead %}
+{{ block.super }}
+
+<style>
+/* Styl tylko dla trybu drukowania (PDF) */
+@media print {
+
+    /* Ukryj przyciski i linki */
+    button,
+    a.button,
+    .breadcrumbs,
+    #header,
+    .module,
+    .object-tools {
+        display: none !important;
+    }
+
+    /* Usuń marginesy admina */
+    body {
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    /* Tabela w PDF */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 12px;
+    }
+
+    th, td {
+        border: 1px solid #444;
+        padding: 6px;
+    }
+
+    th {
+        background: #eee !important;
+    }
+}
+</style>
+
+{% endblock %}
+
 {% block content %}
 <h1>📊 Raport za {{ month }}/{{ year }}</h1>
+
+<a href="{% url 'invoice_report_pdf' %}?year={{ year }}&month={{ month }}&total={{ total }}"
+   class="button" style="margin-bottom: 20px;">
+    📄 Pobierz PDF
+</a>
+
+
 
 <p><strong>Suma brutto:</strong> {{ total }} zł</p>
 

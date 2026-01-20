@@ -670,6 +670,30 @@ class Invoice(models.Model):
         verbose_name = "Faktura"
         verbose_name_plural = "Faktury"
 
+    
+    def get_total_brutto(self):
+        total = Decimal("0")
+
+        # Allegro
+        if self.allegro_order:
+            for item in self.allegro_order.items.all():
+                price = Decimal(str(item.price_amount or 0))
+                qty = Decimal(str(item.quantity or 0))
+                total += price * qty
+
+            delivery = Decimal(str(self.allegro_order.delivery_cost or 0))
+            total += delivery
+
+        # Sklep (jeśli masz takie pole)
+        if self.shop_order:
+            if hasattr(self.shop_order, "total_brutto"):
+                total += Decimal(str(self.shop_order.total_brutto or 0))
+            elif hasattr(self.shop_order, "total_price"):
+                total += Decimal(str(self.shop_order.total_price or 0))
+
+        return total
+    
+
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             if not self.created_at:
@@ -715,6 +739,32 @@ class InvoiceCorrection(models.Model):
     class Meta:
         verbose_name = "Korekta faktury"
         verbose_name_plural = "Korekty faktur"
+
+
+    def get_total_brutto(self):
+        total = Decimal("0")
+
+        # Jeśli masz JSON z produktami (tak jak w fakturze Allegro)
+        if self.products:
+            for p in self.products:
+                price = Decimal(str(p.get("price", {}).get("amount", 0)))
+                qty = Decimal(str(p.get("quantity", 0)))
+                total += price * qty
+
+        # Allegro – koszt dostawy
+        if self.allegro_order:
+            delivery = Decimal(str(getattr(self.allegro_order, "delivery_cost", 0) or 0))
+            total += delivery
+
+        # Sklep – jeśli masz sumę na zamówieniu
+        if self.shop_order:
+            if hasattr(self.shop_order, "total_brutto"):
+                total += Decimal(str(self.shop_order.total_brutto or 0))
+            elif hasattr(self.shop_order, "total_price"):
+                total += Decimal(str(self.shop_order.total_price or 0))
+
+        return total
+    
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:

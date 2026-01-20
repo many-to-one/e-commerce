@@ -43,7 +43,9 @@ urlpatterns = [
     path("admin/invoice-report/", invoice_report_form_view, name="invoice_report_form"),
     path("admin/invoice-report/result/", invoice_report_result_view, name="invoice_report_result"),
     path("admin/invoice-corrections-report/", invoice_corrections_report_form_view, name="invoice_corrections_report_form"),
-    path("invoice-corrections-report/result/", invoice_corrections_report_result_view, name="invoice_corrections_report_result"),
+    path("admin/invoice-corrections-report/result/", invoice_corrections_report_result_view, name="invoice_corrections_report_result"),
+    path("admin/invoice-report/pdf/", invoice_report_pdf_view, name="invoice_report_pdf"),
+    path("admin/invoice-corrections-report/pdf/", invoice_corrections_report_pdf_view, name="invoice_corrections_report_pdf"),
 
     path('vendor-contact', VendorContact.as_view(), name='vendor-contact'),
 ]

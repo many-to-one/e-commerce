@@ -21,7 +21,7 @@ from vendor.models import Vendor
 from vendor.serializer import VendorSerializer
 
 from .serializers import CartCheckSerializer, PrestaCSVSerializer, ProductSerializer, IconProductSerializer, CategorySerializer, GallerySerializer, CartSerializer, DeliveryCouriersSerializer, CartOrderSerializer, CartOrderItemSerializer, ReturnOrderItemSerializer, AddressSerializer
-from .models import AllegroProductBatch, Category, Invoice, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
+from .models import AllegroProductBatch, Category, Invoice, InvoiceCorrection, Product, Cart, User, CartOrder, DeliveryCouriers, Gallery, CartOrderItem, ReturnItem, Address
 from .store_pagination import StorePagination
 
 from decimal import Decimal, InvalidOperation
@@ -1819,3 +1819,265 @@ def invoice_corrections_report_form_view(request):
 
 def invoice_corrections_report_result_view(request):
     return render(request, "admin/invoice_corrections_report_result.html")
+
+
+
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from django.http import HttpResponse
+from io import BytesIO
+import os
+from decimal import Decimal
+
+from django.conf import settings
+
+
+def invoice_report_pdf_view(request):
+    year = int(request.GET.get("year"))
+    month = int(request.GET.get("month"))
+
+    total_str = request.GET.get("total", "0")
+    total = float(total_str.replace(",", "."))
+
+    invoices = Invoice.objects.filter(
+        created_at__year=year,
+        created_at__month=month
+    )
+
+    vendor = Vendor.objects.first()
+    user = request.user
+
+    pdf = generate_invoice_report_pdf(invoices, year, month, vendor, user, total)
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="zestawienie_faktur_{year}_{month}.pdf"'
+    return response
+
+
+
+
+
+def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Register font
+    font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    normal_style.wordWrap = 'CJK'
+    normal_style.fontSize = 7
+    normal_style.fontName = 'DejaVuSans'
+
+    LEFT = 1.2 * cm   # mniejszy margines
+    RIGHT = 1.2 * cm
+    TOP = height - 2 * cm
+
+    # Title
+    c.setFont("DejaVuSans", 12)
+    c.drawString(LEFT, TOP, f"Zestawienie faktur za {month}/{year}")
+
+    # Seller info
+    c.setFont("DejaVuSans", 9)
+    y = TOP - 1.5 * cm
+    c.drawString(LEFT, y, "Sprzedawca:")
+    c.drawString(LEFT, y - 0.5 * cm, str(user.full_name or ""))
+    c.drawString(LEFT, y - 1.0 * cm, f"{vendor.address}")
+    c.drawString(LEFT, y - 1.5 * cm, f"NIP: {vendor.nip}")
+    c.drawString(LEFT, y - 2.0 * cm, f"Telefon: {user.phone}")
+    c.drawString(LEFT, y - 2.5 * cm, f"E-mail: {vendor.email}")
+
+    # Table header
+    data = [["Lp.", "Numer faktury", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
+
+    total_netto = Decimal("0")
+    total_vat = Decimal("0")
+    total_brutto = Decimal("0")
+
+    for i, inv in enumerate(invoices, start=1):
+        brutto = inv.get_total_brutto()
+        netto = brutto / Decimal("1.23")
+        vat = brutto - netto
+
+        total_netto += netto
+        total_vat += vat
+        total_brutto += brutto
+
+        data.append([
+            str(i),
+            inv.invoice_number,
+            inv.created_at.strftime("%Y-%m-%d"),
+            inv.buyer_name,
+            f"{netto:.2f} PLN",
+            f"{vat:.2f} PLN",
+            f"{brutto:.2f} PLN",
+        ])
+
+    # Totals row
+    data.append([
+        "",
+        "",
+        "",
+        "RAZEM:",
+        f"{total_netto:.2f} PLN",
+        f"{total_vat:.2f} PLN",
+        f"{total_brutto:.2f} PLN",
+    ])
+
+    # NEW: poprawione szerokości kolumn (idealnie mieszczą się w A4)
+    table = Table(
+        data,
+        colWidths=[
+            1.0 * cm,   # Lp
+            3.0 * cm,   # Numer faktury
+            2.2 * cm,   # Data
+            6.0 * cm,   # Nabywca
+            2.0 * cm,   # Netto
+            2.0 * cm,   # VAT
+            2.0 * cm,   # Brutto
+        ]
+    )
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,-1), 'DejaVuSans'),
+        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+    ]))
+
+    # NEW: tabela zaczyna się bliżej lewej krawędzi
+    table.wrapOn(c, width - LEFT - RIGHT, height)
+    table.drawOn(c, LEFT, height - 18 * cm)
+
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
+
+
+
+# --------------------------------------------------------------
+
+
+def invoice_corrections_report_pdf_view(request):
+    year = int(request.GET.get("year"))
+    month = int(request.GET.get("month"))
+
+    corrections = InvoiceCorrection.objects.filter(
+        created_at__year=year,
+        created_at__month=month,
+    )
+
+    vendor = Vendor.objects.first()
+    user = request.user
+
+    pdf = generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user)
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="zestawienie_korekt_{year}_{month}.pdf"'
+    return response
+
+
+
+def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, user):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    font_path = os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    LEFT = 1.2 * cm
+    RIGHT = 1.2 * cm
+    TOP = height - 2 * cm
+
+    c.setFont("DejaVuSans", 12)
+    c.drawString(LEFT, TOP, f"Zestawienie korekt za {month}/{year}")
+
+    c.setFont("DejaVuSans", 9)
+    y = TOP - 1.5 * cm
+    c.drawString(LEFT, y, "Sprzedawca:")
+    c.drawString(LEFT, y - 0.5 * cm, str(user.full_name or ""))
+    c.drawString(LEFT, y - 1.0 * cm, f"{vendor.address}")
+    c.drawString(LEFT, y - 1.5 * cm, f"NIP: {vendor.nip}")
+    c.drawString(LEFT, y - 2.0 * cm, f"Telefon: {user.phone}")
+    c.drawString(LEFT, y - 2.5 * cm, f"E-mail: {vendor.email}")
+
+    data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
+
+    total_netto = Decimal("0")
+    total_vat = Decimal("0")
+    total_brutto = Decimal("0")
+
+    for i, inv in enumerate(corrections, start=1):
+        brutto = inv.get_total_brutto()
+        netto = brutto / Decimal("1.23")  # jeśli 23% VAT
+        vat = brutto - netto
+
+        total_netto += netto
+        total_vat += vat
+        total_brutto += brutto
+
+        data.append([
+            str(i),
+            inv.invoice_number,
+            inv.created_at.strftime("%Y-%m-%d"),
+            inv.buyer_name,
+            f"{netto:.2f} PLN",
+            f"{vat:.2f} PLN",
+            f"{brutto:.2f} PLN",
+        ])
+
+    data.append([
+        "",
+        "",
+        "",
+        "RAZEM:",
+        f"{total_netto:.2f} PLN",
+        f"{total_vat:.2f} PLN",
+        f"{total_brutto:.2f} PLN",
+    ])
+
+    table = Table(
+        data,
+        colWidths=[
+            1.0 * cm,   # Lp
+            3.0 * cm,   # Numer korekty
+            2.2 * cm,   # Data
+            6.0 * cm,   # Nabywca
+            2.0 * cm,   # Netto
+            2.0 * cm,   # VAT
+            2.0 * cm,   # Brutto
+        ]
+    )
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,-1), 'DejaVuSans'),
+        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+    ]))
+
+    table.wrapOn(c, width - LEFT - RIGHT, height)
+    table.drawOn(c, LEFT, height - 18 * cm)
+
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
