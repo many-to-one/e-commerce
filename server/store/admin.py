@@ -2282,6 +2282,7 @@ class InvoiceCorrectionForm(forms.Form):
     pass
 
 
+
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -2308,8 +2309,10 @@ class InvoiceAdmin(admin.ModelAdmin):
     autocomplete_fields = ('allegro_order', 'shop_order')
     # list_editable = ['allegro_order', 'shop_order']
     list_filter = ['is_generated', 'sent_to_buyer', 'vendor', 'created_at']
-    actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction']
+    actions = ['print_invoice_pdf', 'generate_invoice', 'create_correction',]
     inlines = [InvoiceCorrectionInline]
+
+    change_list_template = "admin/store/invoice/change_list.html"
 
 
     def formatted_generated(self, obj):
@@ -2597,6 +2600,9 @@ class InvoiceAdmin(admin.ModelAdmin):
             path("<int:invoice_id>/correction/", self.admin_site.admin_view(self.correction_view), name="invoice_correction"),
         ]
         return custom_urls + urls
+
+
+
 
     def correction_view(self, request, invoice_id):
         invoice = Invoice.objects.get(pk=invoice_id)

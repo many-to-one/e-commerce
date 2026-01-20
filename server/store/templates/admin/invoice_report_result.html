@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>📊 Raport za {{ month }}/{{ year }}</h1>
+
+<p><strong>Suma brutto:</strong> {{ total }} zł</p>
+
+<h2>Faktury</h2>
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Numer</th>
+            <th>Data</th>
+            <th>Nabywca</th>
+            <th>Sprzedawca</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inv in invoices %}
+        <tr>
+            <td><a href="{% url 'admin:store_invoice_change' inv.id %}">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.created_at }}</td>
+            <td>{{ inv.buyer_name }}</td>
+            <td>{{ inv.vendor }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

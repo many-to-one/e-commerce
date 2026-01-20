@@ -1699,3 +1699,123 @@ class FrontendBatchStatusView(APIView):
             "logs": logs,
             "all_skus": all_skus,
         })
+
+
+
+
+# from django.shortcuts import render
+from django.db.models import Sum, F, DecimalField
+from .models import Invoice
+from .forms import *
+from django.db.models.functions import Coalesce
+
+
+def invoice_report_form_view(request):
+    print("=== REPORT VIEW START ===")
+    print("Request method:", request.method)
+    print("POST:", request.POST)
+
+    if request.method == "POST":
+        form = InvoiceReportForm(request.POST)
+        print("Form valid?", form.is_valid())
+
+        if form.is_valid():
+            year = int(form.cleaned_data["year"])
+            month = int(form.cleaned_data["month"])
+
+            print("Selected year:", year)
+            print("Selected month:", month)
+
+            invoices = Invoice.objects.filter(
+                created_at__year=year,
+                created_at__month=month
+            )
+
+            print("Invoices count:", invoices.count())
+
+            # Debug: pokaż ID faktur
+            print("Invoice IDs:", list(invoices.values_list("id", flat=True)))
+
+            # Debug: pokaż powiązane allegro_order
+            print("Allegro orders:", list(invoices.values_list("allegro_order_id", flat=True)))
+
+            total = invoices.aggregate( 
+                total_brutto=Sum( 
+                    Coalesce(F("allegro_order__items__price_amount"), 0) 
+                    * Coalesce(F("allegro_order__items__quantity"), 0) 
+                    + Coalesce(F("allegro_order__delivery_cost"), 0), 
+                    output_field=DecimalField(max_digits=12, decimal_places=2) 
+                ) 
+            )["total_brutto"]
+
+            print("Raw total:", total)
+
+            # Jeśli total jest None → ustaw 0
+            if total is None:
+                print("Total was None → setting to 0")
+                total = 0
+
+            print("Final total:", total)
+
+            return render(request, "admin/invoice_report_result.html", {
+                "invoices": invoices,
+                "total": total,
+                "year": year,
+                "month": month,
+            })
+
+    else:
+        form = InvoiceReportForm()
+
+    return render(request, "admin/invoice_report_form.html", {"form": form})
+
+
+def invoice_report_result_view(request):
+    return render(request, "admin/invoice_report_result.html")
+
+
+
+
+
+def invoice_corrections_report_form_view(request):
+    print("=== CORRECTIONS REPORT START ===")
+    if request.method == "POST":
+        form = InvoiceCorrectionsReportForm(request.POST)
+        if form.is_valid():
+            year = int(form.cleaned_data["year"])
+            month = int(form.cleaned_data["month"])
+
+            corrections = Invoice.objects.filter(
+                corrected=True,
+                created_at__year=year,
+                created_at__month=month
+            )
+
+            print("Corrections count:", corrections.count())
+
+            total = corrections.aggregate(
+                total_brutto=Sum(
+                    Coalesce(F("allegro_order__items__price_amount"), 0)
+                    * Coalesce(F("allegro_order__items__quantity"), 0)
+                    + Coalesce(F("allegro_order__delivery_cost"), 0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2)
+                )
+            )["total_brutto"]
+
+            if total is None:
+                total = 0
+
+            return render(request, "admin/invoice_corrections_report_result.html", {
+                "corrections": corrections,
+                "total": total,
+                "year": year,
+                "month": month,
+            })
+    else:
+        form = InvoiceCorrectionsReportForm()
+
+    return render(request, "admin/invoice_corrections_report_form.html", {"form": form})
+
+
+def invoice_corrections_report_result_view(request):
+    return render(request, "admin/invoice_corrections_report_result.html")
