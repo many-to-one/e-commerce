@@ -2025,7 +2025,7 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
     story.append(Spacer(1, 0.7*cm))
 
     # Table data
-    data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Netto", "VAT", "Brutto"]]
+    data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Brutto"]]
 
     total_netto = Decimal("0")
     total_vat = Decimal("0")
