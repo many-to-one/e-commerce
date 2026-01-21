@@ -2043,10 +2043,10 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
             inv.invoice_number,
             inv.created_at.strftime("%Y-%m-%d"),
             inv.buyer_name,
-            "-",
-            "-",
             f"{difference:.2f} PLN",
         ])
+
+        total_brutto += difference
 
     # Totals row
     data.append([
@@ -2054,8 +2054,7 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
         "",
         "",
         "RAZEM:",
-        f"{total_netto:.2f} PLN",
-        f"{total_vat:.2f} PLN",
+
         f"{total_brutto:.2f} PLN",
     ])
 
@@ -2064,11 +2063,9 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
         data,
         colWidths=[
             1.0*cm,   # Lp
-            3.0*cm,   # Numer korekty
+            5.0*cm,   # Numer korekty
             2.2*cm,   # Data
-            6.0*cm,   # Nabywca
-            2.0*cm,   # Netto
-            2.0*cm,   # VAT
+            8.0*cm,   # Nabywca
             2.0*cm,   # Brutto
         ]
     )
