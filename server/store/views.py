@@ -1916,7 +1916,9 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
             str(i),
             inv.invoice_number,
             inv.created_at.strftime("%Y-%m-%d"),
-            inv.buyer_name,
+            buyer_name = inv.buyer_name
+            if len(buyer_name) > 30:
+                buyer_name = buyer_name[:30] + "..."
             f"{netto:.2f} PLN",
             f"{vat:.2f} PLN",
             f"{brutto:.2f} PLN",
