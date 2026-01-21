@@ -2027,16 +2027,10 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
     # Table data
     data = [["Lp.", "Numer korekty", "Data", "Nabywca", "Brutto"]]
 
-    total_netto = Decimal("0")
-    total_vat = Decimal("0")
     total_brutto = Decimal("0")
 
     for i, inv in enumerate(corrections, start=1):
         difference = inv.get_brutto_difference()
-
-        total_netto = Decimal("0")
-        total_vat = Decimal("0") 
-        total_brutto = Decimal("0")
 
         data.append([
             str(i),
