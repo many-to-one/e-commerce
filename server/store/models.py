@@ -740,6 +740,38 @@ class InvoiceCorrection(models.Model):
         verbose_name = "Korekta faktury"
         verbose_name_plural = "Korekty faktur"
 
+    
+    def get_brutto_difference(self):
+
+        # 1. Brutto przed korektą (z faktury głównej)
+        before = Decimal("0")
+        if self.main_invoice:
+            if self.main_invoice.allegro_order:
+                for item in self.main_invoice.allegro_order.items.all():
+                    price = Decimal(str(item.price_amount or 0))
+                    qty = Decimal(str(item.quantity or 0))
+                    before += price * qty
+
+                delivery = Decimal(str(self.main_invoice.allegro_order.delivery_cost or 0))
+                before += delivery
+
+            if self.main_invoice.shop_order:
+                if hasattr(self.main_invoice.shop_order, "total_brutto"):
+                    before += Decimal(str(self.main_invoice.shop_order.total_brutto or 0))
+                elif hasattr(self.main_invoice.shop_order, "total_price"):
+                    before += Decimal(str(self.main_invoice.shop_order.total_price or 0))
+
+        # 2. Brutto po korekcie (z JSON)
+        after = Decimal("0")
+        if self.products:
+            for p in self.products:
+                price = Decimal(str(p.get("price", {}).get("amount", 0)))
+                qty = Decimal(str(p.get("quantity", 0)))
+                after += price * qty
+
+        # 3. Różnica
+        return before - after
+
 
     def get_total_brutto(self):
         total = Decimal("0")

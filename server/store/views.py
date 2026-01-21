@@ -2032,22 +2032,20 @@ def generate_invoice_corrections_report_pdf(corrections, year, month, vendor, us
     total_brutto = Decimal("0")
 
     for i, inv in enumerate(corrections, start=1):
-        brutto = inv.get_total_brutto()
-        netto = brutto / Decimal("1.23")
-        vat = brutto - netto
+        difference = inv.get_brutto_difference()
 
-        total_netto += netto
-        total_vat += vat
-        total_brutto += brutto
+        total_netto = Decimal("0")
+        total_vat = Decimal("0") 
+        total_brutto = Decimal("0")
 
         data.append([
             str(i),
             inv.invoice_number,
             inv.created_at.strftime("%Y-%m-%d"),
             inv.buyer_name,
-            f"{netto:.2f} PLN",
-            f"{vat:.2f} PLN",
-            f"{brutto:.2f} PLN",
+            "-",
+            "-",
+            f"{difference:.2f} PLN",
         ])
 
     # Totals row
