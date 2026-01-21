@@ -490,7 +490,9 @@ def build_products_table(products, normal_style, allegro_order, tax_rate_default
         delivery_cost = float(allegro_order.delivery_cost or 0)
         if delivery_cost > 0 and not allegro_order.is_smart:
             transport_brutto = delivery_cost
-            transport_netto = transport_brutto / (1 + tax_rate / 100)
+            # transport_netto = transport_brutto / (1 + tax_rate / 100)
+            transport_tax = getattr(allegro_order, "tax_rate", tax_rate_default)
+            transport_netto = transport_brutto / (1 + transport_tax / 100)
             transport_vat = transport_brutto - transport_netto
             total_netto += transport_netto
             total_vat += transport_vat
