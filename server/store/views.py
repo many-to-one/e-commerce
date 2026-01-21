@@ -1739,14 +1739,16 @@ def invoice_report_form_view(request):
             # Debug: pokaż powiązane allegro_order
             print("Allegro orders:", list(invoices.values_list("allegro_order_id", flat=True)))
 
-            total = invoices.aggregate( 
-                total_brutto=Sum( 
-                    Coalesce(F("allegro_order__items__price_amount"), 0) 
-                    * Coalesce(F("allegro_order__items__quantity"), 0) 
-                    + Coalesce(F("allegro_order__delivery_cost"), 0), 
-                    output_field=DecimalField(max_digits=12, decimal_places=2) 
-                ) 
-            )["total_brutto"]
+            # total = invoices.aggregate( 
+            #     total_brutto=Sum( 
+            #         Coalesce(F("allegro_order__items__price_amount"), 0) 
+            #         * Coalesce(F("allegro_order__items__quantity"), 0) 
+            #         + Coalesce(F("allegro_order__delivery_cost"), 0), 
+            #         output_field=DecimalField(max_digits=12, decimal_places=2) 
+            #     ) 
+            # )["total_brutto"]
+
+            total = sum((inv.get_total_brutto() for inv in invoices), Decimal("0"))
 
             print("Raw total:", total)
 
@@ -1793,14 +1795,16 @@ def invoice_corrections_report_form_view(request):
 
             print("Corrections count:", corrections.count())
 
-            total = corrections.aggregate(
-                total_brutto=Sum(
-                    Coalesce(F("allegro_order__items__price_amount"), 0)
-                    * Coalesce(F("allegro_order__items__quantity"), 0)
-                    + Coalesce(F("allegro_order__delivery_cost"), 0),
-                    output_field=DecimalField(max_digits=12, decimal_places=2)
-                )
-            )["total_brutto"]
+            # total = corrections.aggregate(
+            #     total_brutto=Sum(
+            #         Coalesce(F("allegro_order__items__price_amount"), 0)
+            #         * Coalesce(F("allegro_order__items__quantity"), 0)
+            #         + Coalesce(F("allegro_order__delivery_cost"), 0),
+            #         output_field=DecimalField(max_digits=12, decimal_places=2)
+            #     )
+            # )["total_brutto"]
+
+            total = sum( (inv.get_brutto_difference() for inv in corrections), Decimal("0") )
 
             if total is None:
                 total = 0
