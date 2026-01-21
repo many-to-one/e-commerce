@@ -1777,8 +1777,6 @@ def invoice_report_result_view(request):
 
 
 
-
-
 def invoice_corrections_report_form_view(request):
     print("=== CORRECTIONS REPORT START ===")
     if request.method == "POST":
@@ -1787,27 +1785,17 @@ def invoice_corrections_report_form_view(request):
             year = int(form.cleaned_data["year"])
             month = int(form.cleaned_data["month"])
 
-            corrections = Invoice.objects.filter(
-                corrected=True,
+            corrections = InvoiceCorrection.objects.filter(
                 created_at__year=year,
-                created_at__month=month
+                created_at__month=month,
             )
 
             print("Corrections count:", corrections.count())
 
-            # total = corrections.aggregate(
-            #     total_brutto=Sum(
-            #         Coalesce(F("allegro_order__items__price_amount"), 0)
-            #         * Coalesce(F("allegro_order__items__quantity"), 0)
-            #         + Coalesce(F("allegro_order__delivery_cost"), 0),
-            #         output_field=DecimalField(max_digits=12, decimal_places=2)
-            #     )
-            # )["total_brutto"]
-
-            total = sum( (inv.get_brutto_difference() for inv in corrections), Decimal("0") )
-
-            if total is None:
-                total = 0
+            total = sum(
+                (inv.get_brutto_difference() for inv in corrections),
+                Decimal("0")
+            )
 
             return render(request, "admin/invoice_corrections_report_result.html", {
                 "corrections": corrections,
@@ -1819,6 +1807,7 @@ def invoice_corrections_report_form_view(request):
         form = InvoiceCorrectionsReportForm()
 
     return render(request, "admin/invoice_corrections_report_form.html", {"form": form})
+
 
 
 def invoice_corrections_report_result_view(request):
