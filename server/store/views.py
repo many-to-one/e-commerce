@@ -1804,7 +1804,7 @@ def invoice_corrections_report_form_view(request):
             #     )
             # )["total_brutto"]
 
-            total = sum( (inv.get_brutto_difference() for inv in corrections), Decimal("0") )
+            total = sum( (inv.get_total_brutto() for inv in corrections), Decimal("0") )
 
             if total is None:
                 total = 0
@@ -1908,7 +1908,7 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
     total_brutto = Decimal("0")
 
     for i, inv in enumerate(invoices, start=1):
-        brutto = inv.get_total_brutto()
+        brutto = inv.get_brutto_difference()
         netto = brutto / Decimal("1.23")
         vat = brutto - netto
 
