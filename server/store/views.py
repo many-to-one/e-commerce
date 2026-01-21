@@ -1804,7 +1804,7 @@ def invoice_corrections_report_form_view(request):
             #     )
             # )["total_brutto"]
 
-            total = sum( (inv.get_total_brutto() for inv in corrections), Decimal("0") )
+            total = sum( (inv.get_brutto_difference() for inv in corrections), Decimal("0") )
 
             if total is None:
                 total = 0
