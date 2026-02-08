@@ -2037,12 +2037,24 @@ class AllegroOrderAdmin(admin.ModelAdmin):
 
                         # Tworzenie produktu w www sklepie jeśli go tam nie ma
                         # w przypadku gdy był wystawiony tylko na all-ro
-                        product, _ = Product.objects.get_or_create(
-                            sku=external_id,
+                        # product, _ = Product.objects.get_or_create(
+                        #     sku=external_id,
 
-                        )
-                        product.title=offer_name
-                        product.save(update_fields=['title'])
+                        # )
+                        # product.title=offer_name
+                        # product.save(update_fields=['title'])
+
+                        product = Product.objects.filter(sku=external_id).first()
+
+                        if not product:
+                            product = Product.objects.create(
+                                sku=external_id,
+                                title=offer_name
+                            )
+                        else:
+                            product.title = offer_name
+                            product.save(update_fields=['title'])
+
 
                         AllegroOrderItem.objects.update_or_create(
                             order=allegro_order,
