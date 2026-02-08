@@ -719,7 +719,7 @@ class Invoice(models.Model):
 class InvoiceCorrection(models.Model):
     invoice_number = models.CharField("Numer korekty", max_length=100, unique=True, editable=False)
     main_invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="corrections", null=True, blank=True, verbose_name="Faktura główna")
-    created_at = models.DateTimeField("Data wygenerowania", auto_now_add=True)
+    created_at = models.DateTimeField("Data wygenerowania", default=timezone.now ) #auto_now_add=True
     # generated_at = models.DateTimeField("Data wygenerowania", null=True, blank=True)
     shop_order = models.ForeignKey("CartOrder", on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie sklepu")
     allegro_order = models.ForeignKey(AllegroOrder, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Zamówienie Allegro")

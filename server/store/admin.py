@@ -2780,7 +2780,7 @@ class InvoiceCorrectionAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = (
-        'invoice_number', 'created_at',
+        'invoice_number',
         'order_items_display', 'delivery_cost_display' # 'allegro_order', 
     )
 
