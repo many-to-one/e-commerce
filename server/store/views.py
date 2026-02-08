@@ -1897,7 +1897,7 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
     total_brutto = Decimal("0")
 
     for i, inv in enumerate(invoices, start=1):
-        brutto = inv.get_brutto_difference()
+        brutto = inv.get_total_brutto()
         netto = brutto / Decimal("1.23")
         vat = brutto - netto
 
