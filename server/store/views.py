@@ -1851,20 +1851,6 @@ def invoice_report_pdf_view(request):
     return response
 
 
-from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
-
-def calculate_netto_vat(brutto):
-    brutto = Decimal(str(brutto))
-
-    # Netto liczone od brutto, ale ZAOKRĄGLANE W DÓŁ
-    netto = (brutto / Decimal("1.23")).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
-
-    # VAT jako różnica (zawsze się zgadza z Allegro)
-    vat = (brutto - netto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    return netto, vat
-
-
 
 def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
     buffer = BytesIO()
@@ -1913,9 +1899,8 @@ def generate_invoice_report_pdf(invoices, year, month, vendor, user, total):
 
     for i, inv in enumerate(invoices, start=1):
         brutto = inv.get_total_brutto()
-        # netto = brutto / Decimal("1.23")
-        # vat = brutto - netto
-        netto, vat = calculate_netto_vat(brutto)
+        netto = brutto / Decimal("1.23")
+        vat = brutto - netto
 
         total_netto += netto
         total_vat += vat

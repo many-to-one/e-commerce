@@ -670,7 +670,7 @@ class Invoice(models.Model):
         verbose_name = "Faktura"
         verbose_name_plural = "Faktury"
 
-
+    
     def get_total_brutto(self):
         total = Decimal("0")
 
@@ -679,51 +679,19 @@ class Invoice(models.Model):
             for item in self.allegro_order.items.all():
                 price = Decimal(str(item.price_amount or 0))
                 qty = Decimal(str(item.quantity or 0))
-
-                line_total = (price * qty).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                total += line_total
+                total += price * qty
 
             delivery = Decimal(str(self.allegro_order.delivery_cost or 0))
-            delivery = delivery.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             total += delivery
 
-        # Sklep
+        # Sklep (jeśli masz takie pole)
         if self.shop_order:
             if hasattr(self.shop_order, "total_brutto"):
-                shop_total = Decimal(str(self.shop_order.total_brutto or 0))
+                total += Decimal(str(self.shop_order.total_brutto or 0))
             elif hasattr(self.shop_order, "total_price"):
-                shop_total = Decimal(str(self.shop_order.total_price or 0))
-            else:
-                shop_total = Decimal("0")
+                total += Decimal(str(self.shop_order.total_price or 0))
 
-            shop_total = shop_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            total += shop_total
-
-        return total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-
-    
-    # def get_total_brutto(self):
-    #     total = Decimal("0")
-
-    #     # Allegro
-    #     if self.allegro_order:
-    #         for item in self.allegro_order.items.all():
-    #             price = Decimal(str(item.price_amount or 0))
-    #             qty = Decimal(str(item.quantity or 0))
-    #             total += price * qty
-
-    #         delivery = Decimal(str(self.allegro_order.delivery_cost or 0))
-    #         total += delivery
-
-    #     # Sklep (jeśli masz takie pole)
-    #     if self.shop_order:
-    #         if hasattr(self.shop_order, "total_brutto"):
-    #             total += Decimal(str(self.shop_order.total_brutto or 0))
-    #         elif hasattr(self.shop_order, "total_price"):
-    #             total += Decimal(str(self.shop_order.total_price or 0))
-
-    #     return total
+        return total
     
 
     def save(self, *args, **kwargs):
